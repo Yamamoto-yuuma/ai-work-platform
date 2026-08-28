@@ -11,6 +11,8 @@ import { useNextAction, useActiveRules, useNow } from "@/ui/use-navigator";
 import { Badge, Card, LinkButton, SectionTitle, Empty } from "@/ui/primitives";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { progressOf, orderedSteps } from "@/core/flow/engine";
+import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
+import { TASK_STATUS_LABEL } from "@/core/model/task-labels";
 
 function fmt(d?: string) {
   if (!d) return "—";
@@ -158,16 +160,28 @@ export default function HomePage() {
               <Empty>今日が期限のタスクはありません</Empty>
             ) : (
               <ul className="flex flex-col gap-1.5">
-                {todayTasks.map((t) => (
-                  <li key={t.id}>
-                    <Link href={`/tasks/${t.id}`} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 hover:border-brand">
-                      <span className="flex-1 text-[13px]">{t.title}</span>
-                      <Badge tone={urgencyOf(t.dueAt, now) === "overdue" ? "danger" : "signal"}>
-                        {t.dueAt ? remainingLabel(new Date(t.dueAt), now) : "—"}
-                      </Badge>
-                    </Link>
-                  </li>
-                ))}
+                {todayTasks.map((t) => {
+                  // 期限が今日でも、先行待ちなら着手できない。同じ判定を全画面で共有する
+                  const waiting = blockingPredecessors(t, state.tasks);
+                  const shown = effectiveStatus(t, state.tasks);
+                  return (
+                    <li key={t.id}>
+                      <Link href={`/tasks/${t.id}`} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 hover:border-brand">
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13px]">{t.title}</span>
+                          {waiting.length > 0 && (
+                            <span className="mt-0.5 block text-[11.5px] text-danger">
+                              {TASK_STATUS_LABEL[shown]} — 待機中：{waiting.map((x) => x.title).join(" / ")}
+                            </span>
+                          )}
+                        </span>
+                        <Badge tone={urgencyOf(t.dueAt, now) === "overdue" ? "danger" : "signal"}>
+                          {t.dueAt ? remainingLabel(new Date(t.dueAt), now) : "—"}
+                        </Badge>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

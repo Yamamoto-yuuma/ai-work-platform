@@ -12,6 +12,7 @@ import { newTaskFromDraft } from "@/core/model/task-draft";
 import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
+import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import type { Task } from "@/core/model/types";
 
@@ -72,7 +73,8 @@ function TasksInner() {
 
   function TaskRow({ t }: { t: Task }) {
     const u = urgencyOf(t.dueAt, now);
-    const blocked = t.dependsOn.some((id) => state.tasks.find((x) => x.id === id)?.status !== "done");
+    const blockedBy = blockingPredecessors(t, state.tasks);
+    const shownStatus = effectiveStatus(t, state.tasks);
     const assignee = users.find((x) => x.id === t.assigneeId);
     const isMine = t.assigneeId === state.currentUserId;
     const priorityLabel = TASK_PRIORITIES.find((x) => x.value === t.priority)?.label ?? t.priority;
@@ -97,22 +99,28 @@ function TasksInner() {
                 {t.source === "derived" && <Badge tone="ai">{TASK_SOURCE_LABEL.derived}</Badge>}
                 {t.source === "manual" && <Badge>{TASK_SOURCE_LABEL.manual}</Badge>}
                 {t.source === "flow" && <Badge tone="brand">{TASK_SOURCE_LABEL.flow}</Badge>}
-                {blocked && <Badge tone="neutral">依存待ち</Badge>}
+
                 {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
               </span>
               {t.description && <span className="mt-0.5 block truncate text-[11.5px] text-ink-3">{t.description}</span>}
 
               {/* ステータス・優先度・担当者。主役はタスク名なので視覚的に弱める */}
               <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-3">
-                <span className="flex items-center gap-1.5">
-                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[t.status]}`} aria-hidden />
-                  {TASK_STATUS_LABEL[t.status]}
+                <span className={`flex items-center gap-1.5 ${shownStatus === "blocked" ? "font-medium text-danger" : ""}`}>
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
+                  {TASK_STATUS_LABEL[shownStatus]}
                 </span>
                 <span>優先度 {priorityLabel}</span>
                 <span className={isMine ? "font-medium text-brand" : undefined}>
                   担当 {assignee?.name ?? "未割当"}{isMine && "（自分）"}
                 </span>
               </span>
+
+              {blockedBy.length > 0 && (
+                <span className="mt-1 block text-[11.5px] text-danger">
+                  待機中：{blockedBy.map((x) => x.title).join(" / ")}
+                </span>
+              )}
             </span>
 
             {t.dueAt && (

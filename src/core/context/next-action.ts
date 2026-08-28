@@ -9,6 +9,7 @@ import type {
   NextAction, StepRun, Task, WorkRun, WorkflowDefinition, StepDefinition,
 } from "../model/types";
 import { getStep } from "../flow/engine";
+import { isBlocked } from "../task/dependency";
 import { urgencyOf, remainingLabel } from "./resolver";
 
 const URGENCY_SCORE = { overdue: 1000, today: 500, soon: 200, normal: 0 } as const;
@@ -98,11 +99,8 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     if (task.confirmationState !== "confirmed") continue;
     if (task.assigneeId !== userId) continue;
     if (task.status === "done" || task.status === "canceled") continue;
-    const blocked = task.dependsOn.some((id) => {
-      const dep = tasks.find((t) => t.id === id);
-      return dep && dep.status !== "done";
-    });
-    if (blocked) continue;
+    // ブロック判定は core/task/dependency に一元化している（画面間で判定を揃えるため）
+    if (isBlocked(task, tasks)) continue;
 
     const urgency = urgencyOf(task.dueAt, now);
     actions.push({
