@@ -9,8 +9,8 @@ import { Badge, Button, Card, LinkButton, PageHeader } from "@/ui/primitives";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
-import { TaskEditForm } from "@/ui/task-edit-form";
-import { TASK_PRIORITIES } from "@/core/model/task-edit";
+import { TaskForm } from "@/ui/task-form";
+import { TASK_PRIORITIES, patchFromDraft } from "@/core/model/task-draft";
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = use(params);
@@ -71,6 +71,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         </Badge>
         <Badge>担当：{users.find((u) => u.id === task.assigneeId)?.name ?? "未割当"}</Badge>
         {task.source === "derived" && <Badge tone="ai">派生タスク</Badge>}
+        {task.source === "manual" && <Badge>手動作成</Badge>}
+        {task.source === "flow" && <Badge tone="brand">業務フロー由来</Badge>}
         {task.dueAt ? (
           <Badge tone={urgencyOf(task.dueAt, now) === "overdue" ? "danger" : "brand"}>
             期限 {new Date(task.dueAt).toLocaleDateString("ja-JP")}（{remainingLabel(new Date(task.dueAt), now)}）
@@ -87,11 +89,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
       )}
 
       {editing && (
-        <TaskEditForm
-          task={task}
+        <TaskForm
+          mode={{ kind: "edit", task }}
           users={users}
-          onSave={(patch) => {
-            dispatch({ type: "updateTask", taskId: task.id, patch });
+          onSubmit={(draft) => {
+            dispatch({ type: "updateTask", taskId: task.id, patch: patchFromDraft(draft, task) });
             setEditing(false);
             setSaved(true);
           }}

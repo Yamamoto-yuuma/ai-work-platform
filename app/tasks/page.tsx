@@ -2,11 +2,14 @@
 
 /** タスク一覧（仕様 §9-5）。提案中のタスクは確定済みと明確に区別する */
 import { Suspense, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNow } from "@/ui/use-navigator";
+import Link from "next/link";
 import { Badge, Button, Card, Empty, PageHeader } from "@/ui/primitives";
+import { TaskForm } from "@/ui/task-form";
+import { newTaskFromDraft } from "@/core/model/task-draft";
+import { newTaskId } from "@/lib/id";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import type { Task } from "@/core/model/types";
 
@@ -24,8 +27,10 @@ type ViewKey = (typeof VIEWS)[number]["key"];
 
 function TasksInner() {
   const search = useSearchParams();
-  const { state, dispatch, workflows } = useStore();
+  const { state, dispatch, workflows, users } = useStore();
   const [view, setView] = useState<ViewKey>((search.get("view") as ViewKey) ?? "today");
+  const [creating, setCreating] = useState(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const now = useNow();
 
   const open = state.tasks.filter((t) => t.confirmationState !== "rejected");
@@ -61,7 +66,11 @@ function TasksInner() {
         <Link
           href={`/tasks/${t.id}`}
           className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors hover:border-brand ${
-            t.confirmationState === "proposed" ? "border-signal/40 bg-signal-soft" : "border-line bg-surface"
+            t.id === createdId
+              ? "border-ok bg-ok-soft"
+              : t.confirmationState === "proposed"
+                ? "border-signal/40 bg-signal-soft"
+                : "border-line bg-surface"
           }`}
         >
           <span className="min-w-0 flex-1">
@@ -69,6 +78,8 @@ function TasksInner() {
               <span className={`text-[13px] ${t.status === "done" ? "text-ink-3 line-through" : "font-medium"}`}>{t.title}</span>
               {t.confirmationState === "proposed" && <Badge tone="signal">提案中</Badge>}
               {t.source === "derived" && <Badge tone="ai">派生</Badge>}
+              {t.source === "manual" && <Badge>手動</Badge>}
+              {t.source === "flow" && <Badge tone="brand">業務</Badge>}
               {blocked && <Badge tone="neutral">依存待ち</Badge>}
               {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
             </span>
@@ -86,7 +97,40 @@ function TasksInner() {
 
   return (
     <div className="mx-auto max-w-[1000px] px-6 py-6">
-      <PageHeader title="タスク" description="業務フローと紐付いたタスクです。一般的なTodoではなく、タスクから業務を開始できます。" />
+      <PageHeader
+        title="タスク"
+        description="業務フローと紐付いたタスクです。一般的なTodoではなく、タスクから業務を開始できます。"
+        action={
+          !creating && (
+            <Button onClick={() => { setCreating(true); setCreatedId(null); }}>＋ タスクを追加</Button>
+          )
+        }
+      />
+
+      {creating && (
+        <TaskForm
+          mode={{ kind: "create", defaultAssigneeId: state.currentUserId }}
+          users={users}
+          onSubmit={(draft) => {
+            const task = newTaskFromDraft(draft, newTaskId());
+            dispatch({ type: "addTasks", tasks: [task] });
+            setCreating(false);
+            setCreatedId(task.id);
+            // 作成したタスクが今のビューの条件から外れて見失わないようにする
+            setView("all");
+          }}
+          onCancel={() => setCreating(false)}
+        />
+      )}
+
+      {createdId && !creating && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-ok/40 bg-ok-soft px-4 py-2.5">
+          <span className="text-[12.5px] font-medium text-ok">タスクを作成しました</span>
+          <Link href={`/tasks/${createdId}`} className="text-[12.5px] text-brand hover:underline">
+            作成したタスクを開く →
+          </Link>
+        </div>
+      )}
 
       {proposed.length > 0 && view !== "proposed" && (
         <Card className="mb-5 border-signal/40 bg-signal-soft p-4">

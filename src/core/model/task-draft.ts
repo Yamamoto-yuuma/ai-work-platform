@@ -1,8 +1,9 @@
 /**
- * タスク編集の入力値と検証（仕様 §9-2）。
+ * タスクの入力値と検証（仕様 §9-2）。
  *
- * framework 非依存の純粋関数。UI はここが返す結果を表示するだけにする。
- * 生成系（業務フロー由来・派生ルール由来）のロジックには触れない。
+ * 手動作成と編集の双方が同じ入力ルールを使うための共通モジュール。
+ * framework 非依存の純粋関数で、UI はここが返す結果を表示するだけにする。
+ * 自動生成系（業務フロー由来・派生ルール由来）のロジックには触れない。
  */
 import type { Task, TaskPriority, User } from "./types";
 
@@ -16,8 +17,8 @@ export const TASK_PRIORITIES: { value: TaskPriority; label: string }[] = [
 export const TITLE_MAX = 100;
 export const DESCRIPTION_MAX = 500;
 
-/** 編集フォームが扱う値。すべて文字列で保持し、保存時に Task へ変換する */
-export interface TaskEditDraft {
+/** フォームが扱う値。すべて文字列で保持し、保存時に Task へ変換する */
+export interface TaskDraft {
   title: string;
   description: string;
   /** input[type=date] の値（YYYY-MM-DD）。空文字は「期限なし」 */
@@ -26,8 +27,8 @@ export interface TaskEditDraft {
   priority: TaskPriority;
 }
 
-export interface TaskEditError {
-  field: keyof TaskEditDraft;
+export interface TaskDraftError {
+  field: keyof TaskDraft;
   message: string;
 }
 
@@ -62,7 +63,7 @@ export function fromDateInputValue(value: string, previousIso?: string): string 
   return Number.isNaN(next.getTime()) ? undefined : next.toISOString();
 }
 
-export function draftFromTask(task: Task): TaskEditDraft {
+export function draftFromTask(task: Task): TaskDraft {
   return {
     title: task.title,
     description: task.description ?? "",
@@ -72,8 +73,8 @@ export function draftFromTask(task: Task): TaskEditDraft {
   };
 }
 
-export function validateTaskEdit(draft: TaskEditDraft, users: User[]): TaskEditError[] {
-  const errors: TaskEditError[] = [];
+export function validateTaskDraft(draft: TaskDraft, users: User[]): TaskDraftError[] {
+  const errors: TaskDraftError[] = [];
   const title = draft.title.trim();
 
   if (title.length === 0) {
@@ -111,7 +112,7 @@ export function validateTaskEdit(draft: TaskEditDraft, users: User[]): TaskEditE
  * 検証済みの入力値から、updateTask に渡す差分を作る。
  * 編集対象の5項目だけを返し、由来・依存・業務との紐付けには触れない。
  */
-export function patchFromDraft(draft: TaskEditDraft, task: Task): Partial<Task> {
+export function patchFromDraft(draft: TaskDraft, task: Task): Partial<Task> {
   const description = draft.description.trim();
   return {
     title: draft.title.trim(),
@@ -123,7 +124,7 @@ export function patchFromDraft(draft: TaskEditDraft, task: Task): Partial<Task> 
 }
 
 /** 入力に変更があるか（保存ボタンの活性判定に使う） */
-export function isDirty(draft: TaskEditDraft, task: Task): boolean {
+export function isDirty(draft: TaskDraft, task: Task): boolean {
   const base = draftFromTask(task);
   return (
     base.title !== draft.title ||
@@ -132,4 +133,32 @@ export function isDirty(draft: TaskEditDraft, task: Task): boolean {
     base.assigneeId !== draft.assigneeId ||
     base.priority !== draft.priority
   );
+}
+
+/** 新規作成フォームの初期値 */
+export function emptyTaskDraft(assigneeId: string): TaskDraft {
+  return { title: "", description: "", dueAt: "", assigneeId, priority: "normal" };
+}
+
+/**
+ * 検証済みの入力値から、手動作成タスクを組み立てる。
+ * 由来（originEventId / derivationRuleId など）は設定しない。
+ * 自動生成タスクと区別するため source は "manual" とし、承認ゲートは通さない
+ * （提案中は自動生成タスクのための状態であり、人が意図して作ったものは確定済みとする）。
+ */
+export function newTaskFromDraft(draft: TaskDraft, id: string): Task {
+  const description = draft.description.trim();
+  return {
+    id,
+    title: draft.title.trim(),
+    description: description.length > 0 ? description : undefined,
+    status: "todo",
+    priority: draft.priority,
+    assigneeId: draft.assigneeId,
+    dueAt: fromDateInputValue(draft.dueAt),
+    source: "manual",
+    confirmationState: "confirmed",
+    dependsOn: [],
+    createdAt: new Date().toISOString(),
+  };
 }

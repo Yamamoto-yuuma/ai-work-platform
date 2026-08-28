@@ -1,17 +1,18 @@
 "use client";
 
 /**
- * タスク編集フォーム（仕様 §9-2）。
- * 編集できるのはタスク名・説明・期限・担当者・優先度の5項目のみ。
+ * タスクの入力フォーム（仕様 §9-2）。
+ * 手動作成と編集で同じ入力ルール・同じ検証・同じ見た目を使う。
+ * 扱うのはタスク名・説明・期限・担当者・優先度の5項目のみで、
  * 由来（派生元・業務フロー）や依存関係には触れない。
  */
 import { useState } from "react";
 import type { Task, User } from "@/core/model/types";
 import {
   TASK_PRIORITIES, TITLE_MAX, DESCRIPTION_MAX,
-  draftFromTask, isDirty, patchFromDraft, validateTaskEdit,
-  type TaskEditDraft, type TaskEditError,
-} from "@/core/model/task-edit";
+  draftFromTask, emptyTaskDraft, isDirty, validateTaskDraft,
+  type TaskDraft, type TaskDraftError,
+} from "@/core/model/task-draft";
 import { Button, Card } from "./primitives";
 
 const INPUT =
@@ -40,41 +41,52 @@ function Field({
   );
 }
 
-export function TaskEditForm({
-  task, users, onSave, onCancel,
+export type TaskFormMode =
+  | { kind: "edit"; task: Task }
+  | { kind: "create"; defaultAssigneeId: string };
+
+export function TaskForm({
+  mode, users, onSubmit, onCancel,
 }: {
-  task: Task;
+  mode: TaskFormMode;
   users: User[];
-  onSave: (patch: Partial<Task>) => void;
+  /** 検証を通った入力値だけが渡ってくる */
+  onSubmit: (draft: TaskDraft) => void;
   onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState<TaskEditDraft>(() => draftFromTask(task));
-  const [errors, setErrors] = useState<TaskEditError[]>([]);
+  const isEdit = mode.kind === "edit";
+  const [draft, setDraft] = useState<TaskDraft>(() =>
+    mode.kind === "edit" ? draftFromTask(mode.task) : emptyTaskDraft(mode.defaultAssigneeId),
+  );
+  const [errors, setErrors] = useState<TaskDraftError[]>([]);
   const [touched, setTouched] = useState(false);
 
-  const errorOf = (f: keyof TaskEditDraft) => errors.find((e) => e.field === f)?.message;
-  const set = <K extends keyof TaskEditDraft>(k: K, v: TaskEditDraft[K]) => {
+  const errorOf = (f: keyof TaskDraft) => errors.find((e) => e.field === f)?.message;
+  const set = <K extends keyof TaskDraft>(k: K, v: TaskDraft[K]) => {
     setDraft((d) => ({ ...d, [k]: v }));
-    if (touched) setErrors(validateTaskEdit({ ...draft, [k]: v }, users));
+    if (touched) setErrors(validateTaskDraft({ ...draft, [k]: v }, users));
   };
 
-  function save() {
+  function submit() {
     setTouched(true);
-    const found = validateTaskEdit(draft, users);
+    const found = validateTaskDraft(draft, users);
     setErrors(found);
     if (found.length > 0) return;
-    onSave(patchFromDraft(draft, task));
+    onSubmit(draft);
   }
 
-  const border = (f: keyof TaskEditDraft) => (errorOf(f) ? "border-danger" : "border-line");
-  const dirty = isDirty(draft, task);
+  const border = (f: keyof TaskDraft) => (errorOf(f) ? "border-danger" : "border-line");
+  // 編集は「変更があるとき」だけ保存できる。新規作成は常に押せて、検証で弾く。
+  const dirty = mode.kind === "edit" ? isDirty(draft, mode.task) : true;
 
   return (
     <Card className="mb-5 p-5">
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 className="text-[14px] font-bold">タスクを編集</h2>
+        <h2 className="text-[14px] font-bold">{isEdit ? "タスクを編集" : "タスクを追加"}</h2>
         <span className="text-[11.5px] text-ink-3">
-          由来・依存関係・業務との紐付けは変更されません
+          {isEdit
+            ? "由来・依存関係・業務との紐付けは変更されません"
+            : "手動で作成したタスクとして登録されます"}
         </span>
       </div>
 
@@ -136,7 +148,7 @@ export function TaskEditForm({
           <Field label="優先度" required error={errorOf("priority")}>
             <select
               value={draft.priority}
-              onChange={(e) => set("priority", e.target.value as TaskEditDraft["priority"])}
+              onChange={(e) => set("priority", e.target.value as TaskDraft["priority"])}
               className={`${INPUT} ${border("priority")}`}
               aria-label="優先度"
             >
@@ -160,9 +172,11 @@ export function TaskEditForm({
       )}
 
       <div className="mt-5 flex items-center gap-2">
-        <Button onClick={save} disabled={!dirty}>変更を保存</Button>
+        <Button onClick={submit} disabled={!dirty}>
+          {isEdit ? "変更を保存" : "タスクを作成"}
+        </Button>
         <Button variant="secondary" onClick={onCancel}>キャンセル</Button>
-        {!dirty && <span className="text-[12px] text-ink-3">変更はありません</span>}
+        {isEdit && !dirty && <span className="text-[12px] text-ink-3">変更はありません</span>}
       </div>
     </Card>
   );
