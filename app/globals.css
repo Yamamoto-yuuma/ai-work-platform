@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #14181d;
+  --color-ink-2: #4a5560;
+  --color-ink-3: #78848f;
+  --color-paper: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef2f5;
+  --color-line: #dbe2e8;
+  --color-line-soft: #e9eef2;
+  --color-brand: #1d5a78;
+  --color-brand-soft: #dcecf4;
+  --color-brand-ink: #10405a;
+  --color-signal: #9a5312;
+  --color-signal-soft: #fbeada;
+  --color-danger: #a32d2d;
+  --color-danger-soft: #fbe3e3;
+  --color-ok: #256b4c;
+  --color-ok-soft: #dcf0e6;
+  --color-ai: #5a4a8c;
+  --color-ai-soft: #e9e4f5;
+
+  --font-sans: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "palt" 1;
+  -webkit-font-smoothing: antialiased;
+}
+* { box-sizing: border-box; }
+
+/* STEPレールの縦線 */
+.rail-line::before {
+  content: "";
+  position: absolute;
+  left: 11px; top: 24px; bottom: -8px;
+  width: 2px;
+  background: var(--color-line);
+}
+.rail-line.is-done::before { background: var(--color-ok); }
