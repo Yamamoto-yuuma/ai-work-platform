@@ -157,6 +157,39 @@ export function progressOf(def: WorkflowDefinition, stepRuns: StepRun[]): { done
   return { done, total };
 }
 
+/**
+ * 実行予定の STEP（仕様 §6-2 の「進捗 n/N」の分母）。
+ * 分岐ノードと、条件によって確定スキップされた STEP は数えない。
+ */
+export function plannedSteps(def: WorkflowDefinition, stepRuns: StepRun[]): StepDefinition[] {
+  return orderedSteps(def).filter((s) => {
+    if (s.componentType === "branch") return false;
+    return stepRuns.find((sr) => sr.stepKey === s.key)?.status !== "skipped";
+  });
+}
+
+/**
+ * 実行予定 STEP の中での現在位置（1 始まり）と総数。
+ * 現在 STEP が実行予定に含まれない場合は、完了済み数 + 1 を位置とする。
+ */
+export function stepPosition(
+  def: WorkflowDefinition,
+  stepRuns: StepRun[],
+  currentStepKey: string | null | undefined,
+): { index: number; total: number } {
+  const planned = plannedSteps(def, stepRuns);
+  const total = planned.length;
+  if (total === 0) return { index: 0, total: 0 };
+
+  const at = currentStepKey ? planned.findIndex((s) => s.key === currentStepKey) : -1;
+  if (at >= 0) return { index: at + 1, total };
+
+  const done = planned.filter(
+    (s) => stepRuns.find((sr) => sr.stepKey === s.key)?.status === "done",
+  ).length;
+  return { index: Math.min(done + 1, total), total };
+}
+
 /** STEP を並び順（トポロジカル順）に整列する。マップ描画とレール表示に使う */
 export function orderedSteps(def: WorkflowDefinition): StepDefinition[] {
   const indeg = new Map<string, number>();

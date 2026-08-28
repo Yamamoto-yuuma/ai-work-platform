@@ -51,6 +51,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
       assigneeId: state.currentUserId,
       // タスクから開始した業務は、タスクの表題と期限を引き継ぐ
       override: { label: task.title, dueAt: task.dueAt },
+      now,
     });
     dispatch({ type: "startRun", run, stepRuns });
     dispatch({ type: "updateTask", taskId: task.id, patch: { runId: run.id, status: "doing" } });

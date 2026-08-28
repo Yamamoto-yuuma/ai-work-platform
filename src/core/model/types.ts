@@ -383,13 +383,23 @@ export interface MissingField {
   reason: string;
 }
 
+export interface DeadlineView {
+  dueAt: string;
+  remainingLabel: string;
+  isOverdue: boolean;
+}
+
 export interface StepContext {
   rules: BusinessRule[];
   notices: EffectiveStep["notices"];
   knowledge: KnowledgeItem[];
+  /** 業務完遂に必要だが、まだ取得できていない業務情報（仕様 §8-5） */
   missingInfo: MissingField[];
   derivedTasks: Task[];
-  deadline?: { dueAt: string; remainingLabel: string; isOverdue: boolean };
+  /** 業務全体の期限 */
+  deadline?: DeadlineView;
+  /** このSTEPの期限（仕様 §15-2）。deadlineRule が無い STEP では未設定 */
+  stepDeadline?: DeadlineView;
   tools: { label: string; available: boolean; reason?: string }[];
   conflicts: RuleConflict[];
 }

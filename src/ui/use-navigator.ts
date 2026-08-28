@@ -89,8 +89,8 @@ export function useStepView(view: RunView | null, stepKey: string | undefined) {
     const conflicts = detectConflicts(rules);
 
     const context = resolveStepContext({
-      workflow: view.def, run: view.run, effectiveStep: effective, stepRun,
-      knowledge, tasks: state.tasks, conflicts, scope: view.scope, now,
+      workflow: view.def, run: view.run, effectiveStep: effective,
+      knowledge, tasks: state.tasks, conflicts, now,
     });
 
     const completion = checkStepCompletion(

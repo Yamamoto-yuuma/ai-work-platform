@@ -37,13 +37,15 @@ export interface StartRunInput {
   assigneeId: string;
   /** タスクから開始した場合など、対象名や期限を引き継ぐ */
   override?: { label?: string; customerId?: string; dueAt?: string };
+  /** 業務日。設定のデモ用日付を反映するため、呼び出し側から渡す */
+  now?: Date;
 }
 
-export function buildRun({ def, customers, assigneeId, override }: StartRunInput): {
+export function buildRun({ def, customers, assigneeId, override, now }: StartRunInput): {
   run: WorkRun;
   stepRuns: StepRun[];
 } {
-  const startedAt = new Date().toISOString();
+  const startedAt = (now ?? new Date()).toISOString();
   const id = `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const first = orderedSteps(def)[0];
   const subject = deriveSubject(def, customers, override);

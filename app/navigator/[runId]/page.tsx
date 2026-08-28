@@ -8,8 +8,9 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
-import { useRunView, useStepView, useNextStepPreview } from "@/ui/use-navigator";
-import { resolveNextSteps, getStep, isRunComplete } from "@/core/flow/engine";
+import { useRunView, useStepView, useNextStepPreview, useNow } from "@/ui/use-navigator";
+import { resolveNextSteps, getStep, isRunComplete, stepPosition } from "@/core/flow/engine";
+import { describeStepAction } from "@/core/context/step-action";
 import { StepRenderer } from "@/ui/step-renderers";
 import { ContextPanel } from "@/ui/context-panel";
 import { Badge, Button, Card, LinkButton } from "@/ui/primitives";
@@ -28,7 +29,8 @@ const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
 
 export default function NavigatorPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = use(params);
-  const { dispatch } = useStore();
+  const { dispatch, users, currentUser } = useStore();
+  const now = useNow();
   const view = useRunView(runId);
 
   // 表示中のSTEP（現在STEPが複数ある場合は切り替えられる）
@@ -48,8 +50,11 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
     );
   }
 
-  const { run, def, ordered, progress, statusOf } = view;
+  const { run, def, ordered, statusOf } = view;
   const isDone = run.status === "done";
+  // 進捗は「実行予定のSTEP」を母数にする（分岐ノード・スキップ済みを除く／仕様 §6-2）
+  const position = stepPosition(def, view.stepRuns, isDone ? null : activeKey);
+  const assignee = users.find((u) => u.id === run.assigneeId);
 
   function complete() {
     if (!stepView || !activeKey || !view) return;
@@ -97,7 +102,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
 
     // STEP の定義に沿って実際のタスクを作る。ID は決定的なので再完了しても重複しない
     const generated = generateStepTasks({
-      step: stepView.step, stepRun: stepView.stepRun, run, now: new Date(),
+      step: stepView.step, stepRun: stepView.stepRun, run, now,
     });
     if (generated.length > 0) dispatch({ type: "addTasks", tasks: generated });
 
@@ -122,19 +127,26 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
             <p className="mt-0.5 text-[13px] text-ink-2">{def.name}</p>
           </div>
           <div className="flex items-center gap-3">
+            <span className="text-[12.5px] text-ink-2">
+              担当：{assignee ? assignee.name : "未割当"}
+              {assignee && assignee.id === currentUser.id && (
+                <span className="ml-1 text-[11px] font-bold text-brand">（自分）</span>
+              )}
+            </span>
             {run.dueAt && (
-              <Badge tone={new Date(run.dueAt) < new Date() ? "danger" : "brand"}>
+              <Badge tone={new Date(run.dueAt) < now ? "danger" : "brand"}>
                 期限 {new Date(run.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
+                {new Date(run.dueAt) < now && "（超過）"}
               </Badge>
             )}
             <span className="text-[13px] font-medium tabular-nums">
-              STEP {progress.done} / {progress.total}
+              STEP {position.index} / {position.total}
             </span>
             <LinkButton href={`/map/${run.id}`} variant="secondary" size="sm">業務マップ</LinkButton>
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
-          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${position.total === 0 ? 0 : ((isDone ? position.total : position.index - 1) / position.total) * 100}%` }} />
         </div>
       </header>
 
@@ -192,6 +204,13 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   </div>
                   <h2 className="mt-2 text-[17px] font-bold tracking-tight">{stepView.step.title}</h2>
                   <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
+                  {stepView.context.stepDeadline && (
+                    <p className={`mt-1.5 text-[12.5px] font-medium ${stepView.context.stepDeadline.isOverdue ? "text-danger" : "text-ink-2"}`}>
+                      このSTEPの期限：
+                      {new Date(stepView.context.stepDeadline.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
+                      （{stepView.context.stepDeadline.remainingLabel}）
+                    </p>
+                  )}
                 </div>
                 <div className="p-5">
                   <StepRenderer
@@ -240,7 +259,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold tracking-wide text-brand">次にやること</p>
                   <p className="mt-0.5 text-[14px] font-bold leading-snug text-brand-ink">
-                    {stepView.step.title}：{stepView.step.guidance}
+                    {describeStepAction(stepView.effective, stepView.stepRun, stepView.completion)}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">

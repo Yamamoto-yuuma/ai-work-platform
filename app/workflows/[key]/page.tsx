@@ -5,7 +5,7 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
-import { useWorkflows, useActiveRules } from "@/ui/use-navigator";
+import { useWorkflows, useActiveRules, useNow } from "@/ui/use-navigator";
 import { Badge, Button, Card, PageHeader, LinkButton } from "@/ui/primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { orderedSteps, outgoingEdges } from "@/core/flow/engine";
@@ -17,6 +17,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
   const workflows = useWorkflows();
   const { state, dispatch, customers } = useStore();
   const { active: activeRules } = useActiveRules();
+  const now = useNow();
 
   const def = workflows.find((w) => w.key === key);
   if (!def) return <div className="p-8 text-[13px]">業務フローが見つかりません。</div>;
@@ -30,7 +31,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
   function start() {
     if (!def) return;
     const { run, stepRuns } = buildRun({
-      def, customers, assigneeId: state.currentUserId,
+      def, customers, assigneeId: state.currentUserId, now,
     });
     dispatch({ type: "startRun", run, stepRuns });
     router.push(`/navigator/${run.id}`);

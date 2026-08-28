@@ -11,6 +11,8 @@ import { Badge, Button, NotConnected } from "./primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { readTemplates, isTemplateSelected, resolveTemplateDue } from "@/core/task/from-step";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
+import { resolveEmailDraft } from "@/core/message/email-draft";
+import { getStep, orderedSteps } from "@/core/flow/engine";
 
 export interface StepRendererProps {
   step: EffectiveStep;
@@ -220,33 +222,19 @@ function CompanySearchRenderer({ step, stepRun, onOutput }: StepRendererProps) {
 // --- メール作成 --------------------------------------------------------------
 function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
   const { emailTemplates, customers } = useStore();
-  const templateId = String(step.config.templateId ?? "");
-  const template = emailTemplates.find((t) => t.id === templateId) ?? emailTemplates[0];
-  const customer = customers.find((c) => c.id === run.context.customerId);
+  const draft = resolveEmailDraft({ step, stepRun, run, templates: emailTemplates, customers });
+  if (!draft) return <p className="text-[13px] text-ink-3">利用できるテンプレートがありません。</p>;
 
-  const values: Record<string, string> = {
-    "customer.contactName": customer?.contactName ?? "",
-    "customer.name": customer?.name ?? "",
-    "company.name": customer?.name ?? "",
-    "company.industry": customer?.industry ?? "",
-    "service": String(run.context.service ?? ""),
-    "theme": String(run.context.theme ?? ""),
-  };
-
-  const fill = (text: string) =>
-    text.replace(/\{\{([\w.]+)\}\}/g, (_, k: string) => values[k] || `〔${k} 未設定〕`);
-
-  const missing = template.variables.filter((v) => !values[v]);
-  const subject = String(stepRun.output.subject ?? fill(template.subject));
-  const body = String(stepRun.output.body ?? fill(template.body));
+  const { subject, body, missingVariables: missing } = draft;
 
   return (
     <div className="flex flex-col gap-4">
       <NotConnected label="Gmail" phase="Phase 7" />
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[12px] text-ink-3">テンプレート</span>
-        <Badge tone="brand">{template.name}</Badge>
-        <Badge>トーン：{template.tone}</Badge>
+        <Badge tone="brand">{draft.templateName}</Badge>
+        <span className="text-[12px] text-ink-3">宛先</span>
+        <Badge>{draft.recipient}</Badge>
       </div>
 
       {missing.length > 0 && (
@@ -378,7 +366,92 @@ function CalendarRenderer({ step, run }: StepRendererProps) {
 }
 
 // --- 承認 / 送信確認 ---------------------------------------------------------
-function ApprovalRenderer({ step, stepRun, onCheck }: StepRendererProps) {
+/**
+ * 確認STEP（approval）で「何を確認するのか」を表示する。
+ *
+ * どのSTEPの成果物を確認するかは step.config.reviewStepKey で指定する。
+ * 未指定の場合は、直前までに完了した email-compose STEP を後ろから探す。
+ * ここでは表示のみを行い、メールの実送信は行わない。
+ */
+function ReviewTarget({ step, run }: { step: EffectiveStep; run: WorkRun }) {
+  const { state, workflows, emailTemplates, customers } = useStore();
+
+  const def =
+    workflows.find((w) => w.key === run.workflowKey && w.version === run.workflowVersion) ??
+    workflows.find((w) => w.key === run.workflowKey);
+  if (!def) return null;
+
+  const stepRuns = state.stepRunsByRun[run.id] ?? [];
+  const explicitKey = step.config.reviewStepKey ? String(step.config.reviewStepKey) : null;
+
+  const target = explicitKey
+    ? getStep(def, explicitKey)
+    : [...orderedSteps(def)]
+        .reverse()
+        .find(
+          (s) =>
+            s.componentType === "email-compose" &&
+            stepRuns.find((sr) => sr.stepKey === s.key)?.status === "done",
+        );
+
+  if (!target) {
+    return (
+      <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px] text-ink-2">
+        確認対象の成果物が見つかりませんでした。前のSTEPの内容を確認してください。
+      </div>
+    );
+  }
+
+  const targetRun = stepRuns.find((sr) => sr.stepKey === target.key);
+  if (target.componentType !== "email-compose" || !targetRun) return null;
+
+  const draft = resolveEmailDraft({
+    step: target, stepRun: targetRun, run, templates: emailTemplates, customers,
+  });
+  if (!draft) return null;
+
+  return (
+    <section className="rounded-lg border border-line bg-surface">
+      <header className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-2 px-3.5 py-2.5">
+        <span className="text-[12px] font-bold text-ink-2">確認する内容</span>
+        <Badge tone="brand">{target.title}</Badge>
+        <Badge>{draft.edited ? "編集済み" : "テンプレートのまま"}</Badge>
+      </header>
+
+      {draft.missingVariables.length > 0 && (
+        <div className="border-b border-line bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+          <strong className="font-bold">差し込み値が不足しています。</strong>
+          <span className="ml-1">{draft.missingVariables.join(" / ")} が未設定のまま本文に残っています。</span>
+        </div>
+      )}
+
+      <dl className="flex flex-col gap-2.5 px-3.5 py-3 text-[13px]">
+        <div className="flex gap-3">
+          <dt className="w-14 shrink-0 text-[12px] text-ink-3">宛先</dt>
+          <dd className="min-w-0 flex-1 font-medium">{draft.recipient}</dd>
+        </div>
+        <div className="flex gap-3">
+          <dt className="w-14 shrink-0 text-[12px] text-ink-3">件名</dt>
+          <dd className="min-w-0 flex-1 font-medium">{draft.subject}</dd>
+        </div>
+        <div className="flex gap-3">
+          <dt className="w-14 shrink-0 text-[12px] text-ink-3">本文</dt>
+          <dd className="min-w-0 flex-1">
+            <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap rounded-lg bg-surface-2 px-3 py-2.5 font-mono text-[12px] leading-relaxed">
+              {draft.body}
+            </pre>
+          </dd>
+        </div>
+      </dl>
+
+      <p className="border-t border-line px-3.5 py-2 text-[11.5px] text-ink-3">
+        内容を直す場合は、左のSTEPレールから「{target.title}」を開いてやり直してください。
+      </p>
+    </section>
+  );
+}
+
+function ApprovalRenderer({ step, stepRun, run, onCheck }: StepRendererProps) {
   const selfConfirm = Boolean(step.config.selfConfirm);
   const label = String(step.config.confirmLabel ?? "承認する");
   const checked = Boolean(stepRun.checklistState.approved);
@@ -389,6 +462,7 @@ function ApprovalRenderer({ step, stepRun, onCheck }: StepRendererProps) {
           このSTEPは他者の承認待ちです。承認者：{String(step.config.approverRole ?? "manager")}
         </div>
       )}
+      <ReviewTarget step={step} run={run} />
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-3.5 hover:bg-surface-2">
         <input type="checkbox" checked={checked} onChange={(e) => onCheck({ approved: e.target.checked })} className="h-4 w-4 accent-[#1d5a78]" />
         <span className="text-[13px] font-medium">{label}</span>

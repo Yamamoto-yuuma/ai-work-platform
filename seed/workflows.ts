@@ -104,7 +104,9 @@ export const workflows: WorkflowDefinition[] = [
         // ↓ 9月限定ルールはこのタグを見て刺さる
         ruleTags: ["inquiry", "hearing"],
         knowledgeRefs: ["kb-hearing-guide"],
-        deadlineRule: { from: "run.dueAt", offsetDays: -1 },
+        // 業務全体のSLAが24時間なので、全体期限の1日前（＝開始時刻）にすると
+        // 開始した瞬間に期限超過になる。受付から4時間以内を目安にする。
+        deadlineRule: { from: "run.startedAt", offsetHours: 4 },
       },
       {
         key: "select-service", title: "企業・サービス選定", required: true,
@@ -145,7 +147,7 @@ export const workflows: WorkflowDefinition[] = [
         key: "send", title: "送信", required: true,
         guidance: "内容を最終確認して送信します。差し込み値の欠損がないか確認してください。",
         componentType: "approval", estimatedMinutes: 3,
-        config: { selfConfirm: true, confirmLabel: "内容を確認して送信する" },
+        config: { selfConfirm: true, reviewStepKey: "compose-email", confirmLabel: "内容を確認して送信する" },
         ruleTags: ["email"],
       },
       {
@@ -457,7 +459,7 @@ export const workflows: WorkflowDefinition[] = [
       { key: "send", title: "送信", required: true,
         guidance: "内容を最終確認して送信します。",
         componentType: "approval", estimatedMinutes: 3,
-        config: { selfConfirm: true, confirmLabel: "内容を確認して送信する" },
+        config: { selfConfirm: true, reviewStepKey: "compose", confirmLabel: "内容を確認して送信する" },
         ruleTags: ["email"] },
       { key: "done", title: "完了", required: true,
         guidance: "メール送信が完了しました。",

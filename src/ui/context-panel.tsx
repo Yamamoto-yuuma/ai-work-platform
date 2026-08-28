@@ -24,7 +24,7 @@ export function ContextPanel({ ctx }: { ctx: StepContext }) {
   const hasAnything =
     ctx.conflicts.length > 0 || ctx.missingInfo.length > 0 || ctx.notices.length > 0 ||
     ctx.rules.length > 0 || ctx.knowledge.length > 0 || ctx.derivedTasks.length > 0 ||
-    ctx.tools.length > 0 || ctx.deadline;
+    ctx.tools.length > 0 || ctx.deadline || ctx.stepDeadline;
 
   return (
     <aside className="w-full shrink-0 lg:w-[312px]">
@@ -47,24 +47,48 @@ export function ContextPanel({ ctx }: { ctx: StepContext }) {
           </Section>
         )}
 
-        {ctx.deadline && (
+        {(ctx.stepDeadline || ctx.deadline) && (
           <Section title="期限" icon="⏱">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-medium">
-                {new Date(ctx.deadline.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
-              </span>
-              <Badge tone={ctx.deadline.isOverdue ? "danger" : "brand"}>{ctx.deadline.remainingLabel}</Badge>
+            <div className="flex flex-col gap-2">
+              {ctx.stepDeadline && (
+                <div>
+                  <p className="mb-1 text-[11px] text-ink-3">このSTEPの期限</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[13px] font-medium">
+                      {new Date(ctx.stepDeadline.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
+                    </span>
+                    <Badge tone={ctx.stepDeadline.isOverdue ? "danger" : "brand"}>
+                      {ctx.stepDeadline.remainingLabel}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+              {ctx.deadline && (
+                <div className={ctx.stepDeadline ? "border-t border-line-soft pt-2" : undefined}>
+                  <p className="mb-1 text-[11px] text-ink-3">業務全体の期限</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-[13px] ${ctx.stepDeadline ? "text-ink-2" : "font-medium"}`}>
+                      {new Date(ctx.deadline.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
+                    </span>
+                    <Badge tone={ctx.deadline.isOverdue ? "danger" : "neutral"}>
+                      {ctx.deadline.remainingLabel}
+                    </Badge>
+                  </div>
+                </div>
+              )}
             </div>
           </Section>
         )}
 
         {ctx.missingInfo.length > 0 && (
-          <Section title="不足情報" icon="❗">
+          <Section title="不足している業務情報" icon="❗">
+            <p className="mb-2 text-[11px] leading-relaxed text-ink-3">
+              この業務を完遂するために、まだ取得できていない情報です。
+            </p>
             <ul className="flex flex-col gap-1.5">
               {ctx.missingInfo.map((m) => (
-                <li key={m.key} className="flex items-start justify-between gap-2 rounded-lg bg-danger-soft px-3 py-2">
-                  <span className="text-[12.5px] font-medium text-danger">{m.label}</span>
-                  <span className="shrink-0 text-[11px] text-danger/80">{m.reason}</span>
+                <li key={m.key} className="rounded-lg bg-danger-soft px-3 py-2">
+                  <span className="block text-[12.5px] font-medium text-danger">{m.label}</span>
                 </li>
               ))}
             </ul>
