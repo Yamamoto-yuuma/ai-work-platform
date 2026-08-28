@@ -9,6 +9,8 @@ import { useStore } from "@/adapters/memory/store";
 import type { EffectiveStep, StepRun, WorkRun } from "@/core/model/types";
 import { Badge, Button, NotConnected } from "./primitives";
 import { getComponentSpec } from "@/components-registry/registry";
+import { readTemplates, isTemplateSelected, resolveTemplateDue } from "@/core/task/from-step";
+import { TASK_PRIORITIES } from "@/core/model/task-draft";
 
 export interface StepRendererProps {
   step: EffectiveStep;
@@ -305,19 +307,50 @@ function DocumentComposeRenderer({ step, stepRun, run, onOutput }: StepRendererP
 }
 
 // --- タスク作成 --------------------------------------------------------------
-function TaskCreateRenderer({ step, stepRun, onCheck }: StepRendererProps) {
-  const templates = (step.config.templates ?? []) as { title: string; offsetDays: number; priority: string }[];
+function TaskCreateRenderer({ step, stepRun, run, onCheck }: StepRendererProps) {
+  const { users } = useStore();
+  const templates = readTemplates(step);
+  const assignee = users.find((u) => u.id === run.assigneeId);
+  const now = new Date();
+
+  if (templates.length === 0) {
+    return <p className="text-[13px] text-ink-3">このSTEPで作成するタスクは定義されていません。</p>;
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      <p className="mb-1 text-[13px] text-ink-2">このSTEPで以下のタスクを作成します。不要なものはチェックを外してください。</p>
+      <p className="mb-1 text-[13px] text-ink-2">
+        このSTEPを完了すると、以下のタスクが作成されます。不要なものはチェックを外してください。
+      </p>
       {templates.map((t, i) => {
         const key = `task-${i}`;
-        const checked = stepRun.checklistState[key] !== false;
+        const checked = isTemplateSelected(stepRun, i);
+        const due = resolveTemplateDue(t, now);
         return (
-          <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-3 hover:bg-surface-2">
-            <input type="checkbox" checked={checked} onChange={(e) => onCheck({ [key]: e.target.checked })} className="h-4 w-4 accent-[#1d5a78]" />
-            <span className="flex-1 text-[13px]">{t.title}</span>
-            <Badge tone={t.priority === "high" ? "signal" : "neutral"}>{t.offsetDays}日後</Badge>
+          <label
+            key={key}
+            className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 transition-colors ${
+              checked ? "border-line bg-surface hover:bg-surface-2" : "border-line bg-surface-2 opacity-60"
+            }`}
+          >
+            <input
+              type="checkbox" checked={checked}
+              onChange={(e) => onCheck({ [key]: e.target.checked })}
+              className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-medium">{t.title}</span>
+              {t.description && <span className="mt-0.5 block text-[11.5px] text-ink-3">{t.description}</span>}
+              <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-3">
+                <span>担当 {assignee?.name ?? run.assigneeId}</span>
+                <span>優先度 {TASK_PRIORITIES.find((p) => p.value === (t.priority ?? "normal"))?.label}</span>
+                {due && (
+                  <span>
+                    期限 {new Date(due).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
+                  </span>
+                )}
+              </span>
+            </span>
           </label>
         );
       })}

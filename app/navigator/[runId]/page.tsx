@@ -7,7 +7,6 @@
  */
 import { use, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useRunView, useStepView, useNextStepPreview } from "@/ui/use-navigator";
 import { resolveNextSteps, getStep, isRunComplete } from "@/core/flow/engine";
@@ -15,6 +14,8 @@ import { StepRenderer } from "@/ui/step-renderers";
 import { ContextPanel } from "@/ui/context-panel";
 import { Badge, Button, Card, LinkButton } from "@/ui/primitives";
 import { getComponentSpec } from "@/components-registry/registry";
+import { generateStepTasks } from "@/core/task/from-step";
+import { RunCompletion } from "@/ui/run-completion";
 import type { StepRunStatus } from "@/core/model/types";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
@@ -27,7 +28,6 @@ const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
 
 export default function NavigatorPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = use(params);
-  const router = useRouter();
   const { dispatch } = useStore();
   const view = useRunView(runId);
 
@@ -95,9 +95,14 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
       contextPatch, runDone: willBeDone,
     });
 
+    // STEP の定義に沿って実際のタスクを作る。ID は決定的なので再完了しても重複しない
+    const generated = generateStepTasks({
+      step: stepView.step, stepRun: stepView.stepRun, run, now: new Date(),
+    });
+    if (generated.length > 0) dispatch({ type: "addTasks", tasks: generated });
+
     setShowMissing(false);
     setSelected(finalActivate[0] ?? null);
-    if (willBeDone) router.push(`/map/${run.id}`);
   }
 
   const spec = stepView ? getComponentSpec(stepView.step.componentType) : null;
@@ -176,14 +181,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
         {/* 現在STEP（画面内で最大面積・最高コントラスト） */}
         <div className="min-w-0 flex-1">
           {isDone ? (
-            <Card className="p-8 text-center">
-              <p className="text-[16px] font-bold text-ok">この業務は完了しています</p>
-              <p className="mt-2 text-[13px] text-ink-2">{run.subject.label} ／ {def.name}</p>
-              <div className="mt-5 flex justify-center gap-2">
-                <LinkButton href={`/map/${run.id}`} variant="secondary">業務マップを見る</LinkButton>
-                <LinkButton href="/">HOMEへ戻る</LinkButton>
-              </div>
-            </Card>
+            <RunCompletion run={run} def={def} view={view} />
           ) : stepView ? (
             <>
               <Card className="overflow-hidden">
