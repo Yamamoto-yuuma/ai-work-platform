@@ -11,6 +11,7 @@ import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
 import { TaskForm } from "@/ui/task-form";
 import { TASK_PRIORITIES, patchFromDraft } from "@/core/model/task-draft";
+import { TASK_STATUS_LABEL, TASK_STATUS_DOT } from "@/core/model/task-labels";
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = use(params);
@@ -69,7 +70,13 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         <Badge tone={task.priority === "urgent" ? "danger" : task.priority === "high" ? "signal" : "neutral"}>
           優先度：{TASK_PRIORITIES.find((x) => x.value === task.priority)?.label ?? task.priority}
         </Badge>
-        <Badge>担当：{users.find((u) => u.id === task.assigneeId)?.name ?? "未割当"}</Badge>
+        <Badge>
+          <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[task.status]}`} aria-hidden />
+          {TASK_STATUS_LABEL[task.status]}
+        </Badge>
+        <Badge tone={task.assigneeId === state.currentUserId ? "brand" : "neutral"}>
+          担当：{users.find((u) => u.id === task.assigneeId)?.name ?? "未割当"}
+        </Badge>
         {task.source === "derived" && <Badge tone="ai">派生タスク</Badge>}
         {task.source === "manual" && <Badge>手動作成</Badge>}
         {task.source === "flow" && <Badge tone="brand">業務フロー由来</Badge>}
@@ -144,6 +151,27 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             </Link>
           </Card>
         )}
+
+        <Card className="p-4">
+          <p className="mb-2 text-[12px] font-bold text-ink-3">担当者</p>
+          {(() => {
+            const assignee = users.find((u) => u.id === task.assigneeId);
+            const isMine = task.assigneeId === state.currentUserId;
+            if (!assignee) {
+              return <p className="text-[12px] text-ink-3">担当者が見つかりません（{task.assigneeId}）</p>;
+            }
+            return (
+              <div className={`rounded-lg px-3 py-2.5 ${isMine ? "bg-brand-soft" : "bg-surface-2"}`}>
+                <p className={`text-[13px] font-medium ${isMine ? "text-brand-ink" : ""}`}>
+                  {assignee.name}
+                  {isMine && <span className="ml-1.5 text-[11.5px] font-normal text-brand">自分が担当</span>}
+                </p>
+                <p className="mt-0.5 text-[11.5px] text-ink-3">{assignee.team}</p>
+              </div>
+            );
+          })()}
+          <p className="mt-2 text-[11.5px] text-ink-3">担当者は「編集」から変更できます</p>
+        </Card>
 
         <Card className="p-4">
           <p className="mb-2 text-[12px] font-bold text-ink-3">紐付く業務</p>

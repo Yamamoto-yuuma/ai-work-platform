@@ -10,6 +10,8 @@ import { Badge, Button, Card, Empty, PageHeader } from "@/ui/primitives";
 import { TaskForm } from "@/ui/task-form";
 import { newTaskFromDraft } from "@/core/model/task-draft";
 import { newTaskId } from "@/lib/id";
+import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
+import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import type { Task } from "@/core/model/types";
 
@@ -29,6 +31,7 @@ function TasksInner() {
   const search = useSearchParams();
   const { state, dispatch, workflows, users } = useStore();
   const [view, setView] = useState<ViewKey>((search.get("view") as ViewKey) ?? "today");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [creating, setCreating] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const now = useNow();
@@ -50,22 +53,35 @@ function TasksInner() {
     }
   });
 
+  // 担当者フィルタはビューの上に重ねて効かせる
+  const visible = assigneeFilter === "all"
+    ? filtered
+    : filtered.filter((t) => t.assigneeId === assigneeFilter);
+
+  const mineCount = open.filter(
+    (t) => t.assigneeId === state.currentUserId && t.status !== "done" && t.status !== "canceled",
+  ).length;
+
   const grouped = view === "byRun"
-    ? Object.entries(filtered.reduce<Record<string, Task[]>>((acc, t) => {
+    ? Object.entries(visible.reduce<Record<string, Task[]>>((acc, t) => {
         const k = t.runId ?? "その他";
         (acc[k] ??= []).push(t);
         return acc;
       }, {}))
-    : [["", filtered] as [string, Task[]]];
+    : [["", visible] as [string, Task[]]];
 
   function TaskRow({ t }: { t: Task }) {
     const u = urgencyOf(t.dueAt, now);
     const blocked = t.dependsOn.some((id) => state.tasks.find((x) => x.id === id)?.status !== "done");
+    const assignee = users.find((x) => x.id === t.assigneeId);
+    const isMine = t.assigneeId === state.currentUserId;
+    const priorityLabel = TASK_PRIORITIES.find((x) => x.value === t.priority)?.label ?? t.priority;
+
     return (
       <li>
         <Link
           href={`/tasks/${t.id}`}
-          className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors hover:border-brand ${
+          className={`block rounded-lg border px-4 py-3 transition-colors hover:border-brand ${
             t.id === createdId
               ? "border-ok bg-ok-soft"
               : t.confirmationState === "proposed"
@@ -73,23 +89,38 @@ function TasksInner() {
                 : "border-line bg-surface"
           }`}
         >
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-1.5">
-              <span className={`text-[13px] ${t.status === "done" ? "text-ink-3 line-through" : "font-medium"}`}>{t.title}</span>
-              {t.confirmationState === "proposed" && <Badge tone="signal">提案中</Badge>}
-              {t.source === "derived" && <Badge tone="ai">派生</Badge>}
-              {t.source === "manual" && <Badge>手動</Badge>}
-              {t.source === "flow" && <Badge tone="brand">業務</Badge>}
-              {blocked && <Badge tone="neutral">依存待ち</Badge>}
-              {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
+          <span className="flex items-start gap-3">
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-1.5">
+                <span className={`text-[13px] ${t.status === "done" ? "text-ink-3 line-through" : "font-medium"}`}>{t.title}</span>
+                {t.confirmationState === "proposed" && <Badge tone="signal">提案中</Badge>}
+                {t.source === "derived" && <Badge tone="ai">{TASK_SOURCE_LABEL.derived}</Badge>}
+                {t.source === "manual" && <Badge>{TASK_SOURCE_LABEL.manual}</Badge>}
+                {t.source === "flow" && <Badge tone="brand">{TASK_SOURCE_LABEL.flow}</Badge>}
+                {blocked && <Badge tone="neutral">依存待ち</Badge>}
+                {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
+              </span>
+              {t.description && <span className="mt-0.5 block truncate text-[11.5px] text-ink-3">{t.description}</span>}
+
+              {/* ステータス・優先度・担当者。主役はタスク名なので視覚的に弱める */}
+              <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-3">
+                <span className="flex items-center gap-1.5">
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[t.status]}`} aria-hidden />
+                  {TASK_STATUS_LABEL[t.status]}
+                </span>
+                <span>優先度 {priorityLabel}</span>
+                <span className={isMine ? "font-medium text-brand" : undefined}>
+                  担当 {assignee?.name ?? "未割当"}{isMine && "（自分）"}
+                </span>
+              </span>
             </span>
-            {t.description && <span className="mt-0.5 block truncate text-[11.5px] text-ink-3">{t.description}</span>}
+
+            {t.dueAt && (
+              <Badge tone={u === "overdue" ? "danger" : u === "today" ? "signal" : "neutral"}>
+                {remainingLabel(new Date(t.dueAt), now)}
+              </Badge>
+            )}
           </span>
-          {t.dueAt && (
-            <Badge tone={u === "overdue" ? "danger" : u === "today" ? "signal" : "neutral"}>
-              {remainingLabel(new Date(t.dueAt), now)}
-            </Badge>
-          )}
         </Link>
       </li>
     );
@@ -144,7 +175,7 @@ function TasksInner() {
         </Card>
       )}
 
-      <div className="mb-4 flex flex-wrap gap-1.5">
+      <div className="mb-4 flex flex-wrap items-center gap-1.5">
         {VIEWS.map((v) => (
           <button
             key={v.key} onClick={() => setView(v.key)}
@@ -158,6 +189,24 @@ function TasksInner() {
             )}
           </button>
         ))}
+
+        <label className="ml-auto flex items-center gap-2 text-[12px] text-ink-3">
+          担当者
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            aria-label="担当者で絞り込む"
+            className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink outline-none focus:border-brand"
+          >
+            <option value="all">すべての担当者</option>
+            <option value={state.currentUserId}>自分（{mineCount}件）</option>
+            {users
+              .filter((u) => u.id !== state.currentUserId)
+              .map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+          </select>
+        </label>
       </div>
 
       {view === "proposed" && proposed.length > 0 && (
@@ -171,7 +220,7 @@ function TasksInner() {
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {visible.length === 0 ? (
         <Empty>該当するタスクはありません</Empty>
       ) : (
         grouped.map(([groupKey, list]) => (
