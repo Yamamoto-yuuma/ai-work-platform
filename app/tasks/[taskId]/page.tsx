@@ -1,7 +1,7 @@
 "use client";
 
 /** タスク詳細（仕様 §9）。派生の系譜と依存関係をたどれること */
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
@@ -9,12 +9,16 @@ import { Badge, Button, Card, LinkButton, PageHeader } from "@/ui/primitives";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
+import { TaskEditForm } from "@/ui/task-edit-form";
+import { TASK_PRIORITIES } from "@/core/model/task-edit";
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = use(params);
   const router = useRouter();
-  const { state, dispatch, workflows, customers } = useStore();
+  const { state, dispatch, workflows, customers, users } = useStore();
   const now = useNow();
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const task = state.tasks.find((t) => t.id === taskId);
   if (!task) return <div className="p-8 text-[13px]">タスクが見つかりません。</div>;
@@ -46,22 +50,54 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         <Link href="/tasks" className="hover:text-brand">タスク</Link> / 詳細
       </div>
 
-      <PageHeader title={task.title} description={task.description} />
+      <PageHeader
+        title={task.title}
+        description={task.description}
+        action={
+          !editing && (
+            <Button variant="secondary" onClick={() => { setEditing(true); setSaved(false); }}>
+              編集
+            </Button>
+          )
+        }
+      />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Badge tone={task.confirmationState === "proposed" ? "signal" : "ok"}>
           {task.confirmationState === "proposed" ? "提案中（未確定）" : "確定済み"}
         </Badge>
         <Badge tone={task.priority === "urgent" ? "danger" : task.priority === "high" ? "signal" : "neutral"}>
-          優先度：{{ low: "低", normal: "通常", high: "高", urgent: "緊急" }[task.priority]}
+          優先度：{TASK_PRIORITIES.find((x) => x.value === task.priority)?.label ?? task.priority}
         </Badge>
+        <Badge>担当：{users.find((u) => u.id === task.assigneeId)?.name ?? "未割当"}</Badge>
         {task.source === "derived" && <Badge tone="ai">派生タスク</Badge>}
-        {task.dueAt && (
+        {task.dueAt ? (
           <Badge tone={urgencyOf(task.dueAt, now) === "overdue" ? "danger" : "brand"}>
             期限 {new Date(task.dueAt).toLocaleDateString("ja-JP")}（{remainingLabel(new Date(task.dueAt), now)}）
           </Badge>
+        ) : (
+          <Badge>期限なし</Badge>
         )}
       </div>
+
+      {saved && !editing && (
+        <div className="mb-5 rounded-lg border border-ok/40 bg-ok-soft px-4 py-2.5 text-[12.5px] font-medium text-ok">
+          変更を保存しました
+        </div>
+      )}
+
+      {editing && (
+        <TaskEditForm
+          task={task}
+          users={users}
+          onSave={(patch) => {
+            dispatch({ type: "updateTask", taskId: task.id, patch });
+            setEditing(false);
+            setSaved(true);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      )}
 
       {task.confirmationState === "proposed" && (
         <Card className="mb-5 border-signal/40 bg-signal-soft p-4">
