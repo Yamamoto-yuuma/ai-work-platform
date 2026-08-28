@@ -9,8 +9,7 @@ import { useWorkflows, useActiveRules } from "@/ui/use-navigator";
 import { Badge, Button, Card, PageHeader, LinkButton } from "@/ui/primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { orderedSteps, outgoingEdges } from "@/core/flow/engine";
-import { resolveDeadline } from "@/core/schedule/backward";
-import type { StepRun, WorkRun } from "@/core/model/types";
+import { buildRun } from "@/services/start-run";
 
 export default function WorkflowDetailPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = use(params);
@@ -30,31 +29,11 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
 
   function start() {
     if (!def) return;
-    const id = `run-${Date.now().toString(36)}`;
-    const startedAt = new Date().toISOString();
-    const first = steps[0];
-    const customer = customers[0];
-
-    const run: WorkRun = {
-      id, workflowKey: def.key, workflowVersion: def.version,
-      title: def.name,
-      subject: { type: "customer", id: customer.id, label: customer.name },
-      status: "active",
-      currentStepKeys: [first.key],
-      context: { customerId: customer.id },
-      assigneeId: state.currentUserId,
-      dueAt: def.deadlineRule ? resolveDeadline(def.deadlineRule, { runStartedAt: startedAt }) : undefined,
-      startedAt, source: "standard",
-    };
-    const stepRuns: StepRun[] = def.steps.map((s) => ({
-      stepKey: s.key,
-      status: s.key === first.key ? ("active" as const) : ("pending" as const),
-      output: {}, checklistState: {}, appliedRuleIds: [],
-      startedAt: s.key === first.key ? startedAt : undefined,
-    }));
-
+    const { run, stepRuns } = buildRun({
+      def, customers, assigneeId: state.currentUserId,
+    });
     dispatch({ type: "startRun", run, stepRuns });
-    router.push(`/navigator/${id}`);
+    router.push(`/navigator/${run.id}`);
   }
 
   return (

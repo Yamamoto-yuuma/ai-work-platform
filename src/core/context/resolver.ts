@@ -59,7 +59,7 @@ export function resolveStepContext(input: {
     ? [{
         label: toolSpec.label,
         available: !toolSpec.port || CONNECTED_PORTS.has(toolSpec.port),
-        reason: toolSpec.port && !CONNECTED_PORTS.has(toolSpec.port) ? "未接続（Phase 1）" : undefined,
+        reason: toolSpec.port && !CONNECTED_PORTS.has(toolSpec.port) ? "未接続" : undefined,
       }]
     : [];
 

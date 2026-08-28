@@ -8,8 +8,12 @@ import { progressOf } from "@/core/flow/engine";
 
 export default function WorkflowsPage() {
   const workflows = useWorkflows();
-  const { state } = useStore();
+  const { state, currentUser } = useStore();
   const categories = Array.from(new Set(workflows.map((w) => w.category)));
+  // HOME と同じ基準（自分が担当する進行中の業務）で表示する
+  const myActiveRuns = state.runs.filter(
+    (r) => r.status === "active" && r.assigneeId === currentUser.id,
+  );
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-6">
@@ -19,11 +23,11 @@ export default function WorkflowsPage() {
       />
 
       {/* 進行中 */}
-      {state.runs.filter((r) => r.status === "active").length > 0 && (
+      {myActiveRuns.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-[13px] font-bold">進行中の業務</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {state.runs.filter((r) => r.status === "active").map((run) => {
+            {myActiveRuns.map((run) => {
               const def = workflows.find((w) => w.key === run.workflowKey);
               const p = def ? progressOf(def, state.stepRunsByRun[run.id] ?? []) : { done: 0, total: 1 };
               return (

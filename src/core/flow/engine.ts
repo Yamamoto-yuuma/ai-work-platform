@@ -34,6 +34,7 @@ function canActivate(
   target: string,
   stepRuns: StepRun[],
   scope: Record<string, unknown>,
+  justCompletedKey: string,
 ): boolean {
   const incoming = incomingEdges(def, target);
   const joinAll = incoming.filter((e) => e.joinPolicy === "all");
@@ -41,7 +42,10 @@ function canActivate(
   return joinAll.every((e) => {
     // 条件付きエッジは、条件が偽なら待たない
     if (e.condition && !evaluate(e.condition, scope)) return true;
-    return stepRuns.find((sr) => sr.stepKey === e.from)?.status === "done";
+    // いま完了させた STEP は done として扱う（stepRuns への反映はこの後のため）
+    if (e.from === justCompletedKey) return true;
+    const st = stepRuns.find((sr) => sr.stepKey === e.from)?.status;
+    return st === "done" || st === "skipped";
   });
 }
 
@@ -66,7 +70,7 @@ export function resolveNextSteps(
     // 条件なしエッジが複数あれば並列。条件付きは最初に成立したものだけを採用
     if (edge.condition && matched) continue;
     if (edge.condition) matched = true;
-    if (canActivate(def, edge.to, stepRuns, scope)) activate.push(edge.to);
+    if (canActivate(def, edge.to, stepRuns, scope, fromStepKey)) activate.push(edge.to);
   }
   return { activate: Array.from(new Set(activate)), skipped };
 }

@@ -7,9 +7,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { Badge, Button, Card, LinkButton, PageHeader } from "@/ui/primitives";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
-import { resolveDeadline } from "@/core/schedule/backward";
-import type { StepRun, WorkRun } from "@/core/model/types";
-import { orderedSteps } from "@/core/flow/engine";
+import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
@@ -29,29 +27,17 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const startable = task.startableWorkflowKey ? workflows.find((w) => w.key === task.startableWorkflowKey) : undefined;
 
   function startWorkflow() {
-    if (!startable) return;
-    const id = `run-${Date.now().toString(36)}`;
-    const startedAt = new Date().toISOString();
-    const steps = orderedSteps(startable);
-    const customer = customers[0];
-    const newRun: WorkRun = {
-      id, workflowKey: startable.key, workflowVersion: startable.version,
-      title: startable.name,
-      subject: { type: "customer", id: customer.id, label: task!.title },
-      status: "active", currentStepKeys: [steps[0].key],
-      context: { customerId: customer.id },
+    if (!startable || !task) return;
+    const { run, stepRuns } = buildRun({
+      def: startable,
+      customers,
       assigneeId: state.currentUserId,
-      dueAt: task!.dueAt ?? (startable.deadlineRule ? resolveDeadline(startable.deadlineRule, { runStartedAt: startedAt }) : undefined),
-      startedAt, source: "standard",
-    };
-    const stepRuns: StepRun[] = startable.steps.map((s) => ({
-      stepKey: s.key,
-      status: s.key === steps[0].key ? ("active" as const) : ("pending" as const),
-      output: {}, checklistState: {}, appliedRuleIds: [],
-    }));
-    dispatch({ type: "startRun", run: newRun, stepRuns });
-    dispatch({ type: "updateTask", taskId: task!.id, patch: { runId: id, status: "doing" } });
-    router.push(`/navigator/${id}`);
+      // タスクから開始した業務は、タスクの表題と期限を引き継ぐ
+      override: { label: task.title, dueAt: task.dueAt },
+    });
+    dispatch({ type: "startRun", run, stepRuns });
+    dispatch({ type: "updateTask", taskId: task.id, patch: { runId: run.id, status: "doing" } });
+    router.push(`/navigator/${run.id}`);
   }
 
   return (

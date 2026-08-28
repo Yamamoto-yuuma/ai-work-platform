@@ -24,7 +24,6 @@ type ItemCfg = { key: string; label: string; required?: boolean };
 // --- チェックリスト（一時ルールが項目を追加する主戦場）------------------------
 function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
   const base = (step.config.items ?? []) as ItemCfg[];
-  const extras = step.extraChecklistItems;
 
   const Row = ({ item, ruleId }: { item: ItemCfg; ruleId?: string }) => {
     const checked = Boolean(stepRun.checklistState[item.key]);
@@ -51,7 +50,6 @@ function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
   return (
     <div className="flex flex-col gap-2">
       {base.map((item) => <Row key={item.key} item={item} />)}
-      {extras.map((item) => <Row key={item.key} item={item} ruleId={item.ruleId} />)}
     </div>
   );
 }
@@ -59,7 +57,6 @@ function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
 // --- 入力・選択 --------------------------------------------------------------
 function FieldsRenderer({ step, stepRun, onOutput }: StepRendererProps) {
   const fields = (step.config.fields ?? []) as FieldCfg[];
-  const extras = step.extraFields;
 
   return (
     <div className="flex flex-col gap-4">
@@ -97,20 +94,6 @@ function FieldsRenderer({ step, stepRun, onOutput }: StepRendererProps) {
           </div>
         );
       })}
-      {extras.map((f) => (
-        <div key={f.key} className="rounded-lg border border-signal/40 bg-signal-soft p-3">
-          <label className="mb-1.5 block text-[13px] font-medium">
-            {f.label}
-            <span className="ml-1.5 text-[11px] text-danger">必須</span>
-            <span className="ml-2 text-[11px] text-signal">一時ルールにより追加</span>
-          </label>
-          <input
-            value={String(stepRun.output[f.key] ?? "")}
-            onChange={(e) => onOutput({ [f.key]: e.target.value })}
-            className="w-full max-w-md rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
-          />
-        </div>
-      ))}
     </div>
   );
 }
@@ -442,11 +425,72 @@ const RENDERERS: Record<string, (p: StepRendererProps) => React.ReactNode> = {
   "branch": BranchRenderer,
 };
 
+/**
+ * 一時ルールが追加した項目。
+ * 部品の種別に関係なく必ず描画する。個々のレンダラ任せにすると、
+ * 項目を表示しない部品にルールが刺さった場合に STEP が完了不能になる。
+ */
+function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) {
+  const { extraChecklistItems: items, extraFields: fields } = step;
+  if (items.length === 0 && fields.length === 0) return null;
+
+  return (
+    <section className="mt-5 rounded-lg border border-signal/40 bg-signal-soft p-4">
+      <h4 className="mb-3 flex items-center gap-1.5 text-[12px] font-bold text-signal">
+        <span>⚑</span>一時ルールにより追加された確認項目
+      </h4>
+      <div className="flex flex-col gap-2">
+        {items.map((item) => {
+          const checked = Boolean(stepRun.checklistState[item.key]);
+          return (
+            <label
+              key={item.key}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
+                checked ? "border-ok/40 bg-ok-soft" : "border-signal/30 bg-surface hover:bg-surface-2"
+              }`}
+            >
+              <input
+                type="checkbox" checked={checked}
+                onChange={(e) => onCheck({ [item.key]: e.target.checked })}
+                className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
+              />
+              <span className="flex-1 text-[13px] leading-relaxed">
+                {item.label}
+                {item.required && <span className="ml-1.5 text-[11px] text-danger">必須</span>}
+              </span>
+            </label>
+          );
+        })}
+        {fields.map((f) => (
+          <div key={f.key} className="rounded-lg border border-signal/30 bg-surface px-3.5 py-2.5">
+            <label className="mb-1.5 block text-[13px] font-medium">
+              {f.label}
+              {f.required && <span className="ml-1.5 text-[11px] text-danger">必須</span>}
+            </label>
+            <input
+              value={String(stepRun.output[f.key] ?? "")}
+              onChange={(e) => onOutput({ [f.key]: e.target.value })}
+              className="w-full max-w-md rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function StepRenderer(props: StepRendererProps) {
   const Renderer = RENDERERS[props.step.componentType];
-  if (!Renderer) {
-    const spec = getComponentSpec(props.step.componentType);
-    return <p className="text-[13px] text-ink-3">部品「{spec?.label ?? props.step.componentType}」の表示は未実装です。</p>;
-  }
-  return <>{Renderer(props)}</>;
+  return (
+    <>
+      {Renderer
+        ? Renderer(props)
+        : (
+          <p className="text-[13px] text-ink-3">
+            部品「{getComponentSpec(props.step.componentType)?.label ?? props.step.componentType}」の表示は未実装です。
+          </p>
+        )}
+      <RuleAdditions {...props} />
+    </>
+  );
 }
