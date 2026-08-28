@@ -6,7 +6,7 @@
  * 「一本道ではない」ことを見て分かるようにする（仕様 §25-4）。
  */
 import type { StepRunStatus, WorkflowDefinition } from "@/core/model/types";
-import { stepDepths } from "@/core/flow/engine";
+import { stepDepths, orderedSteps } from "@/core/flow/engine";
 
 const NODE_W = 168;
 const NODE_H = 54;
@@ -29,23 +29,49 @@ export function FlowGraph({
   onSelect?: (key: string) => void;
 }) {
   const depths = stepDepths(def);
-  const rows = new Map<number, string[]>();
-  for (const s of def.steps) {
-    const d = depths.get(s.key) ?? 0;
-    rows.set(d, [...(rows.get(d) ?? []), s.key]);
+  const ordered = orderedSteps(def);
+
+  // 列の割り当て: 分岐の行き先は左右に振り分け、合流点は親の中央へ戻す。
+  // これにより「一本道ではない」ことが図として読み取れる。
+  const col = new Map<string, number>();
+  for (const step of ordered) {
+    const incoming = def.edges.filter((e) => e.to === step.key);
+    if (incoming.length === 0) {
+      col.set(step.key, 0);
+      continue;
+    }
+    if (incoming.length > 1) {
+      // 合流点は親たちの中間に置く
+      const parents = incoming.map((e) => col.get(e.from) ?? 0);
+      col.set(step.key, parents.reduce((a, b) => a + b, 0) / parents.length);
+      continue;
+    }
+    const parentKey = incoming[0].from;
+    const siblings = def.edges.filter((e) => e.from === parentKey);
+    const base = col.get(parentKey) ?? 0;
+    if (siblings.length > 1) {
+      const idx = siblings.findIndex((e) => e.to === step.key);
+      col.set(step.key, base + (idx - (siblings.length - 1) / 2));
+    } else {
+      col.set(step.key, base);
+    }
   }
 
-  const maxRow = Math.max(...Array.from(rows.keys()));
-  const maxCols = Math.max(...Array.from(rows.values()).map((r) => r.length));
-  const width = maxCols * NODE_W + (maxCols - 1) * GAP_X + 40;
+  const cols = Array.from(col.values());
+  const minCol = Math.min(...cols);
+  const maxCol = Math.max(...cols);
+  const maxRow = Math.max(...Array.from(depths.values()));
+  const lanes = maxCol - minCol + 1;
+
+  const width = lanes * NODE_W + (lanes - 1) * GAP_X + 40;
   const height = (maxRow + 1) * NODE_H + maxRow * GAP_Y + 40;
 
   const pos = new Map<string, { x: number; y: number }>();
-  for (const [depth, keys] of rows) {
-    const rowWidth = keys.length * NODE_W + (keys.length - 1) * GAP_X;
-    const startX = (width - rowWidth) / 2;
-    keys.forEach((k, i) => {
-      pos.set(k, { x: startX + i * (NODE_W + GAP_X), y: 20 + depth * (NODE_H + GAP_Y) });
+  for (const step of def.steps) {
+    const c = (col.get(step.key) ?? 0) - minCol;
+    pos.set(step.key, {
+      x: 20 + c * (NODE_W + GAP_X),
+      y: 20 + (depths.get(step.key) ?? 0) * (NODE_H + GAP_Y),
     });
   }
 
@@ -71,6 +97,16 @@ export function FlowGraph({
           const y2 = b.y;
           const done = statusOf(e.from) === "done";
           const my = (y1 + y2) / 2;
+
+          // 同じ STEP から出るエッジ同士でラベルが重ならないよう、経路に沿って段をずらす
+          const siblings = def.edges.filter((x) => x.from === e.from);
+          const rank = siblings.indexOf(e);
+          const t = siblings.length > 1 ? 0.3 + rank * (0.34 / Math.max(1, siblings.length - 1)) : 0.5;
+          const lx = x1 + (x2 - x1) * t;
+          const ly = y1 + (y2 - y1) * t;
+          const charW = 6.4;
+          const boxW = (e.label?.length ?? 0) * charW + 8;
+
           return (
             <g key={i}>
               <path
@@ -82,7 +118,18 @@ export function FlowGraph({
                 markerEnd={done ? "url(#arrow-active)" : "url(#arrow)"}
               />
               {e.label && (
-                <text x={(x1 + x2) / 2 + 6} y={my - 2} fontSize="10" fill="var(--color-ink-3)">{e.label}</text>
+                <>
+                  <rect
+                    x={lx - boxW / 2} y={ly - 9} width={boxW} height={16} rx={4}
+                    fill="var(--color-surface)" stroke="var(--color-line-soft)" strokeWidth={1}
+                  />
+                  <text
+                    x={lx} y={ly + 2.5} fontSize="10" textAnchor="middle"
+                    fill="var(--color-ink-3)"
+                  >
+                    {e.label}
+                  </text>
+                </>
               )}
             </g>
           );
