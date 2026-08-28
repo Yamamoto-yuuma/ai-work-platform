@@ -41,6 +41,8 @@ export type Action =
   | { type: "confirmTasks"; taskIds: string[] }
   | { type: "rejectTasks"; taskIds: string[] }
   | { type: "updateTask"; taskId: string; patch: Partial<Task> }
+  /** 業務実行の更新。変更起票（B-6）で期限を書き換えるためだけに使う */
+  | { type: "updateRun"; runId: string; patch: Pick<WorkRun, "dueAt"> }
   | { type: "addChangeEvent"; change: ChangeEvent }
   | { type: "toggleRule"; ruleId: string }
   | { type: "addRule"; rule: BusinessRule }
@@ -216,9 +218,37 @@ function reducer(state: AppState, action: Action): AppState {
         tasks: state.tasks.map((t) => (t.id === action.taskId ? { ...t, ...action.patch } : t)),
       };
 
+    case "updateRun": {
+      const target = state.runs.find((r) => r.id === action.runId);
+      if (!target) return state;
+      return {
+        ...state,
+        runs: state.runs.map((r) => (r.id === action.runId ? { ...r, ...action.patch } : r)),
+        workEvents: [...state.workEvents, {
+          id: `ev-${Math.random().toString(36).slice(2, 10)}`,
+          runId: action.runId, type: "field.changed", actor: state.currentUserId,
+          payload: { field: "dueAt", before: target.dueAt, after: action.patch.dueAt },
+          createdAt: new Date().toISOString(),
+        }],
+      };
+    }
+
     case "addChangeEvent": {
       const exists = state.changeEvents.some((c) => c.id === action.change.id);
-      return exists ? state : { ...state, changeEvents: [action.change, ...state.changeEvents] };
+      if (exists) return state;
+      return {
+        ...state,
+        changeEvents: [action.change, ...state.changeEvents],
+        workEvents: [...state.workEvents, {
+          id: `ev-${Math.random().toString(36).slice(2, 10)}`,
+          runId: action.change.runId, type: "field.changed", actor: action.change.actor,
+          payload: {
+            changeEventId: action.change.id, entityLabel: action.change.entityLabel,
+            field: action.change.field, before: action.change.before, after: action.change.after,
+          },
+          createdAt: action.change.occurredAt,
+        }],
+      };
     }
 
     case "toggleRule":

@@ -312,6 +312,8 @@ export interface DerivationRule {
   trigger: {
     entityType: string;
     field: string;
+    /** 画面に出す項目名。未指定なら field をそのまま使う */
+    fieldLabel?: string;
     changeKind: "updated" | "created" | "deleted";
     condition?: ConditionExpr;
   };

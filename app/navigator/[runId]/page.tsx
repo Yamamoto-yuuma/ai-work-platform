@@ -17,6 +17,7 @@ import { Badge, Button, Card, LinkButton } from "@/ui/primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { generateStepTasks } from "@/core/task/from-step";
 import { RunCompletion } from "@/ui/run-completion";
+import { ChangeRequestPanel } from "@/ui/change-request";
 import type { StepRunStatus } from "@/core/model/types";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
@@ -36,6 +37,8 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
   // 表示中のSTEP（現在STEPが複数ある場合は切り替えられる）
   const [selected, setSelected] = useState<string | null>(null);
   const [showMissing, setShowMissing] = useState(false);
+  // 変更起票パネルの開閉。開いていても現在STEPの操作は妨げない
+  const [changeOpen, setChangeOpen] = useState(false);
 
   const activeKey = selected ?? view?.run.currentStepKeys[0] ?? null;
   const stepView = useStepView(view, activeKey ?? undefined);
@@ -254,8 +257,14 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                 </Card>
               )}
 
+              {changeOpen && (
+                <ChangeRequestPanel run={run} def={def} onClose={() => setChangeOpen(false)} />
+              )}
+
               {/* 次にやること帯 */}
-              <div className="sticky bottom-4 mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-brand/30 bg-brand-soft px-5 py-4 shadow-sm">
+              <div className={`mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-brand/30 bg-brand-soft px-5 py-4 shadow-sm ${
+                changeOpen ? "relative" : "sticky bottom-4"
+              }`}>
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold tracking-wide text-brand">次にやること</p>
                   <p className="mt-0.5 text-[14px] font-bold leading-snug text-brand-ink">
@@ -285,7 +294,12 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           )}
         </div>
 
-        {stepView && <ContextPanel ctx={stepView.context} />}
+        {stepView && (
+          <ContextPanel
+            ctx={stepView.context}
+            onRequestChange={isDone ? undefined : () => setChangeOpen(true)}
+          />
+        )}
       </div>
     </div>
   );

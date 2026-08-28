@@ -95,6 +95,49 @@ export function proposeDependentDeadlines(input: {
     .sort((a, b) => a.hop - b.hop || a.currentDueAt.localeCompare(b.currentDueAt));
 }
 
+/**
+ * 業務全体の期限が動いたときに、その業務のタスクへ提案する期限。
+ *
+ * 計算規則は proposeDependentDeadlines と同じ（動いた営業日数だけ動かす）。
+ * 起点がタスクではなく業務実行になるだけで、新しい期限計算は導入しない。
+ * 完了・中止済み、期限を持たないタスクは対象にしない。
+ */
+export function proposeRunDeadlineShift(input: {
+  runId: string;
+  previousDueAt?: string;
+  nextDueAt?: string;
+  allTasks: Task[];
+}): DeadlineProposal[] {
+  const { runId, previousDueAt, nextDueAt, allTasks } = input;
+  if (!previousDueAt || !nextDueAt) return [];
+
+  const before = new Date(previousDueAt);
+  const after = new Date(nextDueAt);
+  if (Number.isNaN(before.getTime()) || Number.isNaN(after.getTime())) return [];
+
+  const shift = businessDaysBetween(before, after);
+  if (shift === 0) return [];
+
+  return allTasks
+    .filter((t) => t.runId === runId)
+    .filter((t) => t.status !== "done" && t.status !== "canceled")
+    .filter((t) => Boolean(t.dueAt))
+    .map((t) => {
+      const current = new Date(t.dueAt!);
+      const proposed = addBusinessDays(current, shift);
+      proposed.setHours(current.getHours(), current.getMinutes(), 0, 0);
+      return {
+        taskId: t.id,
+        title: t.title,
+        currentDueAt: t.dueAt!,
+        proposedDueAt: proposed.toISOString(),
+        hop: 1,
+      };
+    })
+    .filter((p) => p.currentDueAt !== p.proposedDueAt)
+    .sort((a, b) => a.currentDueAt.localeCompare(b.currentDueAt));
+}
+
 /** 変更の向きを表す文言用の情報 */
 export function shiftDirection(previousDueAt: string, nextDueAt: string): "later" | "earlier" | "none" {
   const d = businessDaysBetween(new Date(previousDueAt), new Date(nextDueAt));

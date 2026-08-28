@@ -7,7 +7,7 @@
  */
 import Link from "next/link";
 import type { StepContext } from "@/core/model/types";
-import { Badge } from "./primitives";
+import { Badge, Button } from "./primitives";
 
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
@@ -20,7 +20,13 @@ function Section({ title, icon, children }: { title: string; icon: string; child
   );
 }
 
-export function ContextPanel({ ctx }: { ctx: StepContext }) {
+export function ContextPanel({
+  ctx, onRequestChange,
+}: {
+  ctx: StepContext;
+  /** 変更起票の入口。渡されたときだけ表示する */
+  onRequestChange?: () => void;
+}) {
   const hasAnything =
     ctx.conflicts.length > 0 || ctx.missingInfo.length > 0 || ctx.notices.length > 0 ||
     ctx.rules.length > 0 || ctx.knowledge.length > 0 || ctx.derivedTasks.length > 0 ||
@@ -178,6 +184,20 @@ export function ContextPanel({ ctx }: { ctx: StepContext }) {
 
         {!hasAnything && (
           <div className="px-4 py-6 text-center text-[12px] text-ink-3">このSTEPに固有の注意事項はありません</div>
+        )}
+
+        {/*
+          業務途中の変更の入口（仕様 §10-3）。
+          「このSTEPの情報」ではなく操作なので、情報セクションとは分けて置く。
+        */}
+        {onRequestChange && (
+          <div className="border-t border-line bg-surface-2 px-4 py-3.5">
+            <p className="text-[12px] font-bold">業務に変更があった？</p>
+            <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
+              期限や条件などが変わった場合、この業務から変更を起票して影響を確認できます。
+            </p>
+            <Button variant="secondary" size="sm" onClick={onRequestChange}>変更を起票</Button>
+          </div>
         )}
       </div>
     </aside>

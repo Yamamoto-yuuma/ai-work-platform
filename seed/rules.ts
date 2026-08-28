@@ -120,6 +120,7 @@ export const derivationRules: DerivationRule[] = [
     trigger: {
       entityType: "campaign",
       field: "endDate",
+      fieldLabel: "配信終了日",
       changeKind: "updated",
       condition: {
         op: "neq",
@@ -190,7 +191,7 @@ export const derivationRules: DerivationRule[] = [
     description: "記事の公開予定日を変更した場合の関連対応。",
     enabled: true,
     priority: 90,
-    trigger: { entityType: "article", field: "publishDate", changeKind: "updated" },
+    trigger: { entityType: "article", field: "publishDate", fieldLabel: "公開予定日", changeKind: "updated" },
     scope: { workflowKeys: ["article-writing"], teams: ["marketing"] },
     effects: [
       {

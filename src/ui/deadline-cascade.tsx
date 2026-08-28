@@ -12,6 +12,45 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
 }
 
+/**
+ * 期限の再提案1件分の行。現在値と提案値を並べ、個別に採否を選べる。
+ * タスク詳細（B-4）と変更起票（B-6）の双方から使う。
+ */
+export function DeadlineProposalRow({
+  proposal, checked, onToggle,
+}: {
+  proposal: DeadlineProposal;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <li>
+      <label
+        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
+          checked ? "border-signal/50 bg-surface" : "border-line bg-surface-2 opacity-70"
+        }`}
+      >
+        <input
+          type="checkbox" checked={checked} onChange={onToggle}
+          className="h-4 w-4 accent-[#1d5a78]"
+          aria-label={`${proposal.title} の期限を更新する`}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-medium">{proposal.title}</span>
+          {proposal.hop > 1 && (
+            <span className="mt-0.5 block text-[11px] text-ink-3">間接的な後続（{proposal.hop}段階先）</span>
+          )}
+        </span>
+        <span className="flex shrink-0 items-center gap-2 text-[12.5px] tabular-nums">
+          <span className="text-ink-3 line-through">{fmt(proposal.currentDueAt)}</span>
+          <span className="text-ink-3">→</span>
+          <Badge tone="signal">{fmt(proposal.proposedDueAt)}</Badge>
+        </span>
+      </label>
+    </li>
+  );
+}
+
 export function DeadlineCascadePanel({
   sourceTitle, direction, proposals, onApply, onDismiss,
 }: {
@@ -45,36 +84,12 @@ export function DeadlineCascadePanel({
       </p>
 
       <ul className="mt-4 flex flex-col gap-1.5">
-        {proposals.map((p) => {
-          const checked = selected.has(p.taskId);
-          return (
-            <li key={p.taskId}>
-              <label
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
-                  checked ? "border-signal/50 bg-surface" : "border-line bg-surface-2 opacity-70"
-                }`}
-              >
-                <input
-                  type="checkbox" checked={checked}
-                  onChange={() => toggle(p.taskId)}
-                  className="h-4 w-4 accent-[#1d5a78]"
-                  aria-label={`${p.title} の期限を更新する`}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium">{p.title}</span>
-                  {p.hop > 1 && (
-                    <span className="mt-0.5 block text-[11px] text-ink-3">間接的な後続（{p.hop}段階先）</span>
-                  )}
-                </span>
-                <span className="flex shrink-0 items-center gap-2 text-[12.5px] tabular-nums">
-                  <span className="text-ink-3 line-through">{fmt(p.currentDueAt)}</span>
-                  <span className="text-ink-3">→</span>
-                  <Badge tone="signal">{fmt(p.proposedDueAt)}</Badge>
-                </span>
-              </label>
-            </li>
-          );
-        })}
+        {proposals.map((p) => (
+          <DeadlineProposalRow
+            key={p.taskId} proposal={p}
+            checked={selected.has(p.taskId)} onToggle={() => toggle(p.taskId)}
+          />
+        ))}
       </ul>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
