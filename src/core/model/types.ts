@@ -70,6 +70,17 @@ export interface VariableDef {
   type: "string" | "number" | "boolean" | "date" | "object" | "reference";
   entity?: string;
   required: boolean;
+  /**
+   * マスタから初期値を導出できる場合の宣言（仕様 §8）。
+   * 業務ごとの決め打ちをコードに書かないための入口。
+   * 導出された値はあくまで初期値で、ユーザーは変更できる（変更時は差異を提示する）。
+   */
+  derivedFrom?: {
+    entity: "customer";
+    field: string;
+    /** マスタ値（文字列化したもの）→ 業務上の値 */
+    map: Record<string, string>;
+  };
 }
 
 export interface StepDefinition {

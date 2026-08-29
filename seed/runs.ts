@@ -84,7 +84,7 @@ export const runs: WorkRun[] = [
     subject: { type: "customer", id: "cus-002", label: "みどりリテール株式会社" },
     status: "done",
     currentStepKeys: [],
-    context: { customerId: "cus-002", customerType: "existing", employeeCount: 1000, service: "training" },
+    context: { customerId: "cus-002", customerType: "existing", employeeCount: 1000, inquiryKind: "service", service: "training" },
     assigneeId: "user-me",
     dueAt: shift(-4, 18),
     startedAt: shift(-6, 9),
@@ -96,6 +96,7 @@ export const runs: WorkRun[] = [
 export const stepRunsByRun: Record<string, StepRun[]> = {
   "run-001": [
     stepRun("receive", "done"),
+    stepRun("classify-inquiry", "done", { inquiryKind: "service" }),
     stepRun("confirm-customer", "done", { customerType: "new", employeeCount: 300 }),
     stepRun("branch-customer", "done"),
     // 新規顧客のため、既存取引の確認は条件によりスキップされている
@@ -138,7 +139,8 @@ export const stepRunsByRun: Record<string, StepRun[]> = {
     stepRun("done", "pending"),
   ],
   "run-005": [
-    stepRun("receive", "done"), stepRun("confirm-customer", "done"),
+    stepRun("receive", "done"), stepRun("classify-inquiry", "done", { inquiryKind: "service" }),
+    stepRun("confirm-customer", "done"),
     stepRun("branch-customer", "done"), stepRun("check-history", "done"),
     stepRun("required-info", "done"), stepRun("hearing", "done"),
     stepRun("select-service", "done"), stepRun("branch-scale", "done"),

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { Badge, Card, Empty, PageHeader } from "@/ui/primitives";
-import { progressOf } from "@/core/flow/engine";
+import { runProgress } from "@/core/flow/engine";
 
 export default function MapIndexPage() {
   const { state, workflows } = useStore();
@@ -54,7 +54,7 @@ export default function MapIndexPage() {
         <div className="grid gap-2 sm:grid-cols-2">
           {runs.map((run) => {
             const def = workflows.find((w) => w.key === run.workflowKey);
-            const p = def ? progressOf(def, state.stepRunsByRun[run.id] ?? []) : { done: 0, total: 1 };
+            const p = def ? runProgress(def, run, state.stepRunsByRun[run.id] ?? []) : { index: 0, total: 0, done: 0 };
             return (
               <Link key={run.id} href={`/map/${run.id}`}>
                 <Card className="p-4 transition-colors hover:border-brand">
@@ -65,7 +65,7 @@ export default function MapIndexPage() {
                     </div>
                     <Badge tone={run.status === "done" ? "ok" : "brand"}>{run.status === "done" ? "完了" : "進行中"}</Badge>
                   </div>
-                  <p className="mt-2 text-[11.5px] tabular-nums text-ink-2">STEP {p.done}/{p.total}</p>
+                  <p className="mt-2 text-[11.5px] tabular-nums text-ink-2">STEP {p.index}/{p.total}</p>
                 </Card>
               </Link>
             );

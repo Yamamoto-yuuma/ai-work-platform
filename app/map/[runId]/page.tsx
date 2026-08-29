@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRunView } from "@/ui/use-navigator";
 import { useStore } from "@/adapters/memory/store";
 import { FlowGraph } from "@/ui/flow-graph";
+import { ChangeHistory } from "@/ui/change-history";
 import { Badge, LinkButton, PageHeader } from "@/ui/primitives";
 
 export default function RunMapPage({ params }: { params: Promise<{ runId: string }> }) {
@@ -23,13 +24,19 @@ export default function RunMapPage({ params }: { params: Promise<{ runId: string
       </div>
       <PageHeader
         title={run.subject.label}
-        description={`${def.name} ／ STEP ${progress.done} / ${progress.total}`}
+        description={`${def.name} ／ STEP ${progress.index} / ${progress.total}`}
         action={run.status === "active"
           ? <LinkButton href={`/navigator/${run.id}`}>業務ナビゲーターへ</LinkButton>
-          : <Badge tone="ok">完了</Badge>}
+          : run.status === "canceled"
+            ? <Badge tone="neutral">中止</Badge>
+            : <Badge tone="ok">完了</Badge>}
       />
 
       <FlowGraph def={def} statusOf={statusOf} />
+
+      <div className="mt-6">
+        <ChangeHistory run={run} />
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-4 text-[11.5px] text-ink-3">
         <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded border border-[var(--color-brand)] bg-[var(--color-brand)]" />実行中</span>

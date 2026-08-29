@@ -15,6 +15,13 @@ import {
 } from "@/core/model/task-draft";
 import { Button, Card } from "./primitives";
 
+/** 入力欄の表示形式はブラウザ任せなので、日本語表記を必ず添える */
+function formatJaDate(value: string): string {
+  const d = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+}
+
 const INPUT =
   "w-full rounded-lg border bg-surface px-3 py-2 text-[13px] outline-none transition-colors focus:border-brand";
 
@@ -129,7 +136,9 @@ export function TaskForm({
               className={`${INPUT} ${border("dueAt")}`}
               aria-label="期限"
             />
-            {!draft.dueAt && <p className="mt-1 text-[11.5px] text-ink-3">未設定（期限なし）</p>}
+            {draft.dueAt
+              ? <p className="mt-1 text-[11.5px] text-ink-3">{formatJaDate(draft.dueAt)}</p>
+              : <p className="mt-1 text-[11.5px] text-ink-3">未設定（期限なし）</p>}
           </Field>
 
           <Field label="担当者" required error={errorOf("assigneeId")}>

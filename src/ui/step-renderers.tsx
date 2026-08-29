@@ -59,18 +59,28 @@ function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
 }
 
 // --- 入力・選択 --------------------------------------------------------------
-function FieldsRenderer({ step, stepRun, onOutput }: StepRendererProps) {
+function FieldsRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
   const fields = (step.config.fields ?? []) as FieldCfg[];
 
   return (
     <div className="flex flex-col gap-4">
       {fields.map((f) => {
-        const value = stepRun.output[f.key];
+        // 既に業務情報として記録されている値（マスタからの導出を含む）
+        const recorded = run.context[f.key];
+        const value = stepRun.output[f.key] ?? recorded;
+        const differs =
+          recorded !== undefined && value !== undefined && value !== recorded;
+        const recordedLabel = f.options?.find((o) => o.value === recorded)?.label;
         return (
           <div key={f.key}>
             <label className="mb-1.5 block text-[13px] font-medium">
               {f.label}
               {f.required !== false && <span className="ml-1.5 text-[11px] text-danger">必須</span>}
+              {recordedLabel && !differs && (
+                <span className="ml-2 text-[11px] font-normal text-ink-3">
+                  登録内容から初期選択：{recordedLabel}
+                </span>
+              )}
             </label>
             {f.options ? (
               <div className="flex flex-wrap gap-2">
@@ -94,6 +104,12 @@ function FieldsRenderer({ step, stepRun, onOutput }: StepRendererProps) {
                 className="w-full max-w-md rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
                 placeholder={`${f.label}を入力`}
               />
+            )}
+            {differs && (
+              <p className="mt-1.5 rounded-lg bg-signal-soft px-3 py-2 text-[12px] text-signal">
+                登録内容（{recordedLabel ?? String(recorded)}）と異なる選択です。
+                この業務ではこちらの内容で進みます。
+              </p>
             )}
           </div>
         );
@@ -221,8 +237,11 @@ function CompanySearchRenderer({ step, stepRun, onOutput }: StepRendererProps) {
 
 // --- メール作成 --------------------------------------------------------------
 function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
-  const { emailTemplates, customers } = useStore();
-  const draft = resolveEmailDraft({ step, stepRun, run, templates: emailTemplates, customers });
+  const { emailTemplates, customers, workflows } = useStore();
+  const workflow =
+    workflows.find((w) => w.key === run.workflowKey && w.version === run.workflowVersion) ??
+    workflows.find((w) => w.key === run.workflowKey);
+  const draft = resolveEmailDraft({ step, stepRun, run, templates: emailTemplates, customers, workflow });
   if (!draft) return <p className="text-[13px] text-ink-3">利用できるテンプレートがありません。</p>;
 
   const { subject, body, missingVariables: missing } = draft;
@@ -406,7 +425,7 @@ function ReviewTarget({ step, run }: { step: EffectiveStep; run: WorkRun }) {
   if (target.componentType !== "email-compose" || !targetRun) return null;
 
   const draft = resolveEmailDraft({
-    step: target, stepRun: targetRun, run, templates: emailTemplates, customers,
+    step: target, stepRun: targetRun, run, templates: emailTemplates, customers, workflow: def,
   });
   if (!draft) return null;
 

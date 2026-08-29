@@ -53,6 +53,19 @@ export function buildRun({ def, customers, assigneeId, override, now }: StartRun
   const context: Record<string, unknown> = {};
   if (subject.type === "customer" && subject.id) context.customerId = subject.id;
 
+  // マスタから導出できると宣言されている変数に初期値を入れる。
+  // 「どの変数が何から derive されるか」は業務フロー定義側のデータで決まる。
+  const customer = customers.find((c) => c.id === subject.id);
+  if (customer) {
+    for (const v of def.variables) {
+      const d = v.derivedFrom;
+      if (!d || d.entity !== "customer") continue;
+      const raw = (customer as unknown as Record<string, unknown>)[d.field];
+      const mapped = d.map[String(raw)];
+      if (mapped !== undefined) context[v.key] = mapped;
+    }
+  }
+
   const run: WorkRun = {
     id,
     workflowKey: def.key,
@@ -70,10 +83,24 @@ export function buildRun({ def, customers, assigneeId, override, now }: StartRun
     source: "standard",
   };
 
+  /**
+   * 既に業務情報として分かっている値は、その項目の初期値として置く。
+   * 「表示は埋まっているのに完了条件は未入力」という食い違いを作らない。
+   * ユーザーは変更でき、変更した場合は画面側で登録内容との差異を示す。
+   */
+  const seedOutput = (step: { config: Record<string, unknown> }): Record<string, unknown> => {
+    const fields = (step.config.fields ?? []) as { key: string }[];
+    const out: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (context[f.key] !== undefined) out[f.key] = context[f.key];
+    }
+    return out;
+  };
+
   const stepRuns: StepRun[] = def.steps.map((s) => ({
     stepKey: s.key,
     status: first && s.key === first.key ? ("active" as const) : ("pending" as const),
-    output: {},
+    output: seedOutput(s),
     checklistState: {},
     appliedRuleIds: [],
     startedAt: first && s.key === first.key ? startedAt : undefined,

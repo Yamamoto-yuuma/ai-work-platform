@@ -28,6 +28,28 @@ export function ruleWeight(rule: BusinessRule): number {
 }
 
 /** 現在のSTEPに適用されるルールだけを抽出する（仕様 §5-1 スコープ規則） */
+/**
+ * ルールがこのSTEPに適用されるか（仕様 §14）。
+ *
+ * 指定された絞り込み条件は「すべて」満たす必要がある（AND）。
+ * 未指定の次元は制約なしとして扱う。
+ *
+ * 実際の適用（resolveRulesForStep）と、管理画面の事前表示（影響STEP数）の
+ * 双方がこの1関数を使う。判定を二重に持たない。
+ */
+export function ruleAppliesToStep(
+  rule: BusinessRule,
+  workflow: Pick<WorkflowDefinition, "key">,
+  step: Pick<StepDefinition, "componentType" | "ruleTags">,
+): boolean {
+  const s = rule.scope;
+  const stepTags = step.ruleTags ?? [];
+  if (s.workflowKeys.length > 0 && !s.workflowKeys.includes(workflow.key)) return false;
+  if (s.stepRuleTags.length > 0 && !s.stepRuleTags.some((t) => stepTags.includes(t))) return false;
+  if (s.componentTypes.length > 0 && !s.componentTypes.includes(step.componentType)) return false;
+  return true;
+}
+
 export function resolveRulesForStep(input: {
   rules: BusinessRule[];
   workflow: WorkflowDefinition;
@@ -36,18 +58,10 @@ export function resolveRulesForStep(input: {
   now: Date;
 }): BusinessRule[] {
   const { rules, workflow, step, scope, now } = input;
-  const stepTags = step.ruleTags ?? [];
 
   return rules
     .filter((r) => isRuleActive(r, now))
-    .filter((r) => {
-      const s = r.scope;
-      // 指定された絞り込み条件は「すべて」満たす必要がある（未指定の次元は制約なし）
-      if (s.workflowKeys.length > 0 && !s.workflowKeys.includes(workflow.key)) return false;
-      if (s.stepRuleTags.length > 0 && !s.stepRuleTags.some((t) => stepTags.includes(t))) return false;
-      if (s.componentTypes.length > 0 && !s.componentTypes.includes(step.componentType)) return false;
-      return true;
-    })
+    .filter((r) => ruleAppliesToStep(r, workflow, step))
     .filter((r) => evaluate(r.condition, scope))
     .sort((a, b) => ruleWeight(a) - ruleWeight(b)); // 低優先 → 高優先の順に重ねる
 }

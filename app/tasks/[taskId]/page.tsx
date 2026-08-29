@@ -280,17 +280,14 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
           )}
         </Card>
 
-        <Card className="p-4">
-          <p className="mb-2 text-[12px] font-bold text-ink-3">この場から業務を開始</p>
-          {startable ? (
-            <>
-              <p className="mb-2 text-[12.5px] text-ink-2">「{startable.name}」を開始できます。</p>
-              <Button onClick={startWorkflow} disabled={blockedBy.length > 0}>この業務を開始する</Button>
-            </>
-          ) : (
-            <p className="text-[12px] text-ink-3">開始できる業務フローの指定はありません</p>
-          )}
-        </Card>
+        {/* 開始できる業務が無いときは見出しごと出さない（仕様 §15-4） */}
+        {startable && (
+          <Card className="p-4">
+            <p className="mb-2 text-[12px] font-bold text-ink-3">この場から業務を開始</p>
+            <p className="mb-2 text-[12.5px] text-ink-2">「{startable.name}」を開始できます。</p>
+            <Button onClick={startWorkflow} disabled={blockedBy.length > 0}>この業務を開始する</Button>
+          </Card>
+        )}
       </div>
 
       {task.confirmationState === "confirmed" && task.status !== "done" && (

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows } from "@/ui/use-navigator";
 import { Badge, Card, PageHeader } from "@/ui/primitives";
-import { progressOf } from "@/core/flow/engine";
+import { runProgress } from "@/core/flow/engine";
 
 export default function WorkflowsPage() {
   const workflows = useWorkflows();
@@ -29,13 +29,13 @@ export default function WorkflowsPage() {
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {myActiveRuns.map((run) => {
               const def = workflows.find((w) => w.key === run.workflowKey);
-              const p = def ? progressOf(def, state.stepRunsByRun[run.id] ?? []) : { done: 0, total: 1 };
+              const p = def ? runProgress(def, run, state.stepRunsByRun[run.id] ?? []) : { index: 0, total: 0, done: 0 };
               return (
                 <Link key={run.id} href={`/navigator/${run.id}`}>
                   <Card className="h-full border-brand/30 bg-brand-soft p-4 hover:border-brand">
                     <p className="text-[11px] text-brand">{def?.name}</p>
                     <p className="mt-1 text-[13.5px] font-bold leading-snug">{run.subject.label}</p>
-                    <p className="mt-2 text-[11.5px] tabular-nums text-ink-2">STEP {p.done}/{p.total}</p>
+                    <p className="mt-2 text-[11.5px] tabular-nums text-ink-2">STEP {p.index}/{p.total}</p>
                   </Card>
                 </Link>
               );

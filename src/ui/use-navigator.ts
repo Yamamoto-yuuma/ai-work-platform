@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { useStore } from "@/adapters/memory/store";
 import {
-  buildScope, getStep, isRunComplete, orderedSteps, progressOf, resolveNextSteps,
+  buildScope, getStep, isRunComplete, orderedSteps, runProgress, resolveNextSteps,
   checkStepCompletion, outgoingEdges,
 } from "@/core/flow/engine";
 import { detectConflicts, overlayStep, resolveRulesForStep, isRuleActive } from "@/core/rules/resolver";
@@ -44,7 +44,8 @@ export interface RunView {
   def: WorkflowDefinition;
   stepRuns: StepRun[];
   ordered: StepDefinition[];
-  progress: { done: number; total: number };
+  /** 業務の現在地（表示中のSTEPではない）。全画面で同じ値 */
+  progress: { index: number; total: number; done: number };
   scope: Record<string, unknown>;
   statusOf: (key: string) => StepRun["status"];
 }
@@ -63,7 +64,7 @@ export function useRunView(runId: string | undefined): RunView | null {
     return {
       run, def, stepRuns,
       ordered: orderedSteps(def),
-      progress: progressOf(def, stepRuns),
+      progress: runProgress(def, run, stepRuns),
       scope: buildScope(run, stepRuns),
       statusOf: (key: string) => stepRuns.find((s) => s.stepKey === key)?.status ?? "pending",
     };

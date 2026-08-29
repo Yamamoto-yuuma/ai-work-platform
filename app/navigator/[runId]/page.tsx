@@ -9,8 +9,8 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { useRunView, useStepView, useNextStepPreview, useNow } from "@/ui/use-navigator";
-import { resolveNextSteps, getStep, isRunComplete, stepPosition } from "@/core/flow/engine";
-import { describeStepAction } from "@/core/context/step-action";
+import { resolveNextSteps, getStep, isRunComplete } from "@/core/flow/engine";
+import { describeStepActionDetail } from "@/core/context/step-action";
 import { StepRenderer } from "@/ui/step-renderers";
 import { ContextPanel } from "@/ui/context-panel";
 import { Badge, Button, Card, LinkButton } from "@/ui/primitives";
@@ -18,6 +18,7 @@ import { getComponentSpec } from "@/components-registry/registry";
 import { generateStepTasks } from "@/core/task/from-step";
 import { RunCompletion } from "@/ui/run-completion";
 import { ChangeRequestPanel } from "@/ui/change-request";
+import { CancelRunPanel, CanceledRunNotice } from "@/ui/cancel-run";
 import type { StepRunStatus } from "@/core/model/types";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
@@ -30,7 +31,7 @@ const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
 
 export default function NavigatorPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = use(params);
-  const { dispatch, users, currentUser } = useStore();
+  const { state, dispatch, users, currentUser } = useStore();
   const now = useNow();
   const view = useRunView(runId);
 
@@ -39,6 +40,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
   const [showMissing, setShowMissing] = useState(false);
   // 変更起票パネルの開閉。開いていても現在STEPの操作は妨げない
   const [changeOpen, setChangeOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const activeKey = selected ?? view?.run.currentStepKeys[0] ?? null;
   const stepView = useStepView(view, activeKey ?? undefined);
@@ -55,9 +57,15 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
 
   const { run, def, ordered, statusOf } = view;
   const isDone = run.status === "done";
-  // 進捗は「実行予定のSTEP」を母数にする（分岐ノード・スキップ済みを除く／仕様 §6-2）
-  const position = stepPosition(def, view.stepRuns, isDone ? null : activeKey);
+  const isCanceled = run.status === "canceled";
+  // 終わった業務（完了・中止）はSTEPを進められない。変更起票だけは引き続きできる
+  const isFinished = isDone || isCanceled;
+  // 進捗は業務の現在地。過去のSTEPを開いて眺めても動かさない（仕様 §6-2）
+  const position = view.progress;
+  // 表示中のSTEPが現在地と違うとき、それを明示する
+  const viewingPast = Boolean(activeKey) && !run.currentStepKeys.includes(activeKey!);
   const assignee = users.find((u) => u.id === run.assigneeId);
+  const changeCount = state.changeEvents.filter((c) => c.runId === run.id).length;
 
   function complete() {
     if (!stepView || !activeKey || !view) return;
@@ -130,18 +138,24 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
             <p className="mt-0.5 text-[13px] text-ink-2">{def.name}</p>
           </div>
           <div className="flex items-center gap-3">
+            {isCanceled && <Badge tone="neutral">中止</Badge>}
+            {isDone && <Badge tone="ok">完了</Badge>}
             <span className="text-[12.5px] text-ink-2">
               担当：{assignee ? assignee.name : "未割当"}
               {assignee && assignee.id === currentUser.id && (
                 <span className="ml-1 text-[11px] font-bold text-brand">（自分）</span>
               )}
             </span>
-            {run.dueAt && (
-              <Badge tone={new Date(run.dueAt) < now ? "danger" : "brand"}>
-                期限 {new Date(run.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
-                {new Date(run.dueAt) < now && "（超過）"}
-              </Badge>
-            )}
+            {run.dueAt && (() => {
+              // 終わった業務を「超過」と呼ばない。超過判定は進行中の業務だけ
+              const overdue = !isFinished && new Date(run.dueAt) < now;
+              return (
+                <Badge tone={overdue ? "danger" : "brand"}>
+                  期限 {new Date(run.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
+                  {overdue && "（超過）"}
+                </Badge>
+              );
+            })()}
             <span className="text-[13px] font-medium tabular-nums">
               STEP {position.index} / {position.total}
             </span>
@@ -149,7 +163,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
-          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${position.total === 0 ? 0 : ((isDone ? position.total : position.index - 1) / position.total) * 100}%` }} />
+          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${position.total === 0 ? 0 : (position.done / position.total) * 100}%` }} />
         </div>
       </header>
 
@@ -178,7 +192,16 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                         {s.title}
                       </span>
                       {st === "skipped" && <span className="text-[11px] text-ink-3">条件によりスキップ</span>}
-                      {st === "active" && !isCurrent && <span className="text-[11px] text-brand">並行して進行中</span>}
+                      {st === "active" && !isCurrent && !isFinished && (
+                        <span className="text-[11px] text-brand">
+                          {run.currentStepKeys.length > 1 ? "並行して進行中" : "現在のSTEP"}
+                        </span>
+                      )}
+                      {st === "active" && isFinished && (
+                        <span className="text-[11px] text-ink-3">
+                          {isCanceled ? "中止時点で未完了" : "未完了のまま完了"}
+                        </span>
+                      )}
                     </span>
                   </button>
                 </li>
@@ -195,8 +218,20 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
 
         {/* 現在STEP（画面内で最大面積・最高コントラスト） */}
         <div className="min-w-0 flex-1">
-          {isDone ? (
-            <RunCompletion run={run} def={def} view={view} />
+          {isCanceled ? (
+            <>
+              <CanceledRunNotice run={run} />
+              {changeOpen && (
+                <ChangeRequestPanel run={run} def={def} onClose={() => setChangeOpen(false)} />
+              )}
+            </>
+          ) : isDone ? (
+            <>
+              <RunCompletion run={run} def={def} view={view} />
+              {changeOpen && (
+                <ChangeRequestPanel run={run} def={def} onClose={() => setChangeOpen(false)} />
+              )}
+            </>
           ) : stepView ? (
             <>
               <Card className="overflow-hidden">
@@ -204,6 +239,12 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="brand">{spec?.icon} {spec?.label}</Badge>
                     {statusOf(stepView.step.key) === "done" && <Badge tone="ok">完了済み（再編集中）</Badge>}
+                    {viewingPast && (
+                      <span className="text-[11.5px] text-ink-3">
+                        表示中：STEP {ordered.filter((s) => s.componentType !== "branch").findIndex((s) => s.key === stepView.step.key) + 1}
+                        （この業務の現在地は STEP {position.index} です）
+                      </span>
+                    )}
                   </div>
                   <h2 className="mt-2 text-[17px] font-bold tracking-tight">{stepView.step.title}</h2>
                   <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
@@ -260,6 +301,9 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               {changeOpen && (
                 <ChangeRequestPanel run={run} def={def} onClose={() => setChangeOpen(false)} />
               )}
+              {cancelOpen && (
+                <CancelRunPanel run={run} def={def} onClose={() => setCancelOpen(false)} />
+              )}
 
               {/* 次にやること帯 */}
               <div className={`mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-brand/30 bg-brand-soft px-5 py-4 shadow-sm ${
@@ -267,9 +311,24 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               }`}>
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold tracking-wide text-brand">次にやること</p>
-                  <p className="mt-0.5 text-[14px] font-bold leading-snug text-brand-ink">
-                    {describeStepAction(stepView.effective, stepView.stepRun, stepView.completion)}
-                  </p>
+                  {(() => {
+                    const action = describeStepActionDetail(
+                      stepView.effective, stepView.stepRun, stepView.completion,
+                    );
+                    return (
+                      <>
+                        <p className="mt-0.5 text-[14px] font-bold leading-snug text-brand-ink">
+                          {action.text}
+                        </p>
+                        {action.ruleItems.length > 0 && (
+                          <p className="mt-1 text-[11.5px] text-signal">
+                            ＋一時ルールによる確認 {action.ruleItems.length}件
+                            （{action.ruleItems.map((m) => m.label).join("・")}）
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="flex shrink-0 gap-2">
                   {statusOf(stepView.step.key) === "done" ? (
@@ -294,11 +353,35 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           )}
         </div>
 
-        {stepView && (
+        {stepView && !isFinished ? (
           <ContextPanel
             ctx={stepView.context}
-            onRequestChange={isDone ? undefined : () => setChangeOpen(true)}
+            onRequestChange={() => setChangeOpen(true)}
+            onCancelRun={() => setCancelOpen(true)}
+            historyHref={`/map/${run.id}`}
+            historyCount={changeCount}
           />
+        ) : (
+          /*
+            終わった業務（完了・中止）にはSTEPの情報は無い。
+            それでも後から変更は起きるので、変更起票の入口だけは残す（仕様 §10-3）。
+          */
+          <aside className="w-full shrink-0 lg:w-[312px]">
+            <div className="sticky top-4 overflow-hidden rounded-xl border border-line bg-surface p-4">
+              <p className="text-[12px] font-bold">
+                {isCanceled ? "この業務は中止されています" : "この業務は完了しています"}
+              </p>
+              <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
+                STEPの実行はできませんが、後から変更が起きた場合は起票して影響を確認できます。
+              </p>
+              <Button variant="secondary" size="sm" onClick={() => setChangeOpen(true)}>変更を起票</Button>
+              {changeCount > 0 && (
+                <Link href={`/map/${run.id}`} className="mt-2 block text-[11.5px] text-brand hover:underline">
+                  この業務の変更履歴（{changeCount}件）→
+                </Link>
+              )}
+            </div>
+          </aside>
         )}
       </div>
     </div>

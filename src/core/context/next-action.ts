@@ -8,7 +8,7 @@
 import type {
   NextAction, StepRun, Task, WorkRun, WorkflowDefinition, StepDefinition,
 } from "../model/types";
-import { getStep } from "../flow/engine";
+import { getStep, runProgress } from "../flow/engine";
 import { isBlocked } from "../task/dependency";
 import { urgencyOf, remainingLabel } from "./resolver";
 
@@ -26,8 +26,9 @@ export interface NextActionInput {
 
 /** STEP 1件に対する「次にやること」1文を生成する（決定的。AI は使わない） */
 export function headlineForStep(step: StepDefinition, run: WorkRun): string {
+  // 対象 + STEP名まで。guidance は長く、STEPの説明であって行動の見出しではない
   const subject = run.subject.label ? `${run.subject.label}の` : "";
-  return `${subject}${step.title}：${step.guidance}`;
+  return `${subject}${step.title}`;
 }
 
 /** 業務が「待ち」状態か判定する。着手できるものが無い状態を可視化する */
@@ -65,6 +66,7 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     const stepRuns = stepRunsByRun[run.id] ?? [];
     if (isWaiting(run, stepRuns, def)) continue;
 
+    const position = runProgress(def, run, stepRuns);
     for (const key of run.currentStepKeys) {
       const step = getStep(def, key);
       if (!step || step.componentType === "approval") continue;
@@ -72,7 +74,7 @@ export function rankActions(input: NextActionInput): RankedAction[] {
       actions.push({
         kind: "step",
         headline: headlineForStep(step, run),
-        reason: `「${def.name}」の STEP ${stepIndex(def, key)} / ${countSteps(def)}`,
+        reason: `「${def.name}」の STEP ${position.index} / ${position.total}`,
         runId: run.id,
         stepKey: key,
         dueAt: run.dueAt,
@@ -154,11 +156,5 @@ export function waitingRuns(input: NextActionInput): { run: WorkRun; reason: str
     .map((r) => ({ run: r, reason: "承認・返信待ち" }));
 }
 
-function stepIndex(def: WorkflowDefinition, key: string): number {
-  return def.steps.filter((s) => s.componentType !== "branch").findIndex((s) => s.key === key) + 1;
-}
-function countSteps(def: WorkflowDefinition): number {
-  return def.steps.filter((s) => s.componentType !== "branch").length;
-}
 
 export { remainingLabel };

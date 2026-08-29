@@ -25,7 +25,9 @@ export const workflows: WorkflowDefinition[] = [
     completionPolicy: { requireAllRequiredSteps: true },
     variables: [
       { key: "customerId", label: "顧客", type: "reference", entity: "customer", required: true },
-      { key: "customerType", label: "顧客区分", type: "string", required: true },
+      { key: "customerType", label: "顧客区分", type: "string", required: true,
+        // 顧客マスタの取引実績から初期値を導く。ユーザーは変更できる
+        derivedFrom: { entity: "customer", field: "isExisting", map: { true: "existing", false: "new" } } },
       { key: "employeeCount", label: "従業員規模", type: "number", required: false },
       { key: "inquiryKind", label: "問い合わせ種別", type: "string", required: true },
       { key: "service", label: "提案サービス", type: "string", required: true },
@@ -36,6 +38,24 @@ export const workflows: WorkflowDefinition[] = [
         guidance: "受信した問い合わせ内容を確認し、対応を開始します。",
         componentType: "customer-view", estimatedMinutes: 5,
         config: { showFields: ["company", "contact", "industry", "history"] },
+        knowledgeRefs: ["kb-inquiry-sla"], ruleTags: ["inquiry"],
+      },
+      {
+        key: "classify-inquiry", title: "問い合わせ内容の分類", required: true,
+        guidance: "受信した問い合わせが何についてのものかを記録します。以降の判断の前提になります。",
+        componentType: "select", estimatedMinutes: 3,
+        config: {
+          fields: [
+            { key: "inquiryKind", label: "問い合わせ種別", required: true,
+              options: [
+                { value: "service", label: "サービス内容の問い合わせ" },
+                { value: "estimate", label: "見積り依頼" },
+                { value: "material", label: "資料請求" },
+                { value: "support", label: "既存サービスのサポート" },
+                { value: "other", label: "その他" },
+              ] },
+          ],
+        },
         knowledgeRefs: ["kb-inquiry-sla"], ruleTags: ["inquiry"],
       },
       {
@@ -156,8 +176,8 @@ export const workflows: WorkflowDefinition[] = [
         componentType: "task-create", estimatedMinutes: 5,
         config: {
           templates: [
-            { title: "初回提案資料の準備", offsetDays: 2, priority: "high" },
-            { title: "1週間後フォロー連絡", offsetDays: 7, priority: "normal" },
+            { title: "初回提案資料の準備", offsetDays: 2, businessDaysOnly: true, priority: "high" },
+            { title: "1週間後フォロー連絡", offsetDays: 5, businessDaysOnly: true, priority: "normal" },
           ],
         },
         ruleTags: ["task"],
@@ -169,7 +189,8 @@ export const workflows: WorkflowDefinition[] = [
       },
     ],
     edges: [
-      { from: "receive", to: "confirm-customer", priority: 1 },
+      { from: "receive", to: "classify-inquiry", priority: 1 },
+      { from: "classify-inquiry", to: "confirm-customer", priority: 1 },
       { from: "confirm-customer", to: "branch-customer", priority: 1 },
       { from: "branch-customer", to: "check-history", priority: 1, label: "既存顧客",
         condition: { op: "eq", left: { kind: "var", path: "context.customerType" }, right: { kind: "literal", value: "existing" } } },

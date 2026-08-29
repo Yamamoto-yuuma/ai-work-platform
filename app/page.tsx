@@ -10,9 +10,9 @@ import { useStore } from "@/adapters/memory/store";
 import { useNextAction, useActiveRules, useNow } from "@/ui/use-navigator";
 import { Badge, Card, LinkButton, SectionTitle, Empty } from "@/ui/primitives";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
-import { progressOf, orderedSteps } from "@/core/flow/engine";
-import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
-import { TASK_STATUS_LABEL } from "@/core/model/task-labels";
+import { runProgress, orderedSteps } from "@/core/flow/engine";
+import { blockingPredecessors, effectiveStatus, isBlocked } from "@/core/task/dependency";
+import { TASK_STATUS_LABEL, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
 
 function fmt(d?: string) {
   if (!d) return "—";
@@ -31,6 +31,16 @@ export default function HomePage() {
       t.assigneeId === currentUser.id && ["overdue", "today"].includes(urgencyOf(t.dueAt, now)),
   );
   const proposed = state.tasks.filter((t) => t.confirmationState === "proposed");
+  // 直近に発生した自分の未完了タスク。期限が先でも「作ったのに消えた」を防ぐ（新しい順）。
+  // 先行待ちのタスクは着手できないので、ここには出さない（B-4 と同じ判定を共有する）
+  const recentTasks = [...state.tasks]
+    .filter(
+      (t) => t.confirmationState === "confirmed" && t.status !== "done" && t.status !== "canceled" &&
+        t.assigneeId === currentUser.id && !todayTasks.some((x) => x.id === t.id) &&
+        !isBlocked(t, state.tasks),
+    )
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
+    .slice(0, 4);
   const recentDone = state.runs.filter((r) => r.status === "done").slice(0, 3);
 
   const nextHref =
@@ -117,7 +127,7 @@ export default function HomePage() {
                 {activeRuns.map((run) => {
                   const def = workflows.find((w) => w.key === run.workflowKey);
                   const stepRuns = state.stepRunsByRun[run.id] ?? [];
-                  const p = def ? progressOf(def, stepRuns) : { done: 0, total: 1 };
+                  const p = def ? runProgress(def, run, stepRuns) : { index: 0, total: 0, done: 0 };
                   const currentTitles = def
                     ? run.currentStepKeys.map((k) => def.steps.find((s) => s.key === k)?.title).filter(Boolean)
                     : [];
@@ -139,9 +149,9 @@ export default function HomePage() {
                         </p>
                         <div className="mt-3 flex items-center gap-2">
                           <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
-                            <div className="h-full rounded-full bg-brand" style={{ width: `${(p.done / p.total) * 100}%` }} />
+                            <div className="h-full rounded-full bg-brand" style={{ width: `${p.total === 0 ? 0 : (p.done / p.total) * 100}%` }} />
                           </div>
-                          <span className="shrink-0 text-[11px] tabular-nums text-ink-3">{p.done}/{p.total}</span>
+                          <span className="shrink-0 text-[11px] tabular-nums text-ink-3">STEP {p.index}/{p.total}</span>
                         </div>
                       </Card>
                     </Link>
@@ -185,6 +195,35 @@ export default function HomePage() {
               </ul>
             )}
           </section>
+
+          {/* 最近発生した仕事：業務やタスクから生まれたものを見失わないための導線 */}
+          {recentTasks.length > 0 && (
+            <section>
+              <SectionTitle action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}>
+                最近発生した仕事
+              </SectionTitle>
+              <ul className="flex flex-col gap-1.5">
+                {recentTasks.map((t) => (
+                  <li key={t.id}>
+                    <Link href={`/tasks/${t.id}`} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 hover:border-brand">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px]">{t.title}</span>
+                        <span className="mt-0.5 block text-[11.5px] text-ink-3">
+                          {TASK_SOURCE_LABEL[t.source]}
+                          {t.runId && state.runs.find((r) => r.id === t.runId)
+                            ? ` ／ ${state.runs.find((r) => r.id === t.runId)!.subject.label}`
+                            : ""}
+                        </span>
+                      </span>
+                      {t.dueAt && (
+                        <Badge tone="neutral">{remainingLabel(new Date(t.dueAt), now)}</Badge>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
 
         {/* 右カラム */}

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows, useNow } from "@/ui/use-navigator";
-import { ruleWeight } from "@/core/rules/resolver";
+import { ruleWeight, ruleAppliesToStep } from "@/core/rules/resolver";
 import { Badge, Button, Card, PageHeader } from "@/ui/primitives";
 import type { BusinessRule } from "@/core/model/types";
 
@@ -30,18 +30,16 @@ export default function RulesPage() {
     return { active, scheduled, expired };
   }, [state.businessRules, now]);
 
-  /** ルールが実際にどのSTEPへ影響するかを事前に示す（仕様 §14-8） */
+  /**
+   * ルールが実際にどのSTEPへ影響するかを事前に示す（仕様 §14-8）。
+   * 判定は業務ナビゲーターと同じ core の関数を使う。ここで独自判定を持たない。
+   */
   function affectedSteps(rule: BusinessRule) {
     const out: { workflow: string; step: string }[] = [];
     for (const w of workflows) {
-      if (rule.scope.workflowKeys.length > 0 && !rule.scope.workflowKeys.includes(w.key)) continue;
       for (const s of w.steps) {
-        const tags = s.ruleTags ?? [];
-        const tagHit = rule.scope.stepRuleTags.length === 0 || rule.scope.stepRuleTags.some((t) => tags.includes(t));
-        const typeHit = rule.scope.componentTypes.length === 0 || rule.scope.componentTypes.includes(s.componentType);
-        if (rule.scope.stepRuleTags.length > 0 || rule.scope.componentTypes.length > 0) {
-          if (!tagHit && !typeHit) continue;
-        }
+        if (s.componentType === "branch") continue;
+        if (!ruleAppliesToStep(rule, w, s)) continue;
         out.push({ workflow: w.name, step: s.title });
       }
     }

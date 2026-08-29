@@ -75,9 +75,17 @@ export function resolveNextSteps(
   return { activate: Array.from(new Set(activate)), skipped };
 }
 
+export interface MissingItem {
+  key: string;
+  label: string;
+  reason: string;
+  /** STEP本来の項目か、一時ルールが追加した項目か（仕様 §14-4） */
+  source: "step" | "rule";
+}
+
 export interface StepCompletionCheck {
   canComplete: boolean;
-  missing: { key: string; label: string; reason: string }[];
+  missing: MissingItem[];
 }
 
 /** STEP の完了条件を検証する。満たさない場合は「何が足りないか」を返す（仕様 §27-3） */
@@ -88,7 +96,7 @@ export function checkStepCompletion(
   extraRequiredFields: { key: string; label: string; required: boolean }[],
   scope: Record<string, unknown>,
 ): StepCompletionCheck {
-  const missing: { key: string; label: string; reason: string }[] = [];
+  const missing: MissingItem[] = [];
 
   // 部品標準の完了条件
   const cfg = step.config as {
@@ -100,7 +108,7 @@ export function checkStepCompletion(
   if (step.componentType === "checklist") {
     for (const item of cfg.items ?? []) {
       if (item.required !== false && !stepRun.checklistState[item.key]) {
-        missing.push({ key: item.key, label: item.label, reason: "未チェック" });
+        missing.push({ key: item.key, label: item.label, reason: "未チェック", source: "step" });
       }
     }
   }
@@ -109,7 +117,7 @@ export function checkStepCompletion(
     for (const f of cfg.fields ?? []) {
       const v = stepRun.output[f.key];
       if (f.required !== false && (v === undefined || v === "" || v === null)) {
-        missing.push({ key: f.key, label: f.label, reason: "未入力" });
+        missing.push({ key: f.key, label: f.label, reason: "未入力", source: "step" });
       }
     }
   }
@@ -117,20 +125,20 @@ export function checkStepCompletion(
   // 一時ルールが追加したチェック項目
   for (const item of extraRequiredChecklist) {
     if (item.required && !stepRun.checklistState[item.key]) {
-      missing.push({ key: item.key, label: item.label, reason: "一時ルールにより必須" });
+      missing.push({ key: item.key, label: item.label, reason: "一時ルールにより必須", source: "rule" });
     }
   }
   for (const f of extraRequiredFields) {
     const v = stepRun.output[f.key];
     if (f.required && (v === undefined || v === "" || v === null)) {
-      missing.push({ key: f.key, label: f.label, reason: "一時ルールにより必須" });
+      missing.push({ key: f.key, label: f.label, reason: "一時ルールにより必須", source: "rule" });
     }
   }
 
   // 明示的な完了条件
   if (step.completionCriteria) {
     for (const path of deriveMissingPaths(step.completionCriteria, scope)) {
-      missing.push({ key: path, label: path, reason: "完了条件を満たしていません" });
+      missing.push({ key: path, label: path, reason: "完了条件を満たしていません", source: "step" });
     }
   }
 
@@ -148,13 +156,29 @@ export function isRunComplete(def: WorkflowDefinition, stepRuns: StepRun[]): boo
 }
 
 /** 進捗率（完了STEP数 / 到達可能な必須STEP数） */
-export function progressOf(def: WorkflowDefinition, stepRuns: StepRun[]): { done: number; total: number } {
-  const total = def.steps.filter((s) => s.componentType !== "branch").length;
-  const done = stepRuns.filter(
-    (sr) => (sr.status === "done" || sr.status === "skipped") &&
-      def.steps.find((s) => s.key === sr.stepKey)?.componentType !== "branch",
+/**
+ * 業務実行の現在地。全画面でこの1関数だけを使う。
+ *
+ * 「表示中のSTEP」ではなく「業務の現在STEP」を基準にする。
+ * 過去のSTEPを開いて眺めても業務の現在地は動かない。
+ */
+export function runProgress(
+  def: WorkflowDefinition,
+  run: Pick<WorkRun, "status" | "currentStepKeys">,
+  stepRuns: StepRun[],
+): { index: number; total: number; done: number } {
+  const planned = plannedSteps(def, stepRuns);
+  const total = planned.length;
+  const done = planned.filter(
+    (s) => stepRuns.find((sr) => sr.stepKey === s.key)?.status === "done",
   ).length;
-  return { done, total };
+
+  if (total === 0) return { index: 0, total: 0, done: 0 };
+  // 終わった業務・中止した業務は、これ以上進まない
+  if (run.status === "done") return { index: total, total, done: total };
+  if (run.status === "canceled") return { index: Math.min(done + 1, total), total, done };
+
+  return { ...stepPosition(def, stepRuns, run.currentStepKeys[0]), done };
 }
 
 /**

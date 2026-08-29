@@ -30,6 +30,13 @@ function fmtDate(iso: string) {
   return d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
 }
 
+/** 入力欄の表示形式はブラウザ任せなので、日本語表記を必ず添える */
+function formatJaDate(value: string): string {
+  const d = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+}
+
 /** 日付入力を、元の時刻を保った ISO へ戻す */
 function fromDateInput(value: string, keepTimeOf?: string): string {
   if (!value) return "";
@@ -72,6 +79,7 @@ export function ChangeRequestPanel({
   const [phase, setPhase] = useState<Phase>("input");
   const [targetId, setTargetId] = useState(targets[0]?.id ?? "");
   const [entityLabel, setEntityLabel] = useState("");
+  const [beforeInput, setBeforeInput] = useState("");
   const [after, setAfter] = useState("");
   const [reason, setReason] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
@@ -83,7 +91,7 @@ export function ChangeRequestPanel({
   const target: ChangeTarget | undefined = targets.find((t) => t.id === targetId);
 
   function reset() {
-    setPhase("input"); setAfter(""); setReason(""); setEntityLabel("");
+    setPhase("input"); setAfter(""); setReason(""); setEntityLabel(""); setBeforeInput("");
     setErrors([]); setImpact(null); setApplied(null);
   }
 
@@ -93,7 +101,8 @@ export function ChangeRequestPanel({
     const draft: ChangeDraft = {
       targetId,
       entityLabel: entityLabel || (target.kind === "derivation" ? "" : target.entityLabel),
-      before: target.currentValue ?? "",
+      before: target.currentValue
+        ?? (beforeInput && target.valueType === "date" ? fromDateInput(beforeInput) : beforeInput),
       after: target.valueType === "date" ? fromDateInput(after, target.currentValue) : after,
       reason,
     };
@@ -191,7 +200,7 @@ export function ChangeRequestPanel({
                   <input
                     type="radio" name="change-target" checked={t.id === targetId}
                     onChange={() => {
-                      setTargetId(t.id); setAfter(""); setErrors([]);
+                      setTargetId(t.id); setAfter(""); setBeforeInput(""); setErrors([]);
                       setEntityLabel(t.kind === "derivation" ? run.subject.label : "");
                     }}
                     className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
@@ -231,9 +240,26 @@ export function ChangeRequestPanel({
                     {target.valueType === "date" ? fmtDate(target.currentValue) : target.currentValue}
                   </p>
                 ) : (
-                  <p className="rounded-lg border border-dashed border-line bg-surface-2 px-3 py-2 text-[12.5px] text-ink-3">
-                    現在の値はシステムに登録されていません。変更後の内容だけを記録します
-                  </p>
+                  <>
+                    {/* 分からない値を推測しない。分かる人に入力してもらう */}
+                    {target.valueType === "date" ? (
+                      <input
+                        type="date" value={beforeInput}
+                        onChange={(e) => setBeforeInput(e.target.value)}
+                        className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                      />
+                    ) : (
+                      <input
+                        type="text" value={beforeInput}
+                        onChange={(e) => setBeforeInput(e.target.value)}
+                        placeholder="変更前の内容"
+                        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                      />
+                    )}
+                    <p className="mt-1.5 text-[11.5px] text-ink-3">
+                      この値はシステムに登録されていないため、分かる場合は入力してください（任意）。
+                    </p>
+                  </>
                 )}
               </div>
 
@@ -243,11 +269,16 @@ export function ChangeRequestPanel({
                   変更後<span className="ml-1.5 text-[11px] text-danger">必須</span>
                 </label>
                 {target.valueType === "date" ? (
-                  <input
-                    id="change-after" type="date" value={after}
-                    onChange={(e) => setAfter(e.target.value)}
-                    className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
-                  />
+                  <>
+                    <input
+                      id="change-after" type="date" value={after}
+                      onChange={(e) => setAfter(e.target.value)}
+                      className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                    />
+                    {after && (
+                      <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(after)}</p>
+                    )}
+                  </>
                 ) : (
                   <input
                     id="change-after" type="text" value={after}

@@ -43,6 +43,8 @@ export type Action =
   | { type: "updateTask"; taskId: string; patch: Partial<Task> }
   /** 業務実行の更新。変更起票（B-6）で期限を書き換えるためだけに使う */
   | { type: "updateRun"; runId: string; patch: Pick<WorkRun, "dueAt"> }
+  /** 業務の中止（仕様 §6-4）。完了とは別の終わり方 */
+  | { type: "cancelRun"; runId: string; reason: string }
   | { type: "addChangeEvent"; change: ChangeEvent }
   | { type: "toggleRule"; ruleId: string }
   | { type: "addRule"; rule: BusinessRule }
@@ -229,6 +231,26 @@ function reducer(state: AppState, action: Action): AppState {
           runId: action.runId, type: "field.changed", actor: state.currentUserId,
           payload: { field: "dueAt", before: target.dueAt, after: action.patch.dueAt },
           createdAt: new Date().toISOString(),
+        }],
+      };
+    }
+
+    case "cancelRun": {
+      const target = state.runs.find((r) => r.id === action.runId);
+      if (!target || target.status !== "active") return state;
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        runs: state.runs.map((r) =>
+          r.id === action.runId
+            ? { ...r, status: "canceled" as const, currentStepKeys: [], completedAt: now }
+            : r,
+        ),
+        workEvents: [...state.workEvents, {
+          id: `ev-${Math.random().toString(36).slice(2, 10)}`,
+          runId: action.runId, type: "run.canceled", actor: state.currentUserId,
+          payload: { reason: action.reason, atStepKeys: target.currentStepKeys },
+          createdAt: now,
         }],
       };
     }

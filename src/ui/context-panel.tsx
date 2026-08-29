@@ -21,11 +21,16 @@ function Section({ title, icon, children }: { title: string; icon: string; child
 }
 
 export function ContextPanel({
-  ctx, onRequestChange,
+  ctx, onRequestChange, onCancelRun, historyHref, historyCount,
 }: {
   ctx: StepContext;
   /** 変更起票の入口。渡されたときだけ表示する */
   onRequestChange?: () => void;
+  /** 業務中止の入口。進行中の業務にだけ渡す */
+  onCancelRun?: () => void;
+  /** 変更履歴への導線。変更が1件以上あるときだけ渡す */
+  historyHref?: string;
+  historyCount?: number;
 }) {
   const hasAnything =
     ctx.conflicts.length > 0 || ctx.missingInfo.length > 0 || ctx.notices.length > 0 ||
@@ -190,13 +195,34 @@ export function ContextPanel({
           業務途中の変更の入口（仕様 §10-3）。
           「このSTEPの情報」ではなく操作なので、情報セクションとは分けて置く。
         */}
-        {onRequestChange && (
+        {(onRequestChange || onCancelRun) && (
           <div className="border-t border-line bg-surface-2 px-4 py-3.5">
-            <p className="text-[12px] font-bold">業務に変更があった？</p>
-            <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
-              期限や条件などが変わった場合、この業務から変更を起票して影響を確認できます。
-            </p>
-            <Button variant="secondary" size="sm" onClick={onRequestChange}>変更を起票</Button>
+            {onRequestChange && (
+              <>
+                <p className="text-[12px] font-bold">業務に変更があった？</p>
+                <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
+                  期限や条件などが変わった場合、この業務から変更を起票して影響を確認できます。
+                </p>
+                <Button variant="secondary" size="sm" onClick={onRequestChange}>変更を起票</Button>
+                {historyHref && historyCount ? (
+                  <Link
+                    href={historyHref}
+                    className="mt-2 block text-[11.5px] text-brand hover:underline"
+                  >
+                    この業務の変更履歴（{historyCount}件）→
+                  </Link>
+                ) : null}
+              </>
+            )}
+            {onCancelRun && (
+              <div className={onRequestChange ? "mt-4 border-t border-line pt-3.5" : undefined}>
+                <p className="text-[12px] font-bold">この業務をやめる？</p>
+                <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
+                  完了ではなく、途中でやめた記録として残します（仕様 §6-4）。
+                </p>
+                <Button variant="ghost" size="sm" onClick={onCancelRun}>この業務を中止</Button>
+              </div>
+            )}
           </div>
         )}
       </div>
