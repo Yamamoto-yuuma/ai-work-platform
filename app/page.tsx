@@ -7,12 +7,10 @@
  */
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
-import { useNextAction, useActiveRules, useNow } from "@/ui/use-navigator";
+import { useNextAction, useNow } from "@/ui/use-navigator";
 import { Badge, Card, LinkButton, SectionTitle, Empty } from "@/ui/primitives";
-import { remainingLabel, urgencyOf } from "@/core/context/resolver";
-import { runProgress, orderedSteps } from "@/core/flow/engine";
-import { blockingPredecessors, effectiveStatus, isBlocked } from "@/core/task/dependency";
-import { TASK_STATUS_LABEL, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
+import { remainingLabel } from "@/core/context/resolver";
+import { runProgress } from "@/core/flow/engine";
 import { checkStatusOf } from "@/ui/wait-run";
 
 function fmt(d?: string) {
@@ -23,29 +21,34 @@ function fmt(d?: string) {
 export default function HomePage() {
   const { state, workflows, currentUser } = useStore();
   const { next, ranked, waiting } = useNextAction();
-  const { active: activeRules } = useActiveRules();
   const now = useNow();
 
+  /**
+   * 行動候補は rankActions の出力だけを源にする。
+   * tasks / runs から別のリストを組み直すと、同じ仕事が複数セクションに出てしまう。
+   */
+  const keyOf = (a: { kind: string; runId?: string; taskId?: string; stepKey?: string }) =>
+    a.taskId ?? (a.runId ? `${a.runId}:${a.stepKey ?? a.kind}` : a.kind);
+
+  // ① いま着手すること（1件）
+  const first = ranked[0];
+  // ② 続けて着手できること。確認は③に集約するのでここには出さない
+  const upNext = ranked
+    .slice(1)
+    .filter((a) => a.kind !== "check")
+    .slice(0, 3);
+  // ③ 今日確認する。①に出ているものは重ねない
+  const shownKeys = new Set([first, ...upNext].filter(Boolean).map((a) => keyOf(a!)));
+  const dueChecks = waiting
+    .filter((w) => w.dueForCheck)
+    .filter((w) => !shownKeys.has(`${w.run.id}:check`));
+
+  // --- ここから下は「状態確認」。行動候補ではない ---
   const activeRuns = state.runs.filter((r) => r.status === "active" && r.assigneeId === currentUser.id);
-  const todayTasks = state.tasks.filter(
-    (t) => t.confirmationState === "confirmed" && t.status !== "done" && t.status !== "canceled" &&
-      t.assigneeId === currentUser.id && ["overdue", "today"].includes(urgencyOf(t.dueAt, now)),
-  );
-  const proposed = state.tasks.filter((t) => t.confirmationState === "proposed");
-  // 直近に発生した自分の未完了タスク。期限が先でも「作ったのに消えた」を防ぐ（新しい順）。
-  // 先行待ちのタスクは着手できないので、ここには出さない（B-4 と同じ判定を共有する）
-  const recentTasks = [...state.tasks]
-    .filter(
-      (t) => t.confirmationState === "confirmed" && t.status !== "done" && t.status !== "canceled" &&
-        t.assigneeId === currentUser.id && !todayTasks.some((x) => x.id === t.id) &&
-        !isBlocked(t, state.tasks),
-    )
-    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
-    .slice(0, 4);
-  const recentDone = state.runs.filter((r) => r.status === "done").slice(0, 3);
-  // 待ち中のうち、自分が決めた確認日が来た／過ぎたもの
-  const dueChecks = waiting.filter((w) => w.dueForCheck);
-  const stillWaiting = waiting.filter((w) => !w.dueForCheck);
+  // 派生タスクの確認は①②に出ていればそちらに任せる
+  const proposed = shownKeys.has("review-proposals")
+    ? []
+    : state.tasks.filter((t) => t.confirmationState === "proposed");
 
   const nextHref =
     (next.kind === "step" || next.kind === "check") && next.runId ? `/navigator/${next.runId}`
@@ -131,15 +134,17 @@ export default function HomePage() {
 
           {/* 続けて着手できるもの */}
           <section>
-            <SectionTitle>続けて着手できること</SectionTitle>
-            {ranked.length <= 1 ? (
+            <SectionTitle action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}>
+              続けて着手できること
+            </SectionTitle>
+            {upNext.length === 0 ? (
               <Empty>他に着手できる作業はありません</Empty>
             ) : (
               <ul className="flex flex-col gap-1.5">
-                {ranked.slice(1, 6).map((a, i) => (
+                {upNext.map((a, i) => (
                   <li key={i}>
                     <Link
-                      href={a.runId && a.kind === "step" ? `/navigator/${a.runId}` : a.taskId ? `/tasks/${a.taskId}` : "/tasks"}
+                      href={a.runId && (a.kind === "step" || a.kind === "check") ? `/navigator/${a.runId}` : a.taskId ? `/tasks/${a.taskId}` : "/tasks"}
                       className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3 hover:border-brand"
                     >
                       <span className="min-w-0 flex-1">
@@ -158,115 +163,6 @@ export default function HomePage() {
             )}
           </section>
 
-          {/* 進行中の業務 */}
-          <section>
-            <SectionTitle action={<Link href="/workflows" className="text-[12px] text-brand hover:underline">すべての業務</Link>}>
-              進行中の業務（{activeRuns.length}）
-            </SectionTitle>
-            {activeRuns.length === 0 ? (
-              <Empty>進行中の業務はありません</Empty>
-            ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {activeRuns.map((run) => {
-                  const def = workflows.find((w) => w.key === run.workflowKey);
-                  const stepRuns = state.stepRunsByRun[run.id] ?? [];
-                  const p = def ? runProgress(def, run, stepRuns) : { index: 0, total: 0, done: 0 };
-                  const currentTitles = def
-                    ? run.currentStepKeys.map((k) => def.steps.find((s) => s.key === k)?.title).filter(Boolean)
-                    : [];
-                  const overdue = run.dueAt ? new Date(run.dueAt) < now : false;
-                  return (
-                    <Link key={run.id} href={`/navigator/${run.id}`}>
-                      <Card className="h-full p-4 transition-colors hover:border-brand">
-                        <div className="mb-1.5 flex items-start justify-between gap-2">
-                          <span className="text-[11px] text-ink-3">{def?.name}</span>
-                          {run.dueAt && (
-                            <Badge tone={overdue ? "danger" : urgencyOf(run.dueAt, now) === "today" ? "signal" : "neutral"}>
-                              {remainingLabel(new Date(run.dueAt), now)}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-[13.5px] font-bold leading-snug">{run.subject.label}</p>
-                        <p className="mt-1.5 text-[12px] text-ink-2">
-                          次：{currentTitles.join(" / ") || "—"}
-                        </p>
-                        <div className="mt-3 flex items-center gap-2">
-                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
-                            <div className="h-full rounded-full bg-brand" style={{ width: `${p.total === 0 ? 0 : (p.done / p.total) * 100}%` }} />
-                          </div>
-                          <span className="shrink-0 text-[11px] tabular-nums text-ink-3">STEP {p.index}/{p.total}</span>
-                        </div>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* 今日のタスク */}
-          <section>
-            <SectionTitle action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}>
-              今日のタスク（{todayTasks.length}）
-            </SectionTitle>
-            {todayTasks.length === 0 ? (
-              <Empty>今日が期限のタスクはありません</Empty>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {todayTasks.map((t) => {
-                  // 期限が今日でも、先行待ちなら着手できない。同じ判定を全画面で共有する
-                  const waiting = blockingPredecessors(t, state.tasks);
-                  const shown = effectiveStatus(t, state.tasks);
-                  return (
-                    <li key={t.id}>
-                      <Link href={`/tasks/${t.id}`} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 hover:border-brand">
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[13px]">{t.title}</span>
-                          {waiting.length > 0 && (
-                            <span className="mt-0.5 block text-[11.5px] text-danger">
-                              {TASK_STATUS_LABEL[shown]} — 待機中：{waiting.map((x) => x.title).join(" / ")}
-                            </span>
-                          )}
-                        </span>
-                        <Badge tone={urgencyOf(t.dueAt, now) === "overdue" ? "danger" : "signal"}>
-                          {t.dueAt ? remainingLabel(new Date(t.dueAt), now) : "—"}
-                        </Badge>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-
-          {/* 最近発生した仕事：業務やタスクから生まれたものを見失わないための導線 */}
-          {recentTasks.length > 0 && (
-            <section>
-              <SectionTitle action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}>
-                最近発生した仕事
-              </SectionTitle>
-              <ul className="flex flex-col gap-1.5">
-                {recentTasks.map((t) => (
-                  <li key={t.id}>
-                    <Link href={`/tasks/${t.id}`} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 hover:border-brand">
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px]">{t.title}</span>
-                        <span className="mt-0.5 block text-[11.5px] text-ink-3">
-                          {TASK_SOURCE_LABEL[t.source]}
-                          {t.runId && state.runs.find((r) => r.id === t.runId)
-                            ? ` ／ ${state.runs.find((r) => r.id === t.runId)!.subject.label}`
-                            : ""}
-                        </span>
-                      </span>
-                      {t.dueAt && (
-                        <Badge tone="neutral">{remainingLabel(new Date(t.dueAt), now)}</Badge>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
         </div>
 
         {/* 右カラム */}
@@ -285,7 +181,11 @@ export default function HomePage() {
             <Card className="p-4">
               <p className="text-[12px] font-bold text-ink-3">待ち中（{waiting.length}）</p>
               <ul className="mt-2 flex flex-col gap-1.5">
-                {[...dueChecks, ...stillWaiting].map(({ run, reason }) => {
+                {/*
+                  ここは状態確認なので、待ち中は必ず全件出す。
+                  行動候補に出ているかどうかで消さない（消えると待ちを見失う）
+                */}
+                {waiting.map(({ run, reason }) => {
                   const st = checkStatusOf(run.waitingUntil, now);
                   return (
                     <li key={run.id}>
@@ -307,42 +207,36 @@ export default function HomePage() {
             </Card>
           )}
 
-          <Card className="p-4">
-            <div className="mb-2 flex items-baseline justify-between">
-              <p className="text-[12px] font-bold text-ink-3">適用中の一時ルール</p>
-              <Link href="/rules" className="text-[11.5px] text-brand hover:underline">管理</Link>
-            </div>
-            {activeRules.length === 0 ? (
-              <p className="text-[12px] text-ink-3">有効なルールはありません</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {activeRules.map((r) => (
-                  <li key={r.id} className="rounded-lg bg-surface-2 px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      <Badge tone={r.ruleType === "temporary" ? "signal" : "neutral"}>
-                        {{ case: "個別案件", temporary: "期間限定", department: "部署", standard: "標準" }[r.ruleType]}
-                      </Badge>
-                    </div>
-                    <p className="mt-1.5 text-[12.5px] font-medium leading-snug">{r.name}</p>
-                    {r.activeTo && <p className="mt-0.5 text-[11px] text-ink-3">〜{new Date(r.activeTo).toLocaleDateString("ja-JP")}</p>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          {recentDone.length > 0 && (
+          {/*
+            抱えている業務。ここは「今やること」ではなく状態確認。
+            着手候補（左カラム）と見た目を明確に分けるため、
+            カードではなく淡い行で並べる。
+          */}
+          {activeRuns.length > 0 && (
             <Card className="p-4">
-              <p className="mb-2 text-[12px] font-bold text-ink-3">最近完了した業務</p>
-              <ul className="flex flex-col gap-1">
-                {recentDone.map((r) => {
-                  const def = workflows.find((w) => w.key === r.workflowKey);
-                  void orderedSteps;
+              <div className="mb-2 flex items-baseline justify-between">
+                <p className="text-[12px] font-bold text-ink-3">抱えている業務（{activeRuns.length}）</p>
+                <Link href="/workflows" className="text-[11.5px] text-brand hover:underline">すべての業務</Link>
+              </div>
+              <ul className="flex flex-col gap-1.5">
+                {activeRuns.map((run) => {
+                  const def = workflows.find((w) => w.key === run.workflowKey);
+                  const p = def
+                    ? runProgress(def, run, state.stepRunsByRun[run.id] ?? [])
+                    : { index: 0, total: 0, done: 0 };
+                  // 左（行動候補）に既に出ている業務は、その旨を添えて役割の違いを示す
+                  const inCandidates = run.currentStepKeys.some((k) => shownKeys.has(`${run.id}:${k}`));
                   return (
-                    <li key={r.id}>
-                      <Link href={`/map/${r.id}`} className="block rounded-lg px-2 py-1.5 hover:bg-surface-2">
-                        <span className="block text-[12.5px]">{r.subject.label}</span>
-                        <span className="text-[11px] text-ink-3">{def?.name} ・ {fmt(r.completedAt)}</span>
+                    <li key={run.id}>
+                      <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft">
+                        <span className="block truncate text-[12.5px] font-medium">{run.subject.label}</span>
+                        <span className="mt-0.5 flex items-center gap-2 text-[11px] text-ink-3">
+                          <span className="truncate">{def?.name}</span>
+                          <span className="ml-auto shrink-0 tabular-nums">STEP {p.index}/{p.total}</span>
+                        </span>
+                        {inCandidates && (
+                          <span className="mt-0.5 block text-[10.5px] text-brand">今日の着手候補に出ています</span>
+                        )}
                       </Link>
                     </li>
                   );
@@ -350,6 +244,7 @@ export default function HomePage() {
               </ul>
             </Card>
           )}
+
         </div>
       </div>
     </div>

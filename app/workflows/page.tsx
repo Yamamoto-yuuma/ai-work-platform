@@ -26,7 +26,8 @@ export default function WorkflowsPage() {
       {/* 進行中 */}
       {myActiveRuns.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-[13px] font-bold">進行中の業務</h2>
+          {/* HOME と同じ語彙にする（仕様 §26-5）。待ち中もここに含まれる */}
+          <h2 className="mb-3 text-[13px] font-bold">抱えている業務（{myActiveRuns.length}）</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {myActiveRuns.map((run) => {
               const def = workflows.find((w) => w.key === run.workflowKey);
