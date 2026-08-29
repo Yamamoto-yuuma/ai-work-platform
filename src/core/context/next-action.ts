@@ -31,19 +31,21 @@ export function headlineForStep(step: StepDefinition, run: WorkRun): string {
   return `${subject}${step.title}`;
 }
 
-/** 業務が「待ち」状態か判定する。着手できるものが無い状態を可視化する */
-export function isWaiting(
-  run: WorkRun,
-  stepRuns: StepRun[],
-  def: WorkflowDefinition | undefined,
-): boolean {
-  if (!def || run.status !== "active") return false;
-  const activeSteps = run.currentStepKeys
-    .map((k) => getStep(def, k))
-    .filter((s): s is StepDefinition => Boolean(s));
-  if (activeSteps.length === 0) return true;
-  // 承認STEPだけが残っている場合は「他者待ち」
-  return activeSteps.every((s) => s.componentType === "approval");
+/**
+ * 待ち中の業務か。
+ *
+ * 「承認STEPだから自動的に待ち」という推測はしない（仕様の個人利用前提）。
+ * 待ちにするかどうかは必ずユーザーが明示的に操作する。
+ */
+export function isWaitingRun(run: WorkRun): boolean {
+  return run.status === "paused";
+}
+
+/** 次回確認日が来ている（または過ぎている）待ちか */
+export function isDueForCheck(run: WorkRun, now: Date): boolean {
+  if (!isWaitingRun(run) || !run.waitingUntil) return false;
+  const u = urgencyOf(run.waitingUntil, now);
+  return u === "overdue" || u === "today";
 }
 
 export interface RankedAction extends NextAction {
@@ -64,12 +66,13 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     const def = defOf(run.workflowKey, run.workflowVersion);
     if (!def) continue;
     const stepRuns = stepRunsByRun[run.id] ?? [];
-    if (isWaiting(run, stepRuns, def)) continue;
 
     const position = runProgress(def, run, stepRuns);
     for (const key of run.currentStepKeys) {
       const step = getStep(def, key);
-      if (!step || step.componentType === "approval") continue;
+      // 承認STEPも自分が内容を確認して進める作業なので、着手候補から外さない。
+      // 進められないなら、ユーザーが明示的に「待ち」にする
+      if (!step) continue;
       const urgency = urgencyOf(run.dueAt, now);
       actions.push({
         kind: "step",
@@ -96,7 +99,26 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     });
   }
 
-  // 3. 確定済みの単発タスク
+  // 3. 確認日が来た待ち。作業ではなく「確認して判断する」アクション
+  for (const run of runs) {
+    if (run.assigneeId !== userId) continue;
+    if (!isDueForCheck(run, now)) continue;
+    const urgency = urgencyOf(run.waitingUntil, now);
+    actions.push({
+      kind: "check",
+      headline: `${run.subject.label} — ${run.waitingFor ?? "待ち中の確認"}`,
+      reason: urgency === "overdue"
+        ? `確認予定日を過ぎています（${remainingLabel(new Date(run.waitingUntil!), now)}）`
+        : "待ち中の業務。今日が確認予定日です",
+      runId: run.id,
+      dueAt: run.waitingUntil,
+      urgency,
+      // 確認は短時間で終わる。滞留させないため作業より少し高く置く
+      score: URGENCY_SCORE[urgency] + 320,
+    });
+  }
+
+  // 4. 確定済みの単発タスク
   for (const task of tasks) {
     if (task.confirmationState !== "confirmed") continue;
     if (task.assigneeId !== userId) continue;
@@ -125,18 +147,20 @@ export function resolveNextAction(input: NextActionInput): NextAction {
   const ranked = rankActions(input);
   if (ranked.length > 0) return ranked[0];
 
-  const waitingRuns = input.runs.filter(
-    (r) =>
-      r.status === "active" &&
-      r.assigneeId === input.userId &&
-      isWaiting(r, input.stepRunsByRun[r.id] ?? [], input.workflows.find((w) => w.key === r.workflowKey)),
+  const paused = input.runs.filter(
+    (r) => r.assigneeId === input.userId && isWaitingRun(r),
   );
 
-  if (waitingRuns.length > 0) {
+  if (paused.length > 0) {
+    const next = [...paused]
+      .filter((r) => r.waitingUntil)
+      .sort((a, b) => a.waitingUntil!.localeCompare(b.waitingUntil!))[0];
     return {
       kind: "idle",
       headline: "今すぐ着手できる作業はありません",
-      reason: `${waitingRuns.length}件の業務が他者の対応待ちです`,
+      reason: next?.waitingUntil
+        ? `${paused.length}件を待ち中です。次の確認は ${new Date(next.waitingUntil).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}`
+        : `${paused.length}件を待ち中です`,
       urgency: "normal",
     };
   }
@@ -148,12 +172,21 @@ export function resolveNextAction(input: NextActionInput): NextAction {
   };
 }
 
-/** 待ち状態の業務一覧。「何もできない」と「次が分からない」を区別する */
-export function waitingRuns(input: NextActionInput): { run: WorkRun; reason: string }[] {
+/**
+ * 待ち中の業務一覧。確認日の早い順。
+ * reason は自分が入力した「何を待っているか」で、システムの推測ではない。
+ */
+export function waitingRuns(input: NextActionInput): {
+  run: WorkRun; reason: string; dueForCheck: boolean;
+}[] {
   return input.runs
-    .filter((r) => r.status === "active" && r.assigneeId === input.userId)
-    .filter((r) => isWaiting(r, input.stepRunsByRun[r.id] ?? [], input.workflows.find((w) => w.key === r.workflowKey)))
-    .map((r) => ({ run: r, reason: "承認・返信待ち" }));
+    .filter((r) => r.assigneeId === input.userId && isWaitingRun(r))
+    .sort((a, b) => (a.waitingUntil ?? "").localeCompare(b.waitingUntil ?? ""))
+    .map((r) => ({
+      run: r,
+      reason: r.waitingFor ?? "待ち中",
+      dueForCheck: isDueForCheck(r, input.now),
+    }));
 }
 
 

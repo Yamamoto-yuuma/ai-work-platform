@@ -19,6 +19,7 @@ import { generateStepTasks } from "@/core/task/from-step";
 import { RunCompletion } from "@/ui/run-completion";
 import { ChangeRequestPanel } from "@/ui/change-request";
 import { CancelRunPanel, CanceledRunNotice } from "@/ui/cancel-run";
+import { WaitRunPanel, WaitingRunNotice } from "@/ui/wait-run";
 import type { StepRunStatus } from "@/core/model/types";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
@@ -41,6 +42,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
   // 変更起票パネルの開閉。開いていても現在STEPの操作は妨げない
   const [changeOpen, setChangeOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [waitOpen, setWaitOpen] = useState(false);
 
   const activeKey = selected ?? view?.run.currentStepKeys[0] ?? null;
   const stepView = useStepView(view, activeKey ?? undefined);
@@ -58,8 +60,11 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
   const { run, def, ordered, statusOf } = view;
   const isDone = run.status === "done";
   const isCanceled = run.status === "canceled";
+  const isWaiting = run.status === "paused";
   // 終わった業務（完了・中止）はSTEPを進められない。変更起票だけは引き続きできる
   const isFinished = isDone || isCanceled;
+  // 待ち中もSTEPは進められないが、終わってはいない
+  const isStopped = isFinished || isWaiting;
   // 進捗は業務の現在地。過去のSTEPを開いて眺めても動かさない（仕様 §6-2）
   const position = view.progress;
   // 表示中のSTEPが現在地と違うとき、それを明示する
@@ -140,6 +145,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           <div className="flex items-center gap-3">
             {isCanceled && <Badge tone="neutral">中止</Badge>}
             {isDone && <Badge tone="ok">完了</Badge>}
+            {isWaiting && <Badge tone="signal">待ち中</Badge>}
             <span className="text-[12.5px] text-ink-2">
               担当：{assignee ? assignee.name : "未割当"}
               {assignee && assignee.id === currentUser.id && (
@@ -192,14 +198,16 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                         {s.title}
                       </span>
                       {st === "skipped" && <span className="text-[11px] text-ink-3">条件によりスキップ</span>}
-                      {st === "active" && !isCurrent && !isFinished && (
+                      {st === "active" && !isCurrent && !isStopped && (
                         <span className="text-[11px] text-brand">
                           {run.currentStepKeys.length > 1 ? "並行して進行中" : "現在のSTEP"}
                         </span>
                       )}
-                      {st === "active" && isFinished && (
+                      {st === "active" && isStopped && (
                         <span className="text-[11px] text-ink-3">
-                          {isCanceled ? "中止時点で未完了" : "未完了のまま完了"}
+                          {isCanceled ? "中止時点で未完了"
+                            : isWaiting ? "ここで待ち中"
+                            : "未完了のまま完了"}
                         </span>
                       )}
                     </span>
@@ -218,7 +226,14 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
 
         {/* 現在STEP（画面内で最大面積・最高コントラスト） */}
         <div className="min-w-0 flex-1">
-          {isCanceled ? (
+          {isWaiting ? (
+            <>
+              <WaitingRunNotice run={run} />
+              {changeOpen && (
+                <ChangeRequestPanel run={run} def={def} onClose={() => setChangeOpen(false)} />
+              )}
+            </>
+          ) : isCanceled ? (
             <>
               <CanceledRunNotice run={run} />
               {changeOpen && (
@@ -301,6 +316,9 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               {changeOpen && (
                 <ChangeRequestPanel run={run} def={def} onClose={() => setChangeOpen(false)} />
               )}
+              {waitOpen && (
+                <WaitRunPanel run={run} def={def} onClose={() => setWaitOpen(false)} />
+              )}
               {cancelOpen && (
                 <CancelRunPanel run={run} def={def} onClose={() => setCancelOpen(false)} />
               )}
@@ -353,10 +371,11 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           )}
         </div>
 
-        {stepView && !isFinished ? (
+        {stepView && !isStopped ? (
           <ContextPanel
             ctx={stepView.context}
             onRequestChange={() => setChangeOpen(true)}
+            onWaitRun={() => setWaitOpen(true)}
             onCancelRun={() => setCancelOpen(true)}
             historyHref={`/map/${run.id}`}
             historyCount={changeCount}
@@ -369,10 +388,14 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           <aside className="w-full shrink-0 lg:w-[312px]">
             <div className="sticky top-4 overflow-hidden rounded-xl border border-line bg-surface p-4">
               <p className="text-[12px] font-bold">
-                {isCanceled ? "この業務は中止されています" : "この業務は完了しています"}
+                {isCanceled ? "この業務は中止されています"
+                  : isWaiting ? "この業務は待ち中です"
+                  : "この業務は完了しています"}
               </p>
               <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
-                STEPの実行はできませんが、後から変更が起きた場合は起票して影響を確認できます。
+                {isWaiting
+                  ? "確認するまでSTEPは進みません。中央で「作業を再開する」か「まだ待つ」を選べます。"
+                  : "STEPの実行はできませんが、後から変更が起きた場合は起票して影響を確認できます。"}
               </p>
               <Button variant="secondary" size="sm" onClick={() => setChangeOpen(true)}>変更を起票</Button>
               {changeCount > 0 && (

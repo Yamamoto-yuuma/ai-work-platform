@@ -45,6 +45,10 @@ export type Action =
   | { type: "updateRun"; runId: string; patch: Pick<WorkRun, "dueAt"> }
   /** 業務の中止（仕様 §6-4）。完了とは別の終わり方 */
   | { type: "cancelRun"; runId: string; reason: string }
+  /** 業務を待ちにする。自分が次に確認する日を決めて一旦止める */
+  | { type: "pauseRun"; runId: string; waitingFor: string; waitingUntil: string }
+  /** 待ちを解いて作業に戻す。STEP は待ちに入る前のまま */
+  | { type: "resumeRun"; runId: string }
   | { type: "addChangeEvent"; change: ChangeEvent }
   | { type: "toggleRule"; ruleId: string }
   | { type: "addRule"; rule: BusinessRule }
@@ -251,6 +255,60 @@ function reducer(state: AppState, action: Action): AppState {
           runId: action.runId, type: "run.canceled", actor: state.currentUserId,
           payload: { reason: action.reason, atStepKeys: target.currentStepKeys },
           createdAt: now,
+        }],
+      };
+    }
+
+    case "pauseRun": {
+      const target = state.runs.find((r) => r.id === action.runId);
+      // active からは待ちに入る。paused からは「まだ待つ」＝待ちの内容を更新する。
+      // どちらも run.paused として記録し、延長の経緯が履歴に残るようにする
+      if (!target || (target.status !== "active" && target.status !== "paused")) return state;
+      return {
+        ...state,
+        // currentStepKeys は保持する。再開時に復元する必要をなくすため
+        runs: state.runs.map((r) =>
+          r.id === action.runId
+            ? {
+                ...r,
+                status: "paused" as const,
+                waitingFor: action.waitingFor,
+                waitingUntil: action.waitingUntil,
+              }
+            : r,
+        ),
+        workEvents: [...state.workEvents, {
+          id: `ev-${Math.random().toString(36).slice(2, 10)}`,
+          runId: action.runId, type: "run.paused", actor: state.currentUserId,
+          payload: {
+            waitingFor: action.waitingFor,
+            waitingUntil: action.waitingUntil,
+            atStepKeys: target.currentStepKeys,
+          },
+          createdAt: new Date().toISOString(),
+        }],
+      };
+    }
+
+    case "resumeRun": {
+      const target = state.runs.find((r) => r.id === action.runId);
+      if (!target || target.status !== "paused") return state;
+      return {
+        ...state,
+        runs: state.runs.map((r) =>
+          r.id === action.runId
+            ? { ...r, status: "active" as const, waitingFor: undefined, waitingUntil: undefined }
+            : r,
+        ),
+        workEvents: [...state.workEvents, {
+          id: `ev-${Math.random().toString(36).slice(2, 10)}`,
+          runId: action.runId, type: "run.resumed", actor: state.currentUserId,
+          payload: {
+            waitedFor: target.waitingFor,
+            plannedCheckAt: target.waitingUntil,
+            resumeStepKeys: target.currentStepKeys,
+          },
+          createdAt: new Date().toISOString(),
         }],
       };
     }

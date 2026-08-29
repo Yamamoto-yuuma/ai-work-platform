@@ -63,7 +63,9 @@ export default function MapIndexPage() {
                       <p className="truncate text-[13px] font-bold">{run.subject.label}</p>
                       <p className="mt-0.5 text-[11.5px] text-ink-3">{def?.name}</p>
                     </div>
-                    <Badge tone={run.status === "done" ? "ok" : "brand"}>{run.status === "done" ? "完了" : "進行中"}</Badge>
+                    <Badge tone={run.status === "done" ? "ok" : run.status === "paused" ? "signal" : run.status === "canceled" ? "neutral" : "brand"}>
+                      {run.status === "done" ? "完了" : run.status === "paused" ? "待ち中" : run.status === "canceled" ? "中止" : "進行中"}
+                    </Badge>
                   </div>
                   <p className="mt-2 text-[11.5px] tabular-nums text-ink-2">STEP {p.index}/{p.total}</p>
                 </Card>

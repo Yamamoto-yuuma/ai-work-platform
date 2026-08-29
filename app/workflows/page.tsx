@@ -12,7 +12,8 @@ export default function WorkflowsPage() {
   const categories = Array.from(new Set(workflows.map((w) => w.category)));
   // HOME と同じ基準（自分が担当する進行中の業務）で表示する
   const myActiveRuns = state.runs.filter(
-    (r) => r.status === "active" && r.assigneeId === currentUser.id,
+    // 待ち中も「進行中」に含める。ここから消えると探せなくなる
+    (r) => (r.status === "active" || r.status === "paused") && r.assigneeId === currentUser.id,
   );
 
   return (
@@ -32,10 +33,20 @@ export default function WorkflowsPage() {
               const p = def ? runProgress(def, run, state.stepRunsByRun[run.id] ?? []) : { index: 0, total: 0, done: 0 };
               return (
                 <Link key={run.id} href={`/navigator/${run.id}`}>
-                  <Card className="h-full border-brand/30 bg-brand-soft p-4 hover:border-brand">
-                    <p className="text-[11px] text-brand">{def?.name}</p>
+                  <Card className={`h-full p-4 ${
+                    run.status === "paused"
+                      ? "border-line bg-surface hover:border-signal"
+                      : "border-brand/30 bg-brand-soft hover:border-brand"
+                  }`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[11px] text-brand">{def?.name}</p>
+                      {run.status === "paused" && <Badge tone="signal">待ち中</Badge>}
+                    </div>
                     <p className="mt-1 text-[13.5px] font-bold leading-snug">{run.subject.label}</p>
                     <p className="mt-2 text-[11.5px] tabular-nums text-ink-2">STEP {p.index}/{p.total}</p>
+                    {run.status === "paused" && run.waitingFor && (
+                      <p className="mt-1 truncate text-[11px] text-ink-3">{run.waitingFor}</p>
+                    )}
                   </Card>
                 </Link>
               );

@@ -13,6 +13,7 @@ import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { runProgress, orderedSteps } from "@/core/flow/engine";
 import { blockingPredecessors, effectiveStatus, isBlocked } from "@/core/task/dependency";
 import { TASK_STATUS_LABEL, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
+import { checkStatusOf } from "@/ui/wait-run";
 
 function fmt(d?: string) {
   if (!d) return "—";
@@ -42,9 +43,12 @@ export default function HomePage() {
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
     .slice(0, 4);
   const recentDone = state.runs.filter((r) => r.status === "done").slice(0, 3);
+  // 待ち中のうち、自分が決めた確認日が来た／過ぎたもの
+  const dueChecks = waiting.filter((w) => w.dueForCheck);
+  const stillWaiting = waiting.filter((w) => !w.dueForCheck);
 
   const nextHref =
-    next.kind === "step" && next.runId ? `/navigator/${next.runId}`
+    (next.kind === "step" || next.kind === "check") && next.runId ? `/navigator/${next.runId}`
     : next.kind === "review-proposals" ? "/tasks?view=proposed"
     : next.kind === "task" && next.taskId ? `/tasks/${next.taskId}`
     : "/workflows";
@@ -79,13 +83,52 @@ export default function HomePage() {
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-[12.5px] text-ink-2">
             <span>{next.reason}</span>
-            {next.dueAt && <span>期限 {fmt(next.dueAt)}</span>}
+            {next.dueAt && (
+              <span>{next.kind === "check" ? "確認予定日" : "期限"} {fmt(next.dueAt)}</span>
+            )}
           </div>
         </div>
       </Link>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6">
+          {/* 今日確認する：待ちの確認日が来たもの。作業ではなく判断 */}
+          {dueChecks.length > 0 && (
+            <section>
+              <SectionTitle>今日確認する（{dueChecks.length}）</SectionTitle>
+              <ul className="flex flex-col gap-1.5">
+                {dueChecks.map(({ run, reason }) => {
+                  const st = checkStatusOf(run.waitingUntil, now);
+                  return (
+                    <li key={run.id}>
+                      <Link
+                        href={`/navigator/${run.id}`}
+                        className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                          st.overdue
+                            ? "border-danger/40 bg-danger-soft hover:border-danger"
+                            : "border-signal/40 bg-signal-soft hover:border-signal"
+                        }`}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-bold">{run.subject.label}</span>
+                          <span className="mt-0.5 block text-[11.5px] text-ink-2">
+                            {reason} ／ 確認予定日：
+                            {run.waitingUntil
+                              ? new Date(run.waitingUntil).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })
+                              : "—"}
+                          </span>
+                        </span>
+                        <Badge tone={st.overdue ? "danger" : "signal"}>
+                          {st.overdue ? `確認期限超過 ${st.label}` : "今日が確認予定日"}
+                        </Badge>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
           {/* 続けて着手できるもの */}
           <section>
             <SectionTitle>続けて着手できること</SectionTitle>
@@ -240,16 +283,26 @@ export default function HomePage() {
 
           {waiting.length > 0 && (
             <Card className="p-4">
-              <p className="text-[12px] font-bold text-ink-3">対応待ちの業務</p>
+              <p className="text-[12px] font-bold text-ink-3">待ち中（{waiting.length}）</p>
               <ul className="mt-2 flex flex-col gap-1.5">
-                {waiting.map(({ run, reason }) => (
-                  <li key={run.id}>
-                    <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft">
-                      <span className="block text-[12.5px] font-medium">{run.subject.label}</span>
-                      <span className="text-[11px] text-ink-3">{reason}</span>
-                    </Link>
-                  </li>
-                ))}
+                {[...dueChecks, ...stillWaiting].map(({ run, reason }) => {
+                  const st = checkStatusOf(run.waitingUntil, now);
+                  return (
+                    <li key={run.id}>
+                      <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft">
+                        <span className="block text-[12.5px] font-medium">{run.subject.label}</span>
+                        <span className="block text-[11px] text-ink-3">{reason}</span>
+                        <span className={`mt-0.5 block text-[11px] ${st.overdue ? "font-bold text-danger" : "text-ink-3"}`}>
+                          次回確認：
+                          {run.waitingUntil
+                            ? new Date(run.waitingUntil).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })
+                            : "未設定"}
+                          {st.headline ? `・${st.headline}` : ""}・{st.label}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           )}

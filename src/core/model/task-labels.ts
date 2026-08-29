@@ -8,7 +8,8 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   "todo": "未着手",
   "doing": "進行中",
   "blocked": "ブロック中",
-  "waiting-approval": "承認待ち",
+  // 他者がこのシステム上で承認するのではなく、自分から見た「返事待ち」
+  "waiting-approval": "返答待ち",
   "done": "完了",
   "canceled": "中止",
 };

@@ -172,6 +172,13 @@ export interface WorkRun {
   startedAt: string;
   completedAt?: string;
   source: "standard" | "adhoc";
+  /**
+   * 待ち（status === "paused"）のときだけ入る。
+   * 相手の状態を管理するものではなく、自分から見た「何を待っているか」。
+   */
+  waitingFor?: string;
+  /** 自分が次に確認する日。この日が来ると HOME の「今日確認する」に出る */
+  waitingUntil?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +187,7 @@ export interface WorkRun {
 
 export type WorkEventType =
   | "run.started" | "run.completed" | "run.canceled"
+  | "run.paused" | "run.resumed"
   | "step.completed" | "step.reopened" | "step.skipped"
   | "field.changed" | "task.created" | "task.confirmed" | "rule.applied";
 
@@ -421,7 +429,13 @@ export interface StepContext {
 // 次の一手（仕様 §4-3 / レビュー指摘 Q2）
 // ---------------------------------------------------------------------------
 
-export type NextActionKind = "step" | "task" | "review-proposals" | "idle";
+export type NextActionKind =
+  | "step"
+  /** 待ち中の業務で、自分が決めた確認日が来たもの */
+  | "check"
+  | "task"
+  | "review-proposals"
+  | "idle";
 
 export interface NextAction {
   kind: NextActionKind;

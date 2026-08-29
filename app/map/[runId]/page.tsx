@@ -25,7 +25,7 @@ export default function RunMapPage({ params }: { params: Promise<{ runId: string
       <PageHeader
         title={run.subject.label}
         description={`${def.name} ／ STEP ${progress.index} / ${progress.total}`}
-        action={run.status === "active"
+        action={run.status === "active" || run.status === "paused"
           ? <LinkButton href={`/navigator/${run.id}`}>業務ナビゲーターへ</LinkButton>
           : run.status === "canceled"
             ? <Badge tone="neutral">中止</Badge>

@@ -21,11 +21,13 @@ function Section({ title, icon, children }: { title: string; icon: string; child
 }
 
 export function ContextPanel({
-  ctx, onRequestChange, onCancelRun, historyHref, historyCount,
+  ctx, onRequestChange, onWaitRun, onCancelRun, historyHref, historyCount,
 }: {
   ctx: StepContext;
   /** 変更起票の入口。渡されたときだけ表示する */
   onRequestChange?: () => void;
+  /** 待ちにする入口。進行中の業務にだけ渡す */
+  onWaitRun?: () => void;
   /** 業務中止の入口。進行中の業務にだけ渡す */
   onCancelRun?: () => void;
   /** 変更履歴への導線。変更が1件以上あるときだけ渡す */
@@ -195,7 +197,7 @@ export function ContextPanel({
           業務途中の変更の入口（仕様 §10-3）。
           「このSTEPの情報」ではなく操作なので、情報セクションとは分けて置く。
         */}
-        {(onRequestChange || onCancelRun) && (
+        {(onRequestChange || onWaitRun || onCancelRun) && (
           <div className="border-t border-line bg-surface-2 px-4 py-3.5">
             {onRequestChange && (
               <>
@@ -214,8 +216,17 @@ export function ContextPanel({
                 ) : null}
               </>
             )}
-            {onCancelRun && (
+            {onWaitRun && (
               <div className={onRequestChange ? "mt-4 border-t border-line pt-3.5" : undefined}>
+                <p className="text-[12px] font-bold">今は進められない？</p>
+                <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
+                  返事や外部の処理を待つ場合は、次に確認する日を決めて一旦止められます。
+                </p>
+                <Button variant="secondary" size="sm" onClick={onWaitRun}>待ちにする</Button>
+              </div>
+            )}
+            {onCancelRun && (
+              <div className={onRequestChange || onWaitRun ? "mt-4 border-t border-line pt-3.5" : undefined}>
                 <p className="text-[12px] font-bold">この業務をやめる？</p>
                 <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
                   完了ではなく、途中でやめた記録として残します（仕様 §6-4）。

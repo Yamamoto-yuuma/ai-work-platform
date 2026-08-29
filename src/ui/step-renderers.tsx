@@ -477,8 +477,11 @@ function ApprovalRenderer({ step, stepRun, run, onCheck }: StepRendererProps) {
   return (
     <div className="flex flex-col gap-3">
       {!selfConfirm && (
-        <div className="rounded-lg border border-signal/40 bg-signal-soft px-3.5 py-2.5 text-[13px] text-signal">
-          このSTEPは他者の承認待ちです。承認者：{String(step.config.approverRole ?? "manager")}
+        <div className="rounded-lg border border-signal/40 bg-signal-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-signal">
+          このSTEPは、確認を依頼した相手の返事を待つ内容です。
+          （確認先の目安：{String(step.config.approverRole ?? "manager")}）
+          <br />
+          返事が来るまで進められない場合は、右の「待ちにする」で確認日を決めて一旦止められます。
         </div>
       )}
       <ReviewTarget step={step} run={run} />
