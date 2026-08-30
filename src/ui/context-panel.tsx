@@ -34,10 +34,11 @@ export function ContextPanel({
   historyHref?: string;
   historyCount?: number;
 }) {
+  // 期限はこのパネルに出さないので、中身の有無にも数えない
   const hasAnything =
     ctx.conflicts.length > 0 || ctx.missingInfo.length > 0 || ctx.notices.length > 0 ||
     ctx.rules.length > 0 || ctx.knowledge.length > 0 || ctx.derivedTasks.length > 0 ||
-    ctx.tools.length > 0 || ctx.deadline || ctx.stepDeadline;
+    ctx.tools.length > 0;
 
   return (
     <aside className="w-full shrink-0 lg:w-[312px]">
@@ -60,38 +61,11 @@ export function ContextPanel({
           </Section>
         )}
 
-        {(ctx.stepDeadline || ctx.deadline) && (
-          <Section title="期限" icon="⏱">
-            <div className="flex flex-col gap-2">
-              {ctx.stepDeadline && (
-                <div>
-                  <p className="mb-1 text-[11px] text-ink-3">このSTEPの期限</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-medium">
-                      {new Date(ctx.stepDeadline.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
-                    </span>
-                    <Badge tone={ctx.stepDeadline.isOverdue ? "danger" : "brand"}>
-                      {ctx.stepDeadline.remainingLabel}
-                    </Badge>
-                  </div>
-                </div>
-              )}
-              {ctx.deadline && (
-                <div className={ctx.stepDeadline ? "border-t border-line-soft pt-2" : undefined}>
-                  <p className="mb-1 text-[11px] text-ink-3">業務全体の期限</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[13px] ${ctx.stepDeadline ? "text-ink-2" : "font-medium"}`}>
-                      {new Date(ctx.deadline.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
-                    </span>
-                    <Badge tone={ctx.deadline.isOverdue ? "danger" : "neutral"}>
-                      {ctx.deadline.remainingLabel}
-                    </Badge>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Section>
-        )}
+        {/*
+          期限はここには出さない（仕様 §26-6 / Phase 11）。
+          業務全体の期限はヘッダーのバッジ、STEPの期限はSTEP見出しが出しており、
+          同じ日付を3か所で繰り返さないため。
+        */}
 
         {ctx.missingInfo.length > 0 && (
           <Section title="不足している業務情報" icon="❗">

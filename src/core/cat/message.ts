@@ -21,7 +21,7 @@ import type {
   WorkRun, WorkflowDefinition,
 } from "../model/types";
 import { evaluate } from "../flow/condition";
-import { remainingDays } from "../priority/escalate";
+import { urgencyOf } from "../context/resolver";
 
 export interface CatMessage {
   /** 1〜2行。長くしない */
@@ -39,9 +39,18 @@ const say = (id: string, ...lines: string[]): CatMessage => ({ id, lines });
 // 期限・日付の言い換え
 // ---------------------------------------------------------------------------
 
+/**
+ * 超過日数。画面の期限表示（core/context/resolver の remainingLabel）と
+ * まったく同じ数え方にする。猫が別の数え方をすると、同じ日付なのに
+ * ヘッダーと猫で日数が食い違う。
+ */
+function overdueDays(dueAt: string, now: Date): number {
+  return Math.floor((now.getTime() - new Date(dueAt).getTime()) / 86400000);
+}
+
 function overduePhrase(dueAt: string, now: Date): string {
-  const over = Math.abs(remainingDays(dueAt, now));
-  return over <= 1 ? "期限を過ぎてる" : `期限を${over}日過ぎてる`;
+  const over = overdueDays(dueAt, now);
+  return over <= 0 ? "期限を過ぎてる" : `期限を${over}日過ぎてる`;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,15 +67,17 @@ export function catForWaiting(run: WorkRun, now: Date): CatMessage | null {
   // 確認日がまだ先なら黙る。画面に出ている「次回確認」以上のことは言えない
   if (!until) return null;
 
-  const left = remainingDays(until, now);
-  if (left < 0) {
-    const over = Math.abs(left);
+  const urgency = urgencyOf(until, now);
+  if (urgency === "overdue") {
+    const over = overdueDays(until, now);
     return say(
       `wait:${run.id}:over:${over}`,
-      `${over}日過ぎてる。${what ? `${what}は` : "状況は"}まだ動いてない。`,
+      over <= 0
+        ? `確認日を過ぎてる。${what ? `${what}は` : "状況は"}まだ動いてない。`
+        : `${over}日過ぎてる。${what ? `${what}は` : "状況は"}まだ動いてない。`,
     );
   }
-  if (left === 0) {
+  if (urgency === "today") {
     return say(
       `wait:${run.id}:today`,
       "今日が確認日だ。",
@@ -162,7 +173,7 @@ export function catForStep(input: StepSceneInput): CatMessage | null {
   if (taken) return catForBranch(taken, step.title);
 
   // 期限を過ぎているなら、それが先
-  if (run.dueAt && remainingDays(run.dueAt, now) < 0) {
+  if (run.dueAt && urgencyOf(run.dueAt, now) === "overdue") {
     return say(`step:${run.id}:${step.key}:overdue`, `この業務は${overduePhrase(run.dueAt, now)}。`);
   }
 
@@ -205,14 +216,14 @@ export function catForHome(input: HomeSceneInput): CatMessage | null {
 
   // 待ちの確認日が来ているとき
   if (next.kind === "check") {
-    if (next.dueAt && remainingDays(next.dueAt, now) < 0) {
+    if (next.dueAt && urgencyOf(next.dueAt, now) === "overdue") {
       return say(`home:check:over:${next.runId}`, `${overduePhrase(next.dueAt, now)}。まだ待ち中だ。`);
     }
     return say(`home:check:today:${next.runId}`, "今日が確認日だ。上に来てる理由はこれだ。");
   }
 
   // 期限を過ぎているとき
-  if (next.dueAt && remainingDays(next.dueAt, now) < 0) {
+  if (next.dueAt && urgencyOf(next.dueAt, now) === "overdue") {
     return say(
       `home:over:${next.runId ?? next.taskId}`,
       `${overduePhrase(next.dueAt, now)}。上に来てる理由はこれだ。`,

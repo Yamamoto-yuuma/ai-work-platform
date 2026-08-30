@@ -24,6 +24,7 @@ import type { StepRunStatus } from "@/core/model/types";
 import { runLabel, subjectOf } from "@/core/model/run-label";
 import { catForStep } from "@/core/cat/message";
 import { CatSays } from "@/ui/cat";
+import { remainingLabel } from "@/core/context/resolver";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
   done: { mark: "✓", cls: "border-ok bg-ok text-white" },
@@ -162,7 +163,8 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               return (
                 <Badge tone={overdue ? "danger" : "brand"}>
                   期限 {new Date(run.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
-                  {overdue && "（超過）"}
+                  {/* 業務全体の期限はここが唯一の表示。残りもここで示す */}
+                  {!isFinished && `（${remainingLabel(new Date(run.dueAt), now)}）`}
                 </Badge>
               );
             })()}
@@ -381,7 +383,6 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               */}
               <CatSays
                 className="mt-4"
-                showWhenSilent
                 message={catForStep({
                   def, run, step: stepView.step, stepRuns: view.stepRuns, scope: view.scope,
                   missingToComplete: stepView.completion.missing,

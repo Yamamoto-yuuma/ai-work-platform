@@ -5,7 +5,7 @@
  *
  * 画面の主役にはしない。既存の情報階層の外側に、小さく1〜2行だけ添える。
  * 文言は core/cat/message.ts が既存データから決めており、ここは表示だけ。
- * 閉じられたら同じ状況では出し直さない。
+ * 言うことがないときは猫ごと出さない。閉じられたら同じ状況では出し直さない。
  */
 import { useEffect, useState } from "react";
 import type { CatMessage } from "@/core/cat/message";
@@ -56,17 +56,11 @@ export function CatSays({
   message,
   tone = "plain",
   className = "",
-  showWhenSilent = false,
 }: {
   message: CatMessage | null;
   /** plain = 地の色 / soft = 淡い枠。置く場所の背景に合わせる */
   tone?: "plain" | "soft";
   className?: string;
-  /**
-   * 言うことがないときも猫だけ置く（仕様 §29-2）。
-   * 猫の居場所が決まっている画面（ナビゲーター）でだけ使う。
-   */
-  showWhenSilent?: boolean;
 }) {
   const [dismissed, setDismissed] = useState<string[]>([]);
 
@@ -76,15 +70,8 @@ export function CatSays({
   const lines = message ? message.lines.filter((l) => l.trim().length > 0) : [];
   const silent = !message || dismissed.includes(message.id) || lines.length === 0;
 
-  // 黙っているときは猫だけ。吹き出しも閉じるボタンも出さない
-  if (silent) {
-    if (!showWhenSilent) return null;
-    return (
-      <div className={`flex items-center ${className}`}>
-        <CatAvatar />
-      </div>
-    );
-  }
+  // 言うことがなければ何も出さない。猫は情報があるときだけ現れる（仕様 §29-2）
+  if (silent) return null;
 
   return (
     <div
