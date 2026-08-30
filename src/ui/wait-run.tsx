@@ -18,6 +18,7 @@ import { effectiveStatus } from "@/core/task/dependency";
 import { TASK_STATUS_LABEL } from "@/core/model/task-labels";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import type { WorkRun, WorkflowDefinition } from "@/core/model/types";
+import { runLabel, subjectOf } from "@/core/model/run-label";
 
 /** 入力欄の表示形式はブラウザ任せなので、日本語表記を必ず添える */
 function formatJaDate(value: string): string {
@@ -134,7 +135,7 @@ export function WaitRunPanel({
         <section className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px]">
           <p>
             <span className="text-ink-3">対象：</span>
-            <span className="font-medium">{run.subject.label}</span>（{def.name}）
+            <span className="font-medium">{runLabel(run)}</span>{subjectOf(run) ? `（${def.name}）` : ""}
           </p>
           <p className="mt-1 text-ink-2">
             ここまでの進捗は保持されます。再開すると、止めたSTEPから続けられます。
@@ -272,7 +273,7 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
         <p className={`text-[11px] font-bold tracking-wide ${status.overdue ? "text-danger" : "text-ink-3"}`}>
           {status.overdue ? "待ち中・確認期限超過" : status.dueToday ? "待ち中・今日が確認予定日" : "待ち中"}
         </p>
-        <h2 className="mt-1 text-[20px] font-bold tracking-tight">{run.subject.label}</h2>
+        <h2 className="mt-1 text-[20px] font-bold tracking-tight">{runLabel(run)}</h2>
         <p className="mt-1 text-[13px] text-ink-2">
           この業務は待ち中です。確認して、まだ待つか作業を再開するかを決めてください。
         </p>

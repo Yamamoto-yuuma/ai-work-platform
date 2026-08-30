@@ -13,6 +13,7 @@ import { TASK_STATUS_LABEL } from "@/core/model/task-labels";
 import { Badge, Card, LinkButton } from "./primitives";
 import type { WorkRun, WorkflowDefinition } from "@/core/model/types";
 import type { RunView } from "@/ui/use-navigator";
+import { runLabel } from "@/core/model/run-label";
 
 export function RunCompletion({
   run, def, view,
@@ -45,7 +46,7 @@ export function RunCompletion({
       {/* 完了したこと */}
       <Card className="border-ok/40 bg-ok-soft p-6">
         <p className="text-[11px] font-bold tracking-wide text-ok">業務完了</p>
-        <h2 className="mt-1.5 text-[19px] font-bold">{run.subject.label}</h2>
+        <h2 className="mt-1.5 text-[19px] font-bold">{runLabel(run)}</h2>
         <p className="mt-1 text-[13px] text-ink-2">{def.name}</p>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-2">
           <span>{executed} ステップを実施{skipped > 0 && `（条件により ${skipped} 件をスキップ）`}</span>

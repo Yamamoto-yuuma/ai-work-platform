@@ -15,7 +15,7 @@ import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { describeStartTrigger } from "@/core/workflow/start-trigger";
 import {
   DESCRIPTION_MAX, NAME_MAX, REGISTERABLE_COMPONENTS, WORK_KINDS,
-  emptyStepDraft, nextFieldKey, nextStepKey, validateWorkflowDraft,
+  describeUnset, emptyStepDraft, nextFieldKey, nextStepKey, validateWorkflowDraft,
   type DraftError, type FlowDraft, type StepDraft, type WorkflowDraft,
 } from "@/core/workflow/draft";
 import type { StartTriggerKind, TaskPriority, WorkflowNotes } from "@/core/model/types";
@@ -95,6 +95,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
   const [openNotes, setOpenNotes] = useState(false);
 
   const allErrors = useMemo(() => validateWorkflowDraft(draft), [draft]);
+  // まだ決めていない項目。登録を止めるものではないので、案内としてだけ出す
+  const unset = useMemo(() => describeUnset(draft), [draft]);
   const stageErrors = allErrors.filter((e) => e.stage === stage);
   const visibleErrors = showErrors ? stageErrors : [];
 
@@ -272,7 +274,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           <div>
             <h3 className="text-[13.5px] font-bold">この業務でやることを、順に並べます</h3>
             <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
-              いまは名前だけで構いません。中身は次の画面で詰めます。並び順がそのまま進む順になります。
+              名前だけで構いません。<span className="font-medium">この画面まででも登録できます。</span>
+              中身は後から足せます。並び順がそのまま進む順になります。
             </p>
           </div>
 
@@ -588,6 +591,19 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
       {stage === 5 && (
         <div className="flex flex-col gap-4">
           <ErrorList errors={allErrors} />
+          {allErrors.length === 0 && unset.length > 0 && (
+            <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">
+              <p className="text-[12.5px] font-bold">詳細は後から設定できます</p>
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {unset.map((h, i) => (
+                  <li key={i} className="text-[12.5px] text-ink-2">・{h}</li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-[11.5px] text-ink-3">
+                このまま登録して、使いながら足していけます。
+              </p>
+            </div>
+          )}
           <Card className="p-5">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[16px] font-bold">{draft.name || "（名称未設定）"}</h3>
@@ -964,6 +980,23 @@ function StepDetailEditor({
 // 進み方
 // ---------------------------------------------------------------------------
 
+/** 分かれた先より後ろにある最初のSTEPを合流先として提案する */
+function suggestJoin(
+  steps: StepDraft[],
+  branchIndex: number,
+  paths: { toStepKey: string }[],
+  elseToStepKey: string,
+): string {
+  const idx = (k: string) => steps.findIndex((s) => s.key === k);
+  const targets = [...paths.map((p) => p.toStepKey), elseToStepKey]
+    .filter(Boolean)
+    .map(idx)
+    .filter((i) => i > branchIndex);
+  if (targets.length < 2) return "";
+  const after = Math.max(...targets) + 1;
+  return steps[after]?.key ?? "";
+}
+
 function FlowEditor({
   step, index, steps, flow, onChange,
 }: {
@@ -996,7 +1029,7 @@ function FlowEditor({
           onChange={(e) => {
             const kind = e.target.value as FlowDraft["kind"];
             if (kind === "branch") {
-              onChange({ kind: "branch", fieldKey: usableFields[0]?.key ?? "", paths: [], elseToStepKey: "" });
+              onChange({ kind: "branch", fieldKey: usableFields[0]?.key ?? "", paths: [], elseToStepKey: "", joinStepKey: "" });
             } else if (kind === "parallel") {
               onChange({ kind: "parallel", toStepKeys: [], joinStepKey: "" });
             } else {
@@ -1042,10 +1075,12 @@ function FlowEditor({
                       onChange={(e) => {
                         const to = e.target.value;
                         const rest = flow.paths.filter((p) => p.value !== o.value);
-                        onChange({
-                          ...flow,
-                          paths: to ? [...rest, { value: o.value, label: o.label, toStepKey: to }] : rest,
-                        });
+                        const paths = to
+                          ? [...rest, { value: o.value, label: o.label, toStepKey: to }]
+                          : rest;
+                        // 合流先が未設定なら、分かれた先より後ろの最初のSTEPを提案する
+                        const join = flow.joinStepKey || suggestJoin(steps, index, paths, flow.elseToStepKey);
+                        onChange({ ...flow, paths, joinStepKey: join });
                       }}
                     >
                       <option value="">（分けない）</option>
@@ -1069,14 +1104,43 @@ function FlowEditor({
             <span className="text-ink-3">どれにも当てはまらないとき</span>
             <select
               className={SMALL_INPUT} value={flow.elseToStepKey}
-              onChange={(e) => onChange({ ...flow, elseToStepKey: e.target.value })}
+              onChange={(e) => {
+                const elseTo = e.target.value;
+                const join = flow.joinStepKey || suggestJoin(steps, index, flow.paths, elseTo);
+                onChange({ ...flow, elseToStepKey: elseTo, joinStepKey: join });
+              }}
             >
-              <option value="">次のSTEPへ</option>
+              {/* 既定の進み先は合流先。どのルートも通らずに合流する */}
+              <option value="">
+                {flow.joinStepKey
+                  ? `どのルートも通らず「${steps.find((x) => x.key === flow.joinStepKey)?.title || "合流先"}」へ`
+                  : "次のSTEPへ"}
+              </option>
               {later.map((s) => (
                 <option key={s.key} value={s.key}>{s.title || s.key}</option>
               ))}
             </select>
           </div>
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-line pt-2.5 text-[12.5px]">
+            <span className="text-ink-3">どのルートを通っても、そのあとは</span>
+            <select
+              className={SMALL_INPUT} value={flow.joinStepKey}
+              onChange={(e) => onChange({ ...flow, joinStepKey: e.target.value })}
+            >
+              <option value="">（合流しない）</option>
+              {later.map((s) => (
+                <option key={s.key} value={s.key}>{s.title || s.key}</option>
+              ))}
+            </select>
+            <span className="text-ink-3">へ合流</span>
+          </div>
+          {flow.joinStepKey && (
+            <p className="mt-1.5 text-[11.5px] text-ink-3">
+              選んだルートだけを通り、そのあと必ず
+              「{steps.find((x) => x.key === flow.joinStepKey)?.title || "合流先"}」へ進みます。
+            </p>
+          )}
         </div>
       )}
 

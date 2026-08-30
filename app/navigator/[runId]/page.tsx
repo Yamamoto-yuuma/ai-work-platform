@@ -21,6 +21,7 @@ import { ChangeRequestPanel } from "@/ui/change-request";
 import { CancelRunPanel, CanceledRunNotice } from "@/ui/cancel-run";
 import { WaitRunPanel, WaitingRunNotice } from "@/ui/wait-run";
 import type { StepRunStatus } from "@/core/model/types";
+import { runLabel, subjectOf } from "@/core/model/run-label";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
   done: { mark: "✓", cls: "border-ok bg-ok text-white" },
@@ -139,8 +140,9 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
         </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-bold tracking-tight">{run.subject.label}</h1>
-            <p className="mt-0.5 text-[13px] text-ink-2">{def.name}</p>
+            <h1 className="text-[22px] font-bold tracking-tight">{runLabel(run)}</h1>
+            {/* 対象を持たない業務では見出しが業務名なので繰り返さない */}
+            {subjectOf(run) && <p className="mt-0.5 text-[13px] text-ink-2">{def.name}</p>}
           </div>
           <div className="flex items-center gap-3">
             {isCanceled && <Badge tone="neutral">中止</Badge>}
@@ -262,7 +264,9 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                     )}
                   </div>
                   <h2 className="mt-2 text-[17px] font-bold tracking-tight">{stepView.step.title}</h2>
-                  <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
+                  {stepView.step.guidance && (
+                    <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
+                  )}
                   {stepView.step.preconditions && (
                     <p className="mt-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-[12px] leading-relaxed text-ink-2">
                       前提：{stepView.step.preconditions}

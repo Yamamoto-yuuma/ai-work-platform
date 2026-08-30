@@ -93,6 +93,11 @@ export type FlowDraft =
       paths: { value: string; label: string; toStepKey: string }[];
       /** どれにも当てはまらないとき */
       elseToStepKey: string;
+      /**
+       * どのルートを通っても、そのあと必ず通るSTEP（合流先）。
+       * 各ルートの最後のSTEPからここへ繋ぐ。空なら合流しない。
+       */
+      joinStepKey: string;
     }
   | { kind: "parallel"; toStepKeys: string[]; joinStepKey: string }
   | { kind: "end" };
@@ -245,14 +250,6 @@ export function validateWorkflowDraft(draft: WorkflowDraft): DraftError[] {
   if (draft.description.length > DESCRIPTION_MAX) {
     errors.push({ stage: 1, message: `説明は${DESCRIPTION_MAX}文字以内で入力してください（現在 ${draft.description.length} 文字）` });
   }
-  if (draft.category.trim().length === 0) {
-    errors.push({ stage: 1, message: "カテゴリを入力してください（業務一覧の見出しになります）" });
-  }
-
-  if (draft.steps.length === 0) {
-    errors.push({ stage: 2, message: "STEPを1つ以上追加してください" });
-  }
-
   const seenKeys = new Set<string>();
   for (const s of draft.steps) {
     if (seenKeys.has(s.key)) {
@@ -260,10 +257,11 @@ export function validateWorkflowDraft(draft: WorkflowDraft): DraftError[] {
     }
     seenKeys.add(s.key);
 
+    const no = draft.steps.indexOf(s) + 1;
     if (s.title.trim().length === 0) {
-      errors.push({ stage: 3, message: "STEP名を入力してください", stepKey: s.key });
+      errors.push({ stage: 2, message: `${no}番目のSTEPに名前を入力してください`, stepKey: s.key });
     } else if (s.title.trim().length > STEP_TITLE_MAX) {
-      errors.push({ stage: 3, message: `STEP名は${STEP_TITLE_MAX}文字以内で入力してください`, stepKey: s.key });
+      errors.push({ stage: 2, message: `${no}番目のSTEP名は${STEP_TITLE_MAX}文字以内にしてください`, stepKey: s.key });
     }
 
     const est = num(s.estimatedMinutes);
@@ -277,36 +275,28 @@ export function validateWorkflowDraft(draft: WorkflowDraft): DraftError[] {
 
     if (s.locked) continue;
 
-    if (s.componentType === "checklist" && s.items.length === 0) {
-      errors.push({ stage: 3, message: "チェック項目を1つ以上追加してください", stepKey: s.key });
-    }
-    if ((s.componentType === "input" || s.componentType === "select") && s.fields.length === 0) {
-      errors.push({ stage: 3, message: "入力項目を1つ以上追加してください", stepKey: s.key });
-    }
+    /**
+     * STEP の中身（チェック項目・入力項目・作成するタスク）は必須にしない。
+     * まず並びだけ登録して、使いながら育てられるようにするため（仕様 §28-6）。
+     * ここで見るのは「書きかけの行」だけ。空の行を残したまま保存すると
+     * 実行時に意味のない項目が出てしまうので、それだけは知らせる。
+     */
     for (const f of s.fields) {
       if (f.label.trim().length === 0) {
-        errors.push({ stage: 3, message: "項目名を入力してください", stepKey: s.key });
-      }
-      if (s.componentType === "select" && f.options.length === 0) {
-        errors.push({ stage: 3, message: `「${f.label || "項目"}」の選択肢を追加してください`, stepKey: s.key });
+        errors.push({ stage: 3, message: `「${s.title || "STEP"}」に名前のない項目があります`, stepKey: s.key });
       }
     }
     for (const item of s.items) {
       if (item.label.trim().length === 0) {
-        errors.push({ stage: 3, message: "チェック項目の内容を入力してください", stepKey: s.key });
+        errors.push({ stage: 3, message: `「${s.title || "STEP"}」に内容のないチェック項目があります`, stepKey: s.key });
       }
     }
-    if (s.componentType === "task-create") {
-      if (s.templates.length === 0) {
-        errors.push({ stage: 3, message: "作成するタスクを1つ以上追加してください", stepKey: s.key });
+    for (const t of s.templates) {
+      if (t.title.trim().length === 0) {
+        errors.push({ stage: 3, message: `「${s.title || "STEP"}」に名前のないタスクがあります`, stepKey: s.key });
       }
-      for (const t of s.templates) {
-        if (t.title.trim().length === 0) {
-          errors.push({ stage: 3, message: "作成するタスク名を入力してください", stepKey: s.key });
-        }
-        if (Number.isNaN(num(t.offsetDays))) {
-          errors.push({ stage: 3, message: "タスクの期限は数値で入力してください", stepKey: s.key });
-        }
+      if (Number.isNaN(num(t.offsetDays))) {
+        errors.push({ stage: 3, message: `「${s.title || "STEP"}」のタスクの期限は数値で入力してください`, stepKey: s.key });
       }
     }
   }
@@ -330,6 +320,21 @@ export function validateWorkflowDraft(draft: WorkflowDraft): DraftError[] {
       }
       if (f.elseToStepKey && !keys.has(f.elseToStepKey)) {
         errors.push({ stage: 4, message: `「${s.title || "STEP"}」の既定の進み先が存在しません`, stepKey: s.key });
+      }
+      if (f.joinStepKey) {
+        const j = draft.steps.findIndex((x) => x.key === f.joinStepKey);
+        const targets = [...f.paths.map((p) => p.toStepKey), f.elseToStepKey]
+          .filter(Boolean)
+          .map((k) => draft.steps.findIndex((x) => x.key === k));
+        if (j < 0) {
+          errors.push({ stage: 4, message: `「${s.title || "STEP"}」の合流先が存在しません`, stepKey: s.key });
+        } else if (targets.some((t) => t > j)) {
+          errors.push({
+            stage: 4,
+            message: `「${s.title || "STEP"}」の合流先は、分かれた先のSTEPより後ろにしてください`,
+            stepKey: s.key,
+          });
+        }
       }
     }
     if (f.kind === "parallel") {
@@ -364,6 +369,35 @@ export function validateWorkflowDraft(draft: WorkflowDraft): DraftError[] {
   if (t.kind === "condition" && !t.note.trim()) errors.push({ stage: 4, message: "成立させたい条件を書いてください" });
 
   return errors;
+}
+
+/**
+ * まだ決めていない項目の案内（仕様 §28-6）。
+ *
+ * これは「登録できない理由」ではない。登録したうえで、あとから足せるものを
+ * 思い出せるようにするためのメモ。確認画面に注意ではなく案内として出す。
+ */
+export function describeUnset(draft: WorkflowDraft): string[] {
+  const hints: string[] = [];
+  if (draft.steps.length === 0) {
+    hints.push("STEPがまだありません。あとから追加できます");
+    return hints;
+  }
+  const noGuidance = draft.steps.filter((s) => s.guidance.trim().length === 0).length;
+  if (noGuidance > 0) {
+    hints.push(`${noGuidance}件のSTEPに「何をするか」の説明がありません`);
+  }
+  const empty = draft.steps.filter((s) => {
+    if (s.locked) return false;
+    if (s.componentType === "checklist") return s.items.length === 0;
+    if (s.componentType === "input" || s.componentType === "select") return s.fields.length === 0;
+    if (s.componentType === "task-create") return s.templates.length === 0;
+    return false;
+  }).length;
+  if (empty > 0) hints.push(`${empty}件のSTEPは中身が未設定です（名前だけで進められます）`);
+  if (draft.deadlineDays.trim() === "") hints.push("期限は決めていません");
+  if (draft.category.trim() === "") hints.push("カテゴリは「未分類」になります");
+  return hints;
 }
 
 // ---------------------------------------------------------------------------
@@ -449,6 +483,25 @@ function eq(fieldKey: string, value: string): ConditionExpr {
 }
 
 /**
+ * 「それ以外」の条件式。
+ *
+ * 条件を持たないエッジは、フローエンジンでは「並列に進む枝」として扱われる
+ * （core/flow/engine.ts の resolveNextSteps）。分岐の既定ルートを条件なしで
+ * 置くと、どの選択肢を選んでも既定ルートまで一緒に活性化してしまう。
+ * そこで「どの選択肢にも当てはまらない」を条件式そのものとして持たせる。
+ * エンジン側には手を入れない。
+ */
+function otherwise(fieldKey: string, values: string[]): ConditionExpr | undefined {
+  if (values.length === 0) return undefined;
+  return {
+    op: "not",
+    operand: values.length === 1
+      ? eq(fieldKey, values[0])
+      : { op: "or", operands: values.map((v) => eq(fieldKey, v)) },
+  };
+}
+
+/**
  * STEPの並び順と「進み方」からエッジを組み立てる。
  *
  * 既定は上から下への一本道。分岐は完了STEPの出力（context）で判定し、
@@ -458,14 +511,40 @@ function eq(fieldKey: string, value: string): ConditionExpr {
 export function buildEdges(draft: WorkflowDraft): FlowEdge[] {
   const steps = draft.steps;
   const edges: FlowEdge[] = [];
-  const joinTargets = new Set<string>();
+  const indexOf = (key: string) => steps.findIndex((s) => s.key === key);
 
-  for (const f of Object.values(draft.flow)) {
-    if (f.kind === "parallel") joinTargets.add(f.joinStepKey);
+  /**
+   * 分岐ルートの出口。
+   *
+   * 分岐は「上から順」の一本道を一時的に分ける。分けた各ルートは
+   * 合流先の手前までを担当し、ルートの最後のSTEPから合流先へ繋ぐ。
+   * これをしないと、選ばなかったルートの先頭へ流れ込んでしまう。
+   */
+  const routeExit = new Map<string, string>();
+  for (const [fromKey, f] of Object.entries(draft.flow)) {
+    if (f.kind !== "branch" || !f.joinStepKey) continue;
+    const b = indexOf(fromKey);
+    const j = indexOf(f.joinStepKey);
+    if (b < 0 || j < 0 || j <= b) continue;
+
+    // ルートの開始位置（分岐と合流先のあいだにあるものだけ）
+    const starts = Array.from(
+      new Set([...f.paths.map((p) => p.toStepKey), f.elseToStepKey].filter(Boolean)),
+    )
+      .map(indexOf)
+      .filter((i) => i > b && i < j)
+      .sort((a, z) => a - z);
+
+    starts.forEach((start, k) => {
+      // 次のルートが始まる直前、または合流先の直前がこのルートの最後
+      const end = (starts[k + 1] ?? j) - 1;
+      const last = steps[end];
+      if (last) routeExit.set(last.key, f.joinStepKey);
+    });
   }
 
   steps.forEach((s, i) => {
-    const fallback = steps[i + 1]?.key ?? DONE_KEY;
+    const fallback = routeExit.get(s.key) ?? steps[i + 1]?.key ?? DONE_KEY;
     const f = draft.flow[s.key] ?? { kind: "next" as const };
 
     if (f.kind === "end") {
@@ -481,9 +560,14 @@ export function buildEdges(draft: WorkflowDraft): FlowEdge[] {
           condition: eq(f.fieldKey, p.value),
         });
       });
+      // 既定の進み先。指定がなければ合流先（＝どのルートも通らずに合流する）。
+      // 「次のSTEP」に落とすと、片方のルートの先頭へ勝手に流れ込んでしまう
+      const otherwiseTo = f.elseToStepKey || f.joinStepKey || fallback;
+      const cond = otherwise(f.fieldKey, f.paths.map((p) => p.value));
       edges.push({
-        from: s.key, to: f.elseToStepKey || fallback,
+        from: s.key, to: otherwiseTo,
         priority: f.paths.length + 1, label: "それ以外",
+        ...(cond ? { condition: cond } : {}),
       });
       return;
     }
@@ -564,7 +648,8 @@ export function compileWorkflow(input: CompileInput): WorkflowDefinition {
     return {
       key: s.key,
       title: s.title.trim(),
-      guidance: s.guidance.trim() || s.title.trim(),
+      // 未設定なら空のまま。STEP名で埋めると画面で同じ文字列が2回並ぶ
+      guidance: s.guidance.trim(),
       componentType: s.componentType,
       config: stepConfig(s),
       required: s.required,
@@ -603,7 +688,7 @@ export function compileWorkflow(input: CompileInput): WorkflowDefinition {
     status: input.status ?? "published",
     name: draft.name.trim(),
     description: draft.description.trim(),
-    category: draft.category.trim(),
+    category: draft.category.trim() || "未分類",
     audience: { roles: [], teams: [] },
     variables: input.variables ?? toVariables(draft.steps),
     steps,
@@ -641,7 +726,28 @@ type CfgField = { key: string; label?: string; required?: boolean; options?: { v
 type CfgItem = { key: string; label?: string };
 type CfgTemplate = { title: string; offsetDays?: number };
 
-function readFlow(def: WorkflowDefinition, stepKey: string): FlowDraft {
+/**
+ * 分岐の合流先を読み戻す。
+ * 各ルートの最後から合流先へ1本ずつ繋がっているので、
+ * 分岐より後ろのSTEPから条件なしで複数本入ってくるSTEPが合流先。
+ */
+function readJoin(def: WorkflowDefinition, branchKey: string, order: string[]): string {
+  const at = order.indexOf(branchKey);
+  if (at < 0) return "";
+  const after = new Set(order.slice(at + 1));
+  const incoming = new Map<string, Set<string>>();
+  for (const e of def.edges) {
+    if (e.condition || !after.has(e.from) || !after.has(e.to)) continue;
+    if (!incoming.has(e.to)) incoming.set(e.to, new Set());
+    incoming.get(e.to)!.add(e.from);
+  }
+  for (const key of order.slice(at + 1)) {
+    if ((incoming.get(key)?.size ?? 0) >= 2) return key;
+  }
+  return "";
+}
+
+function readFlow(def: WorkflowDefinition, stepKey: string, order: string[]): FlowDraft {
   const out = def.edges.filter((e) => e.from === stepKey).sort((a, b) => a.priority - b.priority);
   if (out.length === 0) return { kind: "end" };
   // 出口が1本なら一本道として扱う（並び順が進む順になっている）
@@ -657,8 +763,15 @@ function readFlow(def: WorkflowDefinition, stepKey: string): FlowDraft {
       fieldKey = c.left.path.replace(/^context\./, "");
       paths.push({ value: String(c.right.value), label: e.label ?? "", toStepKey: e.to });
     }
-    const rest = out.find((e) => !e.condition);
-    return { kind: "branch", fieldKey, paths, elseToStepKey: rest?.to ?? "" };
+    // 「それ以外」は not(...) 条件を持つ。条件なしエッジとしては残っていない
+    const rest = out.find((e) => e.condition?.op === "not") ?? out.find((e) => !e.condition);
+    const join = readJoin(def, stepKey, order);
+    return {
+      kind: "branch", fieldKey, paths,
+      // 合流先と同じなら、指定なし（＝合流先へ）として扱う
+      elseToStepKey: rest && rest.to !== join ? rest.to : "",
+      joinStepKey: join,
+    };
   }
 
   // 条件なしエッジが複数 = 並列
@@ -714,8 +827,9 @@ export function draftFromWorkflow(def: WorkflowDefinition): WorkflowDraft {
     };
   });
 
+  const order = visible.map((s) => s.key);
   const flow: Record<string, FlowDraft> = {};
-  for (const s of visible) flow[s.key] = flowLocked ? { kind: "next" } : readFlow(def, s.key);
+  for (const s of visible) flow[s.key] = flowLocked ? { kind: "next" } : readFlow(def, s.key, order);
 
   const t = def.startTrigger;
   return {

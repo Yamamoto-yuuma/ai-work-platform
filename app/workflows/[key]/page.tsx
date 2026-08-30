@@ -18,6 +18,7 @@ import { buildRun } from "@/services/start-run";
 import { latestOf } from "@/core/workflow/registry";
 import { WORK_KIND_LABEL, describeStartTrigger } from "@/core/workflow/start-trigger";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
+import { runLabel } from "@/core/model/run-label";
 import type { WorkflowNotes } from "@/core/model/types";
 
 const PERIOD_LABEL = { day: "1日", week: "1週", month: "1か月", quarter: "四半期", year: "1年" } as const;
@@ -152,7 +153,9 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                               <span className="text-[11px] text-ink-3">{s.estimatedMinutes}分</span>
                             )}
                           </div>
-                          <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">{s.guidance}</p>
+                          {s.guidance && (
+                            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">{s.guidance}</p>
+                          )}
                           {s.preconditions && (
                             <p className="mt-1 text-[11.5px] text-ink-3">前提：{s.preconditions}</p>
                           )}
@@ -292,7 +295,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                   return (
                     <li key={r.id}>
                       <Link href={`/navigator/${r.id}`} className="flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-surface-2">
-                        <span className="truncate text-[12.5px]">{r.subject.label}</span>
+                        <span className="truncate text-[12.5px]">{runLabel(r)}</span>
                         <span className="shrink-0 text-[11px] tabular-nums text-ink-3">{p.index}/{p.total}</span>
                       </Link>
                     </li>
@@ -309,7 +312,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                 {closedRuns.slice(0, 5).map((r) => (
                   <li key={r.id}>
                     <Link href={`/map/${r.id}`} className="flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-surface-2">
-                      <span className="truncate text-[12.5px]">{r.subject.label}</span>
+                      <span className="truncate text-[12.5px]">{runLabel(r)}</span>
                       <Badge tone={r.status === "done" ? "ok" : "neutral"}>{r.status === "done" ? "完了" : "中止"}</Badge>
                     </Link>
                   </li>

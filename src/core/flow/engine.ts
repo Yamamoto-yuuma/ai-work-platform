@@ -167,7 +167,7 @@ export function runProgress(
   run: Pick<WorkRun, "status" | "currentStepKeys">,
   stepRuns: StepRun[],
 ): { index: number; total: number; done: number } {
-  const planned = plannedSteps(def, stepRuns);
+  const planned = plannedSteps(def);
   const total = planned.length;
   const done = planned.filter(
     (s) => stepRuns.find((sr) => sr.stepKey === s.key)?.status === "done",
@@ -182,14 +182,15 @@ export function runProgress(
 }
 
 /**
- * 実行予定の STEP（仕様 §6-2 の「進捗 n/N」の分母）。
- * 分岐ノードと、条件によって確定スキップされた STEP は数えない。
+ * 進捗「n / N」の分母になる STEP（仕様 §6-2）。
+ *
+ * 業務定義の全 STEP を基準にする。分岐でどのルートを通っても分母は変わらない。
+ * 実行中に分母が動くと「全体で何ステップなのか」が分からなくなるため、
+ * スキップされた STEP も数に含める（業務フロー詳細の「n ステップ」と同じ数）。
+ * 分岐ノードは人が実行するものではないので数えない。
  */
-export function plannedSteps(def: WorkflowDefinition, stepRuns: StepRun[]): StepDefinition[] {
-  return orderedSteps(def).filter((s) => {
-    if (s.componentType === "branch") return false;
-    return stepRuns.find((sr) => sr.stepKey === s.key)?.status !== "skipped";
-  });
+export function plannedSteps(def: WorkflowDefinition): StepDefinition[] {
+  return orderedSteps(def).filter((s) => s.componentType !== "branch");
 }
 
 /**
@@ -201,17 +202,18 @@ export function stepPosition(
   stepRuns: StepRun[],
   currentStepKey: string | null | undefined,
 ): { index: number; total: number } {
-  const planned = plannedSteps(def, stepRuns);
+  const planned = plannedSteps(def);
   const total = planned.length;
   if (total === 0) return { index: 0, total: 0 };
 
   const at = currentStepKey ? planned.findIndex((s) => s.key === currentStepKey) : -1;
   if (at >= 0) return { index: at + 1, total };
 
-  const done = planned.filter(
-    (s) => stepRuns.find((sr) => sr.stepKey === s.key)?.status === "done",
-  ).length;
-  return { index: Math.min(done + 1, total), total };
+  const settled = planned.filter((s) => {
+    const st = stepRuns.find((sr) => sr.stepKey === s.key)?.status;
+    return st === "done" || st === "skipped";
+  }).length;
+  return { index: Math.min(settled + 1, total), total };
 }
 
 /** STEP を並び順（トポロジカル順）に整列する。マップ描画とレール表示に使う */

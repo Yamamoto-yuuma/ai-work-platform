@@ -14,6 +14,7 @@ import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
 import { describeStartTrigger } from "@/core/workflow/start-trigger";
+import { runLabel, subjectOf } from "@/core/model/run-label";
 import { checkStatusOf } from "@/ui/wait-run";
 import type { WorkflowDefinition } from "@/core/model/types";
 
@@ -132,7 +133,7 @@ export default function HomePage() {
                         }`}
                       >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-bold">{run.subject.label}</span>
+                          <span className="block truncate text-[13px] font-bold">{runLabel(run)}</span>
                           <span className="mt-0.5 block text-[11.5px] text-ink-2">
                             {reason} ／ 確認予定日：
                             {run.waitingUntil
@@ -246,7 +247,7 @@ export default function HomePage() {
                   return (
                     <li key={run.id}>
                       <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft">
-                        <span className="block text-[12.5px] font-medium">{run.subject.label}</span>
+                        <span className="block text-[12.5px] font-medium">{runLabel(run)}</span>
                         <span className="block text-[11px] text-ink-3">{reason}</span>
                         <span className={`mt-0.5 block text-[11px] ${st.overdue ? "font-bold text-danger" : "text-ink-3"}`}>
                           次回確認：
@@ -285,9 +286,10 @@ export default function HomePage() {
                   return (
                     <li key={run.id}>
                       <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft">
-                        <span className="block truncate text-[12.5px] font-medium">{run.subject.label}</span>
+                        <span className="block truncate text-[12.5px] font-medium">{runLabel(run)}</span>
                         <span className="mt-0.5 flex items-center gap-2 text-[11px] text-ink-3">
-                          <span className="truncate">{def?.name}</span>
+                          {/* 対象を持たない業務では業務名が見出しと同じになるので繰り返さない */}
+                          <span className="truncate">{subjectOf(run) ? def?.name : ""}</span>
                           <span className="ml-auto shrink-0 tabular-nums">STEP {p.index}/{p.total}</span>
                         </span>
                         {inCandidates && (

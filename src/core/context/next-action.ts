@@ -10,7 +10,8 @@ import type {
 } from "../model/types";
 import { getStep, runProgress } from "../flow/engine";
 import { isBlocked } from "../task/dependency";
-import { escalatedPriority } from "../priority/escalate";
+import { escalatedPriority, remainingDays } from "../priority/escalate";
+import { runLabel, subjectPrefix } from "../model/run-label";
 import { urgencyOf, remainingLabel } from "./resolver";
 
 const URGENCY_SCORE = { overdue: 1000, today: 500, soon: 200, normal: 0 } as const;
@@ -27,9 +28,9 @@ export interface NextActionInput {
 
 /** STEP 1件に対する「次にやること」1文を生成する（決定的。AI は使わない） */
 export function headlineForStep(step: StepDefinition, run: WorkRun): string {
-  // 対象 + STEP名まで。guidance は長く、STEPの説明であって行動の見出しではない
-  const subject = run.subject.label ? `${run.subject.label}の` : "";
-  return `${subject}${step.title}`;
+  // 対象 + STEP名まで。guidance は長く、STEPの説明であって行動の見出しではない。
+  // 対象を持たない業務（自分で登録したもの）では業務名を重ねない
+  return `${subjectPrefix(run)}${step.title}`;
 }
 
 /**
@@ -47,6 +48,46 @@ export function isDueForCheck(run: WorkRun, now: Date): boolean {
   if (!isWaitingRun(run) || !run.waitingUntil) return false;
   const u = urgencyOf(run.waitingUntil, now);
   return u === "overdue" || u === "today";
+}
+
+const PRIORITY_LABEL: Record<TaskPriority, string> = {
+  urgent: "緊急", high: "高", normal: "通常", low: "低",
+};
+
+/**
+ * 「なぜこれが上にあるのか」の1文（仕様 §28-11）。
+ *
+ * 種別（「単発タスク」）ではなく、順位を決めた根拠そのものを書く。
+ * 使うのは rankActions が既に持っている材料だけで、新しい判断はしない。
+ */
+function reasonFor(input: {
+  urgency: NextAction["urgency"];
+  dueAt?: string;
+  now: Date;
+  priority: TaskPriority;
+  basePriority: TaskPriority;
+  fallback: string;
+}): string {
+  const { urgency, dueAt, now, priority, basePriority, fallback } = input;
+  const raised = priority !== basePriority;
+
+  if (dueAt) {
+    const left = remainingDays(dueAt, now);
+    if (urgency === "overdue") {
+      const over = Math.abs(left);
+      return over <= 1 ? "期限を過ぎています" : `期限を${over}日過ぎています`;
+    }
+    if (urgency === "today") return "今日が期限です";
+    if (urgency === "soon") {
+      return raised
+        ? `期限まであと${left}日。優先度が「${PRIORITY_LABEL[priority]}」に上がっています`
+        : `期限まであと${left}日です`;
+    }
+  }
+  if (priority === "urgent" || priority === "high") {
+    return `優先度が「${PRIORITY_LABEL[priority]}」です`;
+  }
+  return fallback;
 }
 
 export interface RankedAction extends NextAction {
@@ -87,7 +128,11 @@ export function rankActions(input: NextActionInput): RankedAction[] {
       actions.push({
         kind: "step",
         headline: headlineForStep(step, run),
-        reason: `「${def.name}」の STEP ${position.index} / ${position.total}`,
+        reason: reasonFor({
+          urgency, dueAt: run.dueAt, now, priority, basePriority: base,
+          // 期限が効いていないときは、進行中の業務が単発タスクより先に来る理由を書く
+          fallback: `進めている業務です（STEP ${position.index} / ${position.total}）`,
+        }),
         runId: run.id,
         stepKey: key,
         dueAt: run.dueAt,
@@ -106,7 +151,7 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     actions.push({
       kind: "review-proposals",
       headline: `${proposed.length}件の派生タスクが未確認です：内容を確認して確定してください`,
-      reason: "変更によって発生したタスクが提案中のままです",
+      reason: "変更から生まれたタスクが未確認のままです。放置すると漏れます",
       urgency: "today",
       score: URGENCY_SCORE.today + 250,
     });
@@ -119,10 +164,10 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     const urgency = urgencyOf(run.waitingUntil, now);
     actions.push({
       kind: "check",
-      headline: `${run.subject.label} — ${run.waitingFor ?? "待ち中の確認"}`,
+      headline: `${runLabel(run)} — ${run.waitingFor ?? "待ち中の確認"}`,
       reason: urgency === "overdue"
-        ? `確認予定日を過ぎています（${remainingLabel(new Date(run.waitingUntil!), now)}）`
-        : "待ち中の業務。今日が確認予定日です",
+        ? `待ちにした業務です。確認予定日を過ぎています（${remainingLabel(new Date(run.waitingUntil!), now)}）`
+        : "待ちにした業務です。今日が確認予定日です",
       runId: run.id,
       dueAt: run.waitingUntil,
       urgency,
@@ -145,7 +190,12 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     actions.push({
       kind: "task",
       headline: task.title,
-      reason: task.startableWorkflowKey ? "このタスクから業務を開始できます" : "単発タスク",
+      reason: reasonFor({
+        urgency, dueAt: task.dueAt, now, priority, basePriority: task.priority,
+        fallback: task.startableWorkflowKey
+          ? "このタスクから業務を開始できます"
+          : "期限のない単発タスクです",
+      }),
       taskId: task.id,
       runId: task.runId,
       dueAt: task.dueAt,

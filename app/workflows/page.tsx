@@ -6,6 +6,7 @@ import { useLatestWorkflows } from "@/ui/use-navigator";
 import { Badge, Card, LinkButton, PageHeader } from "@/ui/primitives";
 import { runProgress } from "@/core/flow/engine";
 import { WORK_KIND_LABEL, describeStartTrigger } from "@/core/workflow/start-trigger";
+import { runLabel, subjectOf } from "@/core/model/run-label";
 
 export default function WorkflowsPage() {
   const all = useLatestWorkflows();
@@ -46,10 +47,11 @@ export default function WorkflowsPage() {
                       : "border-brand/30 bg-brand-soft hover:border-brand"
                   }`}>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[11px] text-brand">{def?.name}</p>
+                      {/* 対象を持たない業務では業務名が下の見出しと同じになる */}
+                      <p className="text-[11px] text-brand">{subjectOf(run) ? def?.name : ""}</p>
                       {run.status === "paused" && <Badge tone="signal">待ち中</Badge>}
                     </div>
-                    <p className="mt-1 text-[13.5px] font-bold leading-snug">{run.subject.label}</p>
+                    <p className="mt-1 text-[13.5px] font-bold leading-snug">{runLabel(run)}</p>
                     <p className="mt-2 text-[11.5px] tabular-nums text-ink-2">STEP {p.index}/{p.total}</p>
                     {run.status === "paused" && run.waitingFor && (
                       <p className="mt-1 truncate text-[11px] text-ink-3">{run.waitingFor}</p>

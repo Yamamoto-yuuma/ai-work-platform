@@ -13,6 +13,7 @@ import { useStore } from "@/adapters/memory/store";
 import { Badge, Button, Card, LinkButton } from "./primitives";
 import { effectiveStatus } from "@/core/task/dependency";
 import { TASK_STATUS_LABEL } from "@/core/model/task-labels";
+import { runLabel, subjectOf } from "@/core/model/run-label";
 import type { WorkRun, WorkflowDefinition } from "@/core/model/types";
 
 export function CancelRunPanel({
@@ -60,7 +61,7 @@ export function CancelRunPanel({
 
       <div className="flex flex-col gap-4 p-5">
         <section className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px]">
-          <p><span className="text-ink-3">対象：</span><span className="font-medium">{run.subject.label}</span>（{def.name}）</p>
+          <p><span className="text-ink-3">対象：</span><span className="font-medium">{runLabel(run)}</span>{subjectOf(run) ? `（${def.name}）` : ""}</p>
           <p className="mt-1 text-ink-2">
             中止すると、残りのSTEPは実行できなくなります。完了済みのSTEPの記録は残ります。
           </p>
@@ -138,7 +139,7 @@ export function CanceledRunNotice({ run }: { run: WorkRun }) {
     <Card className="overflow-hidden">
       <header className="border-b border-line bg-surface-2 px-5 py-4">
         <p className="text-[11px] font-bold tracking-wide text-ink-3">業務中止</p>
-        <h2 className="mt-1 text-[20px] font-bold tracking-tight">{run.subject.label}</h2>
+        <h2 className="mt-1 text-[20px] font-bold tracking-tight">{runLabel(run)}</h2>
         <p className="mt-1 text-[13px] text-ink-2">この業務は中止されています。STEPの実行はできません。</p>
       </header>
 
