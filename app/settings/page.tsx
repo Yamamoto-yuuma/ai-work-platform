@@ -84,8 +84,8 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {/* ユーザー切替 */}
-      <section className="mb-7">
+      {/* ユーザー切替。左下のユーザーメニューからここへ直接来られるようにする */}
+      <section id="users" className="mb-7 scroll-mt-6">
         <h2 className="mb-3 text-[13px] font-bold">ユーザー</h2>
         <Card className="p-4">
           <p className="mb-3 text-[12px] text-ink-3">

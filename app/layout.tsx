@@ -4,7 +4,7 @@ import { StoreProvider } from "@/adapters/memory/store";
 import { AppShell } from "@/ui/app-shell";
 
 export const metadata: Metadata = {
-  title: "業務ナビゲーション・プラットフォーム",
+  title: "AI WORK HUB",
   description: "次に何をすればよいかを提示し、業務完遂までナビゲートします",
 };
 

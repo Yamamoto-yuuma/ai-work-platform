@@ -9,7 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { rankActions } from "@/core/context/next-action";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const NAV = [
   { href: "/", label: "HOME", icon: "⌂" },
@@ -20,9 +20,50 @@ const NAV = [
   { href: "/settings", label: "管理", icon: "⚙" },
 ];
 
+/** 左レーンの開閉。作業に関係しない見た目の状態なので、業務データには入れない */
+const RAIL_KEY = "ai-work-platform:rail-collapsed";
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(RAIL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { state, workflows, currentUser } = useStore();
+
+  // localStorage は描画後に読む（サーバとクライアントで表示を揃えるため）
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => setCollapsed(readCollapsed()), []);
+  function toggleRail() {
+    setCollapsed((v) => {
+      const next = !v;
+      try { localStorage.setItem(RAIL_KEY, next ? "1" : "0"); } catch { /* 使えなくても畳めればよい */ }
+      return next;
+    });
+  }
+
+  // 左下のユーザーメニュー。設定への入口をここにまとめる
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [menuOpen]);
+  // 画面を移ったらメニューは閉じる
+  useEffect(() => setMenuOpen(false), [pathname]);
 
   const proposedCount = state.tasks.filter((t) => t.confirmationState === "proposed").length;
   const overdueCount = useMemo(() => {
@@ -33,46 +74,125 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }).filter((a) => a.urgency === "overdue").length;
   }, [state, workflows]);
 
+  // 畳んだときはアイコンだけ。狭い画面はもともとアイコンだけなので変わらない
+  const wide = collapsed ? "md:w-[76px] md:items-center md:px-2" : "md:w-[188px] md:items-stretch md:px-3";
+  const labelCls = collapsed ? "hidden" : "hidden md:inline";
+
   return (
     <div className="flex min-h-screen">
-      <nav className="sticky top-0 flex h-screen w-[76px] shrink-0 flex-col items-center gap-1 border-r border-line bg-surface py-4 md:w-[188px] md:items-stretch md:px-3">
-        <Link href="/" className="mb-4 px-2 md:px-2.5">
-          <div className="text-[11px] font-bold leading-tight tracking-tight text-brand">
-            業務<br className="md:hidden" />ナビ
-          </div>
-          <div className="hidden text-[10px] text-ink-3 md:block">Work Navigator</div>
-        </Link>
+      <nav
+        className={`sticky top-0 flex h-screen w-[76px] shrink-0 flex-col items-center border-r border-line bg-rail py-4 ${wide}`}
+        aria-label="メインナビゲーション"
+      >
+        <div className={`mb-3 flex w-full items-center gap-1 ${collapsed ? "md:flex-col md:gap-1.5" : ""}`}>
+          {/*
+            畳んだときは幅が 76px しかないので、社名を折り返さず頭文字だけ出す。
+            どちらの状態でも HOME への入口であることは変えない。
+          */}
+          <Link href="/" title="AI WORK HUB" className={collapsed ? "" : "min-w-0 px-2 md:px-2.5"}>
+            {collapsed ? (
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-[11px] font-bold tracking-tight text-brand-ink">
+                AI
+              </span>
+            ) : (
+              <span className="block whitespace-nowrap text-[11px] font-bold leading-tight tracking-tight text-brand">
+                AI WORK HUB
+              </span>
+            )}
+          </Link>
+          {/* 大きい画面では左レーンを畳んで作業領域を広く使える */}
+          <button
+            type="button"
+            onClick={toggleRail}
+            aria-label={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
+            aria-expanded={!collapsed}
+            title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
+            className={`hidden shrink-0 rounded-lg py-1 text-[13px] leading-none text-ink-3 hover:bg-surface-2 hover:text-ink-2 md:block ${
+              collapsed ? "px-2" : "ml-auto px-2"
+            }`}
+          >
+            {collapsed ? "»" : "«"}
+          </button>
+        </div>
 
-        {NAV.map((item) => {
-          const active =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors ${
-                active ? "bg-brand-soft text-brand-ink" : "text-ink-2 hover:bg-surface-2"
-              }`}
-            >
-              <span className="w-4 text-center text-[15px] leading-none">{item.icon}</span>
-              <span className="hidden md:inline">{item.label}</span>
-              {item.href === "/tasks" && proposedCount > 0 && (
-                <span className="ml-auto hidden rounded-full bg-signal px-1.5 py-0.5 text-[10px] font-bold text-white md:inline">
-                  {proposedCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+        {/*
+          項目だけが独立してスクロールする（Phase 13）。
+          ここが伸びても、下のユーザー欄と本文は動かない。
+        */}
+        <div className="flex w-full min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+          {NAV.map((item) => {
+            const active =
+              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={item.label}
+                className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                  active ? "bg-brand-soft text-brand-ink" : "text-ink-2 hover:bg-surface-2"
+                }`}
+              >
+                <span className="w-4 shrink-0 text-center text-[15px] leading-none">{item.icon}</span>
+                <span className={labelCls}>{item.label}</span>
+                {item.href === "/tasks" && proposedCount > 0 && (
+                  <span className={`ml-auto rounded-full bg-signal px-1.5 py-0.5 text-[10px] font-bold text-white ${labelCls}`}>
+                    {proposedCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
 
-        <div className="mt-auto hidden border-t border-line pt-3 md:block">
-          {overdueCount > 0 && (
+        <div className="hidden w-full shrink-0 border-t border-line pt-3 md:block" ref={menuRef}>
+          {overdueCount > 0 && !collapsed && (
             <div className="mb-2 rounded-lg bg-danger-soft px-2.5 py-1.5 text-[11px] font-medium text-danger">
               期限超過 {overdueCount}件
             </div>
           )}
-          <div className="px-2.5 text-[11px] text-ink-3">{currentUser.name}</div>
-          <div className="px-2.5 text-[10px] text-ink-3">{currentUser.team}</div>
+
+          {/* 開いたメニュー。設定への入口をここに集める */}
+          {menuOpen && (
+            <div className="mb-1.5 overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
+              <Link
+                href="/settings"
+                className="block px-3 py-2 text-[12.5px] text-ink-2 hover:bg-surface-2"
+              >
+                管理・設定
+              </Link>
+              <Link
+                href="/settings#users"
+                className="block border-t border-line-soft px-3 py-2 text-[12.5px] text-ink-2 hover:bg-surface-2"
+              >
+                使う人を切り替える
+              </Link>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title={`${currentUser.name}（設定を開く）`}
+            className={`flex w-full items-center gap-2 rounded-lg py-1.5 text-left transition-colors hover:bg-surface-2 ${
+              collapsed ? "justify-center px-1" : "px-2.5"
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-bold text-brand-ink"
+            >
+              {currentUser.name.slice(0, 1)}
+            </span>
+            {!collapsed && (
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[11.5px] text-ink-2">{currentUser.name}</span>
+                <span className="block truncate text-[10px] text-ink-3">{currentUser.team}</span>
+              </span>
+            )}
+            {!collapsed && <span aria-hidden="true" className="shrink-0 text-[10px] text-ink-3">⚙</span>}
+          </button>
         </div>
       </nav>
 
