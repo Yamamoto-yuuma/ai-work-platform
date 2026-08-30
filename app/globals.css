@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 @theme {
   --color-ink: #14181d;
@@ -30,17 +31,12 @@
 
   /*
     本文書体（Phase 13）。角を落とした、少し親しみのある書体にする。
-    毎日開くものなので、外部への読み込みは足さない。手元にあるものだけを使う。
-
-    M PLUS Rounded 1c … 入れてあれば最優先で使う
-    Hiragino Maru Gothic … macOS に標準で入っている丸ゴシック
-    以降はこれまでと同じ並び。丸い書体が無い環境でも、
-    読みにくくならずに今までどおり表示される。
+    M PLUS Rounded 1c は fonts.css で同梱しているので、OS を問わず必ず効く。
+    以降は、万一読み込めなかったときのために、これまでの並びを残している。
   */
   --font-sans:
-    "M PLUS Rounded 1c", "Rounded Mplus 1c",
-    "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "ヒラギノ丸ゴ ProN W4",
-    "Varela Round",
+    "M PLUS Rounded 1c",
+    "Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4",
     "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
 }
 
