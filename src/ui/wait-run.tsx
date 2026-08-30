@@ -55,6 +55,46 @@ function addBusinessDaysFrom(now: Date, days: number): string {
 }
 
 /**
+ * 今週の最終営業日（金曜）。週は月曜始まりとして数える。
+ * 金曜に押せば今日、土日に押せば次に来る週の金曜になる。
+ * 過去の日付は返さないので、確認日の検証と矛盾しない。
+ */
+function endOfWeekFrom(now: Date): string {
+  const d = new Date(now);
+  const dow = d.getDay(); // 0=日, 6=土
+  d.setDate(d.getDate() + (dow === 0 ? 5 : dow === 6 ? 6 : 5 - dow));
+  return toDateInput(d.toISOString());
+}
+
+/**
+ * 次回確認日のクイック選択（仕様 §31 / Phase 12 P2-5）。
+ * 待ちにするときと、待ち中に日付を変えるときで同じ候補を使う。
+ * 日付の計算はすべて営業日の規則に従う。土日を確認日にしない。
+ *
+ * 「明日」は翌営業日。金〜日に押すと翌週の月曜になるが、
+ * 選んだ日付は入力欄の下に曜日つきで出るので取り違えない。
+ */
+const QUICK_CHECK_DATES: { label: string; resolve: (now: Date) => string }[] = [
+  { label: "明日", resolve: (now) => addBusinessDaysFrom(now, 1) },
+  { label: "今週中", resolve: endOfWeekFrom },
+  { label: "3営業日後", resolve: (now) => addBusinessDaysFrom(now, 3) },
+  { label: "1週間後", resolve: (now) => addBusinessDaysFrom(now, 5) },
+  { label: "2週間後", resolve: (now) => addBusinessDaysFrom(now, 10) },
+];
+
+function QuickCheckDates({ now, onPick }: { now: Date; onPick: (value: string) => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {QUICK_CHECK_DATES.map((o) => (
+        <Button key={o.label} variant="secondary" size="sm" onClick={() => onPick(o.resolve(now))}>
+          {o.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+/**
  * 確認日の状態。
  * 色だけに頼らないよう、必ず文言を持たせる（仕様 §26-6）。
  * label は短い残り日数、headline は状態の名前。用途に応じて使い分ける。
@@ -169,20 +209,7 @@ export function WaitRunPanel({
             className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
           />
           {until && <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(until)}</p>}
-          <div className="mt-2 flex flex-wrap gap-2">
-            {[
-              { label: "3営業日後", days: 3 },
-              { label: "1週間後", days: 5 },
-              { label: "2週間後", days: 10 },
-            ].map((o) => (
-              <Button
-                key={o.days} variant="secondary" size="sm"
-                onClick={() => change(() => setUntil(addBusinessDaysFrom(now, o.days)))}
-              >
-                {o.label}
-              </Button>
-            ))}
-          </div>
+          <QuickCheckDates now={now} onPick={(v) => change(() => setUntil(v))} />
         </div>
 
         {openTasks.length > 0 && (
@@ -335,16 +362,7 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
               className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
             />
             {until && <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(until)}</p>}
-            <div className="mt-2 flex flex-wrap gap-2">
-              {[{ label: "3営業日後", days: 3 }, { label: "1週間後", days: 5 }, { label: "2週間後", days: 10 }].map((o) => (
-                <Button
-                  key={o.days} variant="secondary" size="sm"
-                  onClick={() => { setUntil(addBusinessDaysFrom(now, o.days)); setError(null); }}
-                >
-                  {o.label}
-                </Button>
-              ))}
-            </div>
+            <QuickCheckDates now={now} onPick={(v) => { setUntil(v); setError(null); }} />
             {error && <p className="mt-2 text-[12.5px] text-danger">{error}</p>}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={keepWaiting}>この内容で待ち続ける</Button>

@@ -25,6 +25,7 @@ import { runLabel, subjectOf } from "@/core/model/run-label";
 import { catForStep } from "@/core/cat/message";
 import { CatSays } from "@/ui/cat";
 import { remainingLabel } from "@/core/context/resolver";
+import { hasStepBody } from "@/core/workflow/step-body";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
   done: { mark: "✓", cls: "border-ok bg-ok text-white" },
@@ -42,7 +43,6 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
 
   // 表示中のSTEP（現在STEPが複数ある場合は切り替えられる）
   const [selected, setSelected] = useState<string | null>(null);
-  const [showMissing, setShowMissing] = useState(false);
   // 変更起票パネルの開閉。開いていても現在STEPの操作は妨げない
   const [changeOpen, setChangeOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -78,10 +78,9 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
 
   function complete() {
     if (!stepView || !activeKey || !view) return;
-    if (!stepView.completion.canComplete) {
-      setShowMissing(true);
-      return;
-    }
+    // 完了できないときは「完了して次へ」自体が押せない（disabled）ので、
+    // ここには来ない。押せてしまった場合に業務を進めないための保険として残す
+    if (!stepView.completion.canComplete) return;
     const contextPatch = { ...stepView.stepRun.output };
     const nextScope = {
       ...view.scope,
@@ -126,7 +125,6 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
     });
     if (generated.length > 0) dispatch({ type: "addTasks", tasks: generated });
 
-    setShowMissing(false);
     setSelected(finalActivate[0] ?? null);
   }
 
@@ -284,6 +282,12 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                     </p>
                   )}
                 </div>
+                {/*
+                  中身が未設定のSTEPでは本文の枠ごと出さない（Phase 12 / P2-2）。
+                  P0-2 以降これはエラーではなく通常の状態で、空の白帯だけが残ると
+                  「何か出るはずのものが出ていない」ように見える。
+                */}
+                {hasStepBody(stepView.effective) && (
                 <div className="p-5">
                   <StepRenderer
                     step={stepView.effective}
@@ -293,19 +297,14 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                     onCheck={(patch) => dispatch({ type: "setStepDraft", runId: run.id, stepKey: stepView.step.key, checklist: patch })}
                   />
                 </div>
+                )}
               </Card>
 
-              {/* 完了できない理由を具体的に示す（仕様 §27-3） */}
-              {showMissing && !stepView.completion.canComplete && (
-                <div className="mt-4 rounded-xl border border-danger/40 bg-danger-soft p-4">
-                  <p className="mb-2 text-[13px] font-bold text-danger">このSTEPを完了できません</p>
-                  <ul className="flex flex-col gap-1">
-                    {stepView.completion.missing.map((m) => (
-                      <li key={m.key} className="text-[12.5px] text-danger">・「{m.label}」が{m.reason}です</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {/*
+                完了できない理由の一覧はここには出さない（Phase 12 / P2-3）。
+                足りない項目は STEP 本体の未チェック項目そのものが示していて、
+                猫が1行で言い直す。このパネルは表示条件が成立せず死んでいた。
+              */}
 
               {/* 分岐の予告：次にどこへ進むかを事前に示す */}
               {preview.branches.length > 1 && (
@@ -336,9 +335,13 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                 <CancelRunPanel run={run} def={def} onClose={() => setCancelOpen(false)} />
               )}
 
-              {/* 次にやること帯 */}
+              {/*
+                次にやること帯。
+                パネルを開いているあいだは貼り付けない（Phase 12）。
+                貼り付いたままだと、待ち・中止パネルの入力欄に重なって隠す。
+              */}
               <div className={`mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-brand/30 bg-brand-soft px-5 py-4 shadow-sm ${
-                changeOpen ? "relative" : "sticky bottom-4"
+                changeOpen || waitOpen || cancelOpen ? "relative" : "sticky bottom-4"
               }`}>
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold tracking-wide text-brand">次にやること</p>

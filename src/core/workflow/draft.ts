@@ -13,6 +13,7 @@ import type {
   TaskPriority, VariableDef, WorkComponentType, WorkQuota, WorkKind,
   WorkflowDefinition, WorkflowNotes,
 } from "../model/types";
+import { BODY_SLOT } from "./step-body";
 
 // ---------------------------------------------------------------------------
 // 語彙
@@ -387,12 +388,12 @@ export function describeUnset(draft: WorkflowDraft): string[] {
   if (noGuidance > 0) {
     hints.push(`${noGuidance}件のSTEPに「何をするか」の説明がありません`);
   }
+  // 「中身が未設定」の規則は step-body.ts に集約している。
+  // 実行画面で空のSTEPカードを畳む判定と、必ず同じ規則にするため
   const empty = draft.steps.filter((s) => {
     if (s.locked) return false;
-    if (s.componentType === "checklist") return s.items.length === 0;
-    if (s.componentType === "input" || s.componentType === "select") return s.fields.length === 0;
-    if (s.componentType === "task-create") return s.templates.length === 0;
-    return false;
+    const slot = BODY_SLOT[s.componentType];
+    return slot ? s[slot].length === 0 : false;
   }).length;
   if (empty > 0) hints.push(`${empty}件のSTEPは中身が未設定です（名前だけで進められます）`);
   if (draft.deadlineDays.trim() === "") hints.push("期限は決めていません");

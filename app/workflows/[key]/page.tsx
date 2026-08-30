@@ -278,7 +278,11 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
           <Card className="p-4">
             <p className="mb-2 text-[12px] font-bold text-ink-3">定義情報</p>
             <dl className="flex flex-col gap-1.5 text-[12.5px]">
-              <div className="flex justify-between"><dt className="text-ink-3">識別子</dt><dd className="font-mono text-[11.5px]">{def.key}</dd></div>
+              {/*
+                内部の識別子は出さない（Phase 12 / P2-1）。
+                自動採番なので、ユーザーが業務を見分ける手がかりにならない。
+                リンク先や保存には引き続き def.key を使う。
+              */}
               <div className="flex justify-between"><dt className="text-ink-3">バージョン</dt><dd>v{def.version}</dd></div>
               <div className="flex justify-between"><dt className="text-ink-3">状態</dt><dd>{stopped ? "停止中" : "公開中"}</dd></div>
               <div className="flex justify-between"><dt className="text-ink-3">カテゴリ</dt><dd>{def.category}</dd></div>

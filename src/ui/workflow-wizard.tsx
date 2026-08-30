@@ -25,6 +25,16 @@ const INPUT =
 const SMALL_INPUT =
   "rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] outline-none focus:border-brand";
 
+/**
+ * 名前が未入力のものの呼び名（Phase 12 / P2-1）。
+ * 空のときに内部の識別子で埋めると、自動採番の文字列が選択肢に並ぶ。
+ * 見分けがつかないので、未設定であることをそのまま示す。
+ */
+const UNNAMED = "（名称未設定）";
+function nameOf(value: string | undefined): string {
+  return value && value.trim().length > 0 ? value : UNNAMED;
+}
+
 const STAGES = [
   { n: 1, label: "基本情報", hint: "どんな業務か" },
   { n: 2, label: "STEPを並べる", hint: "何を順にやるか" },
@@ -1056,7 +1066,7 @@ function FlowEditor({
             >
               <option value="">選択してください</option>
               {usableFields.map((f) => (
-                <option key={f.key} value={f.key}>{f.label || f.key}（{f.stepTitle}）</option>
+                <option key={f.key} value={f.key}>{nameOf(f.label)}（{f.stepTitle}）</option>
               ))}
             </select>
           </div>
@@ -1067,7 +1077,7 @@ function FlowEditor({
                 const path = flow.paths.find((p) => p.value === o.value);
                 return (
                   <li key={o.value} className="flex flex-wrap items-center gap-2 text-[12.5px]">
-                    <span className="min-w-[140px] rounded bg-surface-2 px-2 py-1">{o.label || o.value}</span>
+                    <span className="min-w-[140px] rounded bg-surface-2 px-2 py-1">{nameOf(o.label)}</span>
                     <span className="text-ink-3">なら</span>
                     <select
                       className={SMALL_INPUT}
@@ -1085,7 +1095,7 @@ function FlowEditor({
                     >
                       <option value="">（分けない）</option>
                       {later.map((s) => (
-                        <option key={s.key} value={s.key}>{s.title || s.key}</option>
+                        <option key={s.key} value={s.key}>{nameOf(s.title)}</option>
                       ))}
                     </select>
                   </li>
@@ -1117,7 +1127,7 @@ function FlowEditor({
                   : "次のSTEPへ"}
               </option>
               {later.map((s) => (
-                <option key={s.key} value={s.key}>{s.title || s.key}</option>
+                <option key={s.key} value={s.key}>{nameOf(s.title)}</option>
               ))}
             </select>
           </div>
@@ -1130,7 +1140,7 @@ function FlowEditor({
             >
               <option value="">（合流しない）</option>
               {later.map((s) => (
-                <option key={s.key} value={s.key}>{s.title || s.key}</option>
+                <option key={s.key} value={s.key}>{nameOf(s.title)}</option>
               ))}
             </select>
             <span className="text-ink-3">へ合流</span>
@@ -1164,7 +1174,7 @@ function FlowEditor({
                       on ? "border-brand bg-brand-soft font-medium" : "border-line bg-surface hover:border-brand"
                     }`}
                   >
-                    {s.title || s.key}
+                    {nameOf(s.title)}
                   </button>
                 </li>
               );
@@ -1178,7 +1188,7 @@ function FlowEditor({
             >
               <option value="">選択してください</option>
               {later.filter((s) => !flow.toStepKeys.includes(s.key)).map((s) => (
-                <option key={s.key} value={s.key}>{s.title || s.key}</option>
+                <option key={s.key} value={s.key}>{nameOf(s.title)}</option>
               ))}
             </select>
             <span className="text-ink-3">へ合流</span>
