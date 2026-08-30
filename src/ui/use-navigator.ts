@@ -13,6 +13,8 @@ import {
 import { detectConflicts, overlayStep, resolveRulesForStep, isRuleActive } from "@/core/rules/resolver";
 import { resolveStepContext } from "@/core/context/resolver";
 import { rankActions, resolveNextAction, waitingRuns, headlineForStep } from "@/core/context/next-action";
+import { latestWorkflows } from "@/core/workflow/registry";
+import { startableToday } from "@/core/workflow/start-trigger";
 import type { EffectiveStep, StepDefinition, StepRun, WorkRun, WorkflowDefinition } from "@/core/model/types";
 
 /** 現在時刻。設定でデモ用の業務日が指定されていればそれを返す */
@@ -24,9 +26,22 @@ export function useNow(): Date {
   );
 }
 
+/**
+ * 実行できる業務フローの一覧（各 key の最新バージョンのうち、公開中のもの）。
+ * 停止した業務はここに出ない＝新しく開始できない。
+ */
 export function useWorkflows() {
   const { workflows } = useStore();
-  return workflows.filter((w) => w.status === "published");
+  return useMemo(
+    () => latestWorkflows(workflows).filter((w) => w.status === "published"),
+    [workflows],
+  );
+}
+
+/** 停止中も含めた最新バージョンの一覧。業務の管理画面で使う */
+export function useLatestWorkflows() {
+  const { workflows } = useStore();
+  return useMemo(() => latestWorkflows(workflows), [workflows]);
 }
 
 export function useActiveRules() {
@@ -147,6 +162,20 @@ export function useNextAction() {
       waiting: waitingRuns(input),
     };
   }, [state, workflows, now]);
+}
+
+/**
+ * 今日開始する業務（仕様 §28-2）。
+ * 開始条件が来ているだけで、勝手に開始はしない。HOME に出して自分が決める。
+ */
+export function useStartableToday() {
+  const { state, currentUser } = useStore();
+  const workflows = useWorkflows();
+  const now = useNow();
+  return useMemo(
+    () => startableToday({ workflows, runs: state.runs, userId: currentUser.id, now }),
+    [workflows, state.runs, currentUser.id, now],
+  );
 }
 
 export { isRunComplete, resolveNextSteps, getStep, orderedSteps };

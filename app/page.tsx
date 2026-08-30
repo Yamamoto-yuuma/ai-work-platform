@@ -6,12 +6,16 @@
  * リストを並べるのではなく、NextActionResolver の出力を最上部に出す。
  */
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
-import { useNextAction, useNow } from "@/ui/use-navigator";
-import { Badge, Card, LinkButton, SectionTitle, Empty } from "@/ui/primitives";
+import { useNextAction, useNow, useStartableToday, useWorkflows } from "@/ui/use-navigator";
+import { Badge, Button, Card, LinkButton, SectionTitle, Empty } from "@/ui/primitives";
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
+import { buildRun } from "@/services/start-run";
+import { describeStartTrigger } from "@/core/workflow/start-trigger";
 import { checkStatusOf } from "@/ui/wait-run";
+import type { WorkflowDefinition } from "@/core/model/types";
 
 function fmt(d?: string) {
   if (!d) return "—";
@@ -19,9 +23,21 @@ function fmt(d?: string) {
 }
 
 export default function HomePage() {
-  const { state, workflows, currentUser } = useStore();
+  const router = useRouter();
+  const { state, dispatch, workflows, customers, currentUser } = useStore();
   const { next, ranked, waiting } = useNextAction();
   const now = useNow();
+  // 開始条件が来ている業務。勝手には始めず、ここに出して自分が決める
+  const startable = useStartableToday();
+  const publishedCount = useWorkflows().length;
+
+  function startWorkflow(def: WorkflowDefinition) {
+    const { run, stepRuns } = buildRun({
+      def, customers, assigneeId: currentUser.id, now,
+    });
+    dispatch({ type: "startRun", run, stepRuns });
+    router.push(`/navigator/${run.id}`);
+  }
 
   /**
    * 行動候補は rankActions の出力だけを源にする。
@@ -65,7 +81,10 @@ export default function HomePage() {
           </p>
           <h1 className="mt-0.5 text-xl font-bold tracking-tight">{currentUser.name} さんの今日</h1>
         </div>
-        <LinkButton href="/workflows">＋ 新しい業務を開始</LinkButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <LinkButton href="/workflows/new" variant="secondary">＋ 業務を登録</LinkButton>
+          <LinkButton href="/workflows">＋ 新しい業務を開始</LinkButton>
+        </div>
       </header>
 
       {/* 最上部：今やるべき唯一のこと */}
@@ -132,13 +151,50 @@ export default function HomePage() {
             </section>
           )}
 
+          {/* 今日開始する業務：開始条件が来ているもの。開始するかは自分が決める */}
+          {startable.length > 0 && (
+            <section>
+              <SectionTitle>今日開始する業務（{startable.length}）</SectionTitle>
+              <ul className="flex flex-col gap-1.5">
+                {startable.map((def) => (
+                  <li
+                    key={def.key}
+                    className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <Link href={`/workflows/${def.key}`} className="block truncate text-[13px] font-medium hover:text-brand">
+                        {def.name}
+                      </Link>
+                      <span className="mt-0.5 block text-[11.5px] text-ink-3">
+                        {describeStartTrigger(def.startTrigger)}
+                      </span>
+                    </span>
+                    <Button size="sm" onClick={() => startWorkflow(def)}>開始する</Button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {/* 続けて着手できるもの */}
           <section>
             <SectionTitle action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}>
               続けて着手できること
             </SectionTitle>
             {upNext.length === 0 ? (
-              <Empty>他に着手できる作業はありません</Empty>
+              publishedCount === 0 ? (
+                <Card className="border-dashed p-5 text-center">
+                  <p className="text-[13px] font-bold">まだ業務が登録されていません</p>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+                    自分の業務を登録すると、ここに「次にやること」が並びます。
+                  </p>
+                  <div className="mt-3 flex justify-center">
+                    <LinkButton href="/workflows/new" size="sm">＋ 業務を登録</LinkButton>
+                  </div>
+                </Card>
+              ) : (
+                <Empty>他に着手できる作業はありません</Empty>
+              )
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {upNext.map((a, i) => (

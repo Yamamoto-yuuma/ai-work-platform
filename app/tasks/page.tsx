@@ -14,6 +14,7 @@ import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/mo
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
+import { escalatedPriority } from "@/core/priority/escalate";
 import type { Task } from "@/core/model/types";
 
 const VIEWS = [
@@ -77,7 +78,10 @@ function TasksInner() {
     const shownStatus = effectiveStatus(t, state.tasks);
     const assignee = users.find((x) => x.id === t.assigneeId);
     const isMine = t.assigneeId === state.currentUserId;
-    const priorityLabel = TASK_PRIORITIES.find((x) => x.value === t.priority)?.label ?? t.priority;
+    // 優先度は登録時のまま固定しない。期限が近づけば上がる
+    const nowPriority = escalatedPriority(t.priority, t.dueAt, now);
+    const priorityLabel = TASK_PRIORITIES.find((x) => x.value === nowPriority)?.label ?? nowPriority;
+    const raised = nowPriority !== t.priority;
 
     return (
       <li>
@@ -110,7 +114,9 @@ function TasksInner() {
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
                   {TASK_STATUS_LABEL[shownStatus]}
                 </span>
-                <span>優先度 {priorityLabel}</span>
+                <span className={raised ? "font-medium text-danger" : undefined}>
+                  優先度 {priorityLabel}{raised && "（期限が近いため引き上げ）"}
+                </span>
                 <span className={isMine ? "font-medium text-brand" : undefined}>
                   担当 {assignee?.name ?? "未割当"}{isMine && "（自分）"}
                 </span>

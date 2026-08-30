@@ -11,9 +11,11 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from "react
 import type {
   BusinessRule, ChangeEvent, Company, Customer, DerivationRule, EmailTemplate,
   KnowledgeItem, StepRun, Task, User, WorkEvent, WorkRun,
+  WorkflowDefinition, WorkflowStatus,
 } from "@/core/model/types";
 import type { IntegrationStatus } from "@/ports";
-import { workflows } from "../../../seed/workflows";
+import { mergeWorkflows } from "@/core/workflow/registry";
+import { workflows as seedWorkflows } from "../../../seed/workflows";
 import { businessRules, derivationRules } from "../../../seed/rules";
 import { users, customers, companies, knowledge, emailTemplates } from "../../../seed/master";
 import { runs as seedRuns, stepRunsByRun as seedStepRuns, tasks as seedTasks, changeEvents as seedChanges } from "../../../seed/runs";
@@ -21,6 +23,13 @@ import { runs as seedRuns, stepRunsByRun as seedStepRuns, tasks as seedTasks, ch
 const STORAGE_KEY = "ai-work-platform:v1";
 
 export interface AppState {
+  /**
+   * 自分で登録した業務フロー定義（仕様 §28-1）。
+   * シードの定義とは分けて保持し、読み出すときに合成する。
+   * 編集はバージョンを積み上げるだけで、過去バージョンは消さない。
+   * 実行中の WorkRun は開始時のバージョンを見ているため、編集の影響を受けない。
+   */
+  userWorkflows: WorkflowDefinition[];
   runs: WorkRun[];
   stepRunsByRun: Record<string, StepRun[]>;
   tasks: Task[];
@@ -49,6 +58,10 @@ export type Action =
   | { type: "pauseRun"; runId: string; waitingFor: string; waitingUntil: string }
   /** 待ちを解いて作業に戻す。STEP は待ちに入る前のまま */
   | { type: "resumeRun"; runId: string }
+  /** 業務フロー定義の登録・更新。既存 key なら新しいバージョンとして積む */
+  | { type: "saveWorkflow"; workflow: WorkflowDefinition }
+  /** 業務の停止・再開。最新バージョンの状態だけを切り替える */
+  | { type: "setWorkflowStatus"; key: string; status: WorkflowStatus; latest: WorkflowDefinition }
   | { type: "addChangeEvent"; change: ChangeEvent }
   | { type: "toggleRule"; ruleId: string }
   | { type: "addRule"; rule: BusinessRule }
@@ -59,6 +72,7 @@ export type Action =
 
 function initialState(): AppState {
   return {
+    userWorkflows: [],
     runs: seedRuns,
     stepRunsByRun: seedStepRuns,
     tasks: seedTasks,
@@ -341,6 +355,23 @@ function reducer(state: AppState, action: Action): AppState {
 
     case "addRule":
       return { ...state, businessRules: [action.rule, ...state.businessRules] };
+
+    case "saveWorkflow": {
+      const w = action.workflow;
+      // 同じ key + version は差し替える。別バージョンは履歴として残す
+      const rest = state.userWorkflows.filter(
+        (x) => !(x.key === w.key && x.version === w.version),
+      );
+      return { ...state, userWorkflows: [...rest, w] };
+    }
+
+    case "setWorkflowStatus": {
+      const target = { ...action.latest, status: action.status };
+      const rest = state.userWorkflows.filter(
+        (x) => !(x.key === target.key && x.version === target.version),
+      );
+      return { ...state, userWorkflows: [...rest, target] };
+    }
   }
 }
 
@@ -348,7 +379,8 @@ interface StoreValue {
   state: AppState;
   dispatch: React.Dispatch<Action>;
   // 読み取り用のポート実装（静的データはシードから直接返す）
-  workflows: typeof workflows;
+  /** シードと自分で登録したものを合成した全バージョン。実行中の業務の解決に使う */
+  workflows: WorkflowDefinition[];
   derivationRules: DerivationRule[];
   knowledge: KnowledgeItem[];
   customers: Customer[];
@@ -394,11 +426,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state]);
 
+  const workflows = useMemo(
+    () => mergeWorkflows(seedWorkflows, state.userWorkflows),
+    [state.userWorkflows],
+  );
+
   const value = useMemo<StoreValue>(() => ({
     state, dispatch, workflows, derivationRules,
     knowledge, customers, companies, users, emailTemplates, integrations,
     currentUser: users.find((u) => u.id === state.currentUserId) ?? users[0],
-  }), [state]);
+  }), [state, workflows]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

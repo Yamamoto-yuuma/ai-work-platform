@@ -229,7 +229,7 @@ export function ContextPanel({
               <div className={onRequestChange || onWaitRun ? "mt-4 border-t border-line pt-3.5" : undefined}>
                 <p className="text-[12px] font-bold">この業務をやめる？</p>
                 <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
-                  完了ではなく、途中でやめた記録として残します（仕様 §6-4）。
+                  完了ではなく、途中でやめた記録として残します。
                 </p>
                 <Button variant="ghost" size="sm" onClick={onCancelRun}>この業務を中止</Button>
               </div>

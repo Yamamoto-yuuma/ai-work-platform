@@ -101,6 +101,8 @@ export interface StepDefinition {
   /** このSTEPで発火しうる派生ルール */
   derivationTriggers?: string[];
   completionCriteria?: ConditionExpr;
+  /** このSTEPに入る前に済んでいるべきこと。ナビゲーターに注意として出す */
+  preconditions?: string;
 }
 
 export interface FlowEdge {
@@ -111,6 +113,90 @@ export interface FlowEdge {
   priority: number;
   /** 合流ポリシー。all = 先行STEPが全て完了するまで待つ */
   joinPolicy?: "any" | "all";
+}
+
+// ---------------------------------------------------------------------------
+// 業務の性質・開始条件・目標（仕様 §28）
+//
+// すべて任意項目。既存のシード定義は未設定のまま動く。
+// 「どんな業務か」を人が登録できるようにするための、データとしての語彙。
+// ---------------------------------------------------------------------------
+
+/** 業務タイプ。定型＝決まった間隔で繰り返す、発生型＝出来事をきっかけに始まる */
+export type WorkKind = "routine" | "reactive" | "term" | "urgent" | "other";
+
+export type StartTriggerKind =
+  | "manual"
+  | "date"
+  | "weekday"
+  | "time"
+  | "event"
+  | "after-workflow"
+  | "task"
+  | "condition";
+
+/**
+ * 業務の開始条件。
+ * 自動で業務を始めてしまうことはせず、「今日開始する業務」として提示するだけにする。
+ * 判断はあくまで自分が行う（個人利用前提／仕様 §26）。
+ */
+export interface StartTrigger {
+  kind: StartTriggerKind;
+  /** date: この日に開始する（YYYY-MM-DD） */
+  date?: string;
+  /** weekday: 開始する曜日（0=日 … 6=土） */
+  weekdays?: number[];
+  /** time: この時刻以降に開始する（HH:mm）。毎日が対象 */
+  time?: string;
+  /** event: きっかけになる出来事。自分の言葉で書く */
+  eventLabel?: string;
+  /** after-workflow: この業務が完了したら開始する */
+  afterWorkflowKey?: string;
+  /** task: きっかけになるタスク */
+  taskLabel?: string;
+  /** condition: データとして保存された条件式 */
+  condition?: ConditionExpr;
+  note?: string;
+}
+
+/** ノルマ・目標（仕様 §28-3）。件数と時間の2系統だけを持つ */
+export interface WorkQuota {
+  /** count = ○件、hours = ○時間 */
+  metric: "count" | "hours";
+  period: "day" | "week" | "month" | "quarter" | "year";
+  target: number;
+  /** atLeast = ○件以上こなす、atMost = ○時間以内に収める */
+  direction: "atLeast" | "atMost";
+  note?: string;
+}
+
+/**
+ * 優先度の時間変化（仕様 §28-4）。
+ * 「7日前は通常、2日前は高、超過したら緊急」のような段階をデータで持つ。
+ * 残り日数が withinDays 以下になったら priority まで引き上げる。
+ */
+export interface PriorityEscalation {
+  steps: { withinDays: number; priority: TaskPriority }[];
+}
+
+/**
+ * 業務に後から足せる詳細（仕様 §28-5）。すべて任意。
+ * 登録時に全部埋めさせない。運用しながら育てるための置き場。
+ */
+export interface WorkflowNotes {
+  cautions?: string;
+  specialRules?: string;
+  exceptions?: string;
+  emergency?: string;
+  criteria?: string;
+  aiInstruction?: string;
+  memo?: string;
+  tools?: string[];
+  materials?: string[];
+  companies?: string[];
+  knowledgeIds?: string[];
+  checkItems?: string[];
+  faq?: { q: string; a: string }[];
 }
 
 export interface WorkflowDefinition {
@@ -130,6 +216,25 @@ export interface WorkflowDefinition {
   derivationRuleIds: string[];
   estimatedMinutes?: number;
   updatedAt: string;
+
+  // --- 以下はすべて任意。未設定でも既存の動作は変わらない ---
+  /** どんな性質の業務か */
+  workKind?: WorkKind;
+  /** いつ始める業務か */
+  startTrigger?: StartTrigger;
+  /** この業務から生まれる作業の既定の優先度 */
+  defaultPriority?: TaskPriority;
+  /** 期限が近づいたときの優先度の上げ方 */
+  priorityEscalation?: PriorityEscalation;
+  /** ノルマ・目標 */
+  quota?: WorkQuota;
+  /** 注意事項・判断基準など、後から足せる詳細 */
+  notes?: WorkflowNotes;
+  /** どこから来た定義か。user = 自分で登録した */
+  origin?: "seed" | "user";
+  /** 複製元の業務。テンプレートとして使った履歴 */
+  copiedFromKey?: string;
+  createdAt?: string;
 }
 
 // ---------------------------------------------------------------------------

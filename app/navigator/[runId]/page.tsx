@@ -263,6 +263,11 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   </div>
                   <h2 className="mt-2 text-[17px] font-bold tracking-tight">{stepView.step.title}</h2>
                   <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
+                  {stepView.step.preconditions && (
+                    <p className="mt-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-[12px] leading-relaxed text-ink-2">
+                      前提：{stepView.step.preconditions}
+                    </p>
+                  )}
                   {stepView.context.stepDeadline && (
                     <p className={`mt-1.5 text-[12.5px] font-medium ${stepView.context.stepDeadline.isOverdue ? "text-danger" : "text-ink-2"}`}>
                       このSTEPの期限：

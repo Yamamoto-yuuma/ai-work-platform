@@ -6,10 +6,11 @@
  * 画面はこの出力を表示するだけにする（仕様 §4-3）。
  */
 import type {
-  NextAction, StepRun, Task, WorkRun, WorkflowDefinition, StepDefinition,
+  NextAction, StepRun, Task, TaskPriority, WorkRun, WorkflowDefinition, StepDefinition,
 } from "../model/types";
 import { getStep, runProgress } from "../flow/engine";
 import { isBlocked } from "../task/dependency";
+import { escalatedPriority } from "../priority/escalate";
 import { urgencyOf, remainingLabel } from "./resolver";
 
 const URGENCY_SCORE = { overdue: 1000, today: 500, soon: 200, normal: 0 } as const;
@@ -50,6 +51,13 @@ export function isDueForCheck(run: WorkRun, now: Date): boolean {
 
 export interface RankedAction extends NextAction {
   score: number;
+  /**
+   * 判断に使った材料（仕様 §28-4）。画面が理由を説明できるようにする。
+   * 優先度は期限までの残り日数で引き上げられた後の値。
+   */
+  priority?: TaskPriority;
+  basePriority?: TaskPriority;
+  estimatedMinutes?: number;
 }
 
 /** 全業務・全タスクを横断して、着手すべきものを優先順位付きで返す */
@@ -74,6 +82,8 @@ export function rankActions(input: NextActionInput): RankedAction[] {
       // 進められないなら、ユーザーが明示的に「待ち」にする
       if (!step) continue;
       const urgency = urgencyOf(run.dueAt, now);
+      const base = def.defaultPriority ?? "normal";
+      const priority = escalatedPriority(base, run.dueAt, now, def.priorityEscalation);
       actions.push({
         kind: "step",
         headline: headlineForStep(step, run),
@@ -82,6 +92,9 @@ export function rankActions(input: NextActionInput): RankedAction[] {
         stepKey: key,
         dueAt: run.dueAt,
         urgency,
+        priority,
+        basePriority: base,
+        estimatedMinutes: step.estimatedMinutes,
         score: URGENCY_SCORE[urgency] + 300, // 進行中業務は単発タスクより優先
       });
     }
@@ -127,6 +140,8 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     if (isBlocked(task, tasks)) continue;
 
     const urgency = urgencyOf(task.dueAt, now);
+    // 優先度は登録時のまま固定しない。期限が近づけば上がる（仕様 §28-4）
+    const priority = escalatedPriority(task.priority, task.dueAt, now);
     actions.push({
       kind: "task",
       headline: task.title,
@@ -135,7 +150,10 @@ export function rankActions(input: NextActionInput): RankedAction[] {
       runId: task.runId,
       dueAt: task.dueAt,
       urgency,
-      score: URGENCY_SCORE[urgency] + PRIORITY_SCORE[task.priority],
+      priority,
+      basePriority: task.priority,
+      estimatedMinutes: task.estimatedMinutes,
+      score: URGENCY_SCORE[urgency] + PRIORITY_SCORE[priority],
     });
   }
 

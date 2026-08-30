@@ -4,7 +4,7 @@ import type {
 } from "../src/core/model/types";
 
 export const users: User[] = [
-  { id: "user-me", name: "山本 悠真", roles: ["executor", "designer"], team: "sales" },
+  { id: "user-me", name: "山本 有真", roles: ["executor", "designer"], team: "sales" },
   { id: "user-manager", name: "佐藤 部長", roles: ["designer", "admin"], team: "sales" },
   { id: "user-marketing", name: "田中 花子", roles: ["executor"], team: "marketing" },
 ];
