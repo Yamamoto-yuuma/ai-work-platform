@@ -33,7 +33,7 @@ export default function SettingsPage() {
       {/* デモ用の業務日 — 一時ルールの自動適用・自動失効を確認するためのもの */}
       <section className="mb-7">
         <h2 className="mb-3 text-[13px] font-bold">業務日（デモ用）</h2>
-        <Card className="p-4">
+        <Card className="p-5">
           <p className="mb-3 text-[12px] text-ink-2">
             一時ルールは期間で自動的に有効・無効が切り替わります（定期処理は不要）。
             業務日を切り替えると、同じルールが適用されたり外れたりすることを確認できます。
@@ -88,7 +88,7 @@ export default function SettingsPage() {
       {/* ユーザー切替。左下のユーザーメニューからここへ直接来られるようにする */}
       <section id="users" className="mb-7 scroll-mt-6">
         <h2 className="mb-3 text-[13px] font-bold">ユーザー</h2>
-        <Card className="p-4">
+        <Card className="p-5">
           <p className="mb-3 text-[12px] text-ink-3">
             認証は Phase 7 で接続します。現在はモックユーザーを切り替えて権限の違いを確認できます。
           </p>
@@ -173,7 +173,7 @@ export default function SettingsPage() {
       {/* 業務部品 */}
       <section className="mb-7">
         <h2 className="mb-3 text-[13px] font-bold">業務部品（{allComponentSpecs().length}種）</h2>
-        <Card className="p-4">
+        <Card className="p-5">
           <p className="mb-3 text-[12px] text-ink-3">
             STEPで使える部品の一覧です。部品はレジストリに登録されており、追加してもフローエンジンや既存の業務定義には影響しません。
           </p>
@@ -196,7 +196,7 @@ export default function SettingsPage() {
       */}
       <section id="sample" className="mb-7 scroll-mt-6">
         <h2 className="mb-3 text-[13px] font-bold">サンプルデータ</h2>
-        <Card className="p-4">
+        <Card className="p-5">
           <p className="text-[12.5px] leading-relaxed text-ink-2">
             動きを確かめるための業務・タスク・ナレッジの一式です。
             初期状態では入っていません。片付けても、自分で登録したものは残ります。
@@ -221,7 +221,7 @@ export default function SettingsPage() {
       {/* データ */}
       <section>
         <h2 className="mb-3 text-[13px] font-bold">データ</h2>
-        <Card className="p-4">
+        <Card className="p-5">
           <p className="text-[12.5px] leading-relaxed text-ink-2">
             データはこのブラウザの中だけに保存されています。
             初期化すると、登録した業務・進行中の業務・タスク・ナレッジがすべて消えます。元に戻せません。

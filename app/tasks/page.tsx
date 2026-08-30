@@ -86,15 +86,19 @@ function TasksInner() {
 
     return (
       <li
-        className={`group relative rounded-xl border transition-shadow hover:shadow-card ${
+        /*
+          行は置いてある紙のように、わずかに浮かせる。
+          触れたときにもう1段だけ上げる。囲む線は引かない。
+        */
+        className={`group relative rounded-xl shadow-card transition-shadow duration-150 hover:shadow-lift ${
           t.id === createdId
-            ? "border-ok/50 bg-ok-soft"
+            ? "bg-ok-soft"
             : t.confirmationState === "proposed"
-              ? "border-signal/40 bg-signal-soft"
-              : "border-line-soft bg-surface"
+              ? "bg-signal-soft"
+              : "bg-surface"
         }`}
       >
-        <Link href={`/tasks/${t.id}`} className="block px-4 py-3">
+        <Link href={`/tasks/${t.id}`} className="block px-5 py-3.5">
           <span className="flex items-start gap-3">
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-1.5">
@@ -176,7 +180,7 @@ function TasksInner() {
       )}
 
       {createdId && !creating && (
-        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-ok/40 bg-ok-soft px-4 py-2.5">
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg bg-ok-soft px-4 py-2.5">
           <span className="text-[12.5px] font-medium text-ok">タスクを作成しました</span>
           <Link href={`/tasks/${createdId}`} className="text-[12.5px] text-brand hover:underline">
             作成したタスクを開く →
@@ -185,7 +189,7 @@ function TasksInner() {
       )}
 
       {proposed.length > 0 && view !== "proposed" && (
-        <Card className="mb-5 border-signal/40 bg-signal-soft p-4">
+        <Card className="mb-5 bg-signal-soft p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[13px] font-bold text-signal">{proposed.length}件の派生タスクが未確認です</p>
@@ -196,7 +200,7 @@ function TasksInner() {
         </Card>
       )}
 
-      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+      <div className="mb-5 flex flex-wrap items-center gap-2">
         {VIEWS.map((v) => (
           <button
             key={v.key} onClick={() => setView(v.key)}
@@ -256,7 +260,7 @@ function TasksInner() {
                 </span>
               </h2>
             )}
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col gap-2">
               {list.map((t) => <TaskRow key={t.id} t={t} />)}
             </ul>
           </section>

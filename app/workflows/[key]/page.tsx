@@ -109,7 +109,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
       )}
 
       {/* 定義と実行の関係 */}
-      <Card className="mb-5 p-4">
+      <Card className="mb-5 p-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">
             <p className="text-[11px] font-bold text-ink-3">業務の定義（この画面）</p>
@@ -117,7 +117,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
               やることの手順そのものです。1つだけ持ちます。編集すると新しいバージョンになります。
             </p>
           </div>
-          <div className="rounded-lg border border-brand/30 bg-brand-soft px-3.5 py-2.5">
+          <div className="rounded-lg bg-brand-soft px-3.5 py-2.5">
             <p className="text-[11px] font-bold text-brand">実行（開始するたびに増える）</p>
             <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
               この手順を1回まわしたものです。相手や案件ごとに別々に進み、進捗も別々に残ります。
@@ -188,7 +188,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
           </div>
 
           {hasNotes && (
-            <Card className="p-4">
+            <Card className="p-5">
               <h2 className="mb-3 text-[13px] font-bold">この業務について記録していること</h2>
               <dl className="flex flex-col gap-3">
                 {NOTE_LABELS.map((n) => {
@@ -232,7 +232,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
         </div>
 
         <div className="flex flex-col gap-4">
-          <Card className="p-4">
+          <Card className="p-5">
             <p className="mb-2 text-[12px] font-bold text-ink-3">この業務の設定</p>
             <dl className="flex flex-col gap-1.5 text-[12.5px]">
               {def.workKind && (
@@ -275,7 +275,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
             </p>
           </Card>
 
-          <Card className="p-4">
+          <Card className="p-5">
             <p className="mb-2 text-[12px] font-bold text-ink-3">定義情報</p>
             <dl className="flex flex-col gap-1.5 text-[12.5px]">
               {/*
@@ -291,7 +291,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
           </Card>
 
           {openRuns.length > 0 && (
-            <Card className="p-4">
+            <Card className="p-5">
               <p className="mb-2 text-[12px] font-bold text-ink-3">進行中の実行（{openRuns.length}）</p>
               <ul className="flex flex-col gap-1">
                 {openRuns.map((r) => {
@@ -310,7 +310,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
           )}
 
           {closedRuns.length > 0 && (
-            <Card className="p-4">
+            <Card className="p-5">
               <p className="mb-2 text-[12px] font-bold text-ink-3">終わった実行（{closedRuns.length}）</p>
               <ul className="flex flex-col gap-1">
                 {closedRuns.slice(0, 5).map((r) => (
@@ -325,7 +325,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
             </Card>
           )}
 
-          <Card className="p-4">
+          <Card className="p-5">
             <p className="mb-2 text-[12px] font-bold text-ink-3">この業務に適用されるルール</p>
             {relatedRules.length === 0 ? (
               <p className="text-[12px] text-ink-3">現在有効なルールはありません</p>
@@ -344,7 +344,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
           </Card>
 
           {!stopped && (
-            <Card className="p-4">
+            <Card className="p-5">
               {confirmStop ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-[12.5px] leading-relaxed">

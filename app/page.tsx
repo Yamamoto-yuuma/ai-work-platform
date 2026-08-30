@@ -92,9 +92,12 @@ export default function HomePage() {
 
       {/* 最上部：今やるべき唯一のこと */}
       <Link href={nextHref} className="mb-5 block">
-        <div className={`rounded-xl border p-5 transition-colors ${
-          next.urgency === "overdue" ? "border-danger/40 bg-danger-soft hover:border-danger"
-          : "border-brand/30 bg-brand-soft hover:border-brand"
+        {/*
+          今日いちばん先に触るもの。1枚だけなので、面の色で十分に目立つ。
+          枠線で囲うと帯が重くなるので、線は引かず薄い面と影で置く。
+        */}
+        <div className={`rounded-xl p-6 shadow-card transition-shadow duration-150 hover:shadow-lift ${
+          next.urgency === "overdue" ? "bg-danger-soft" : "bg-brand-soft"
         }`}>
           <div className="mb-2 flex items-center gap-2">
             <span className={`text-[11px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
@@ -143,8 +146,8 @@ export default function HomePage() {
                         href={`/navigator/${run.id}`}
                         className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
                           st.overdue
-                            ? "border-danger/40 bg-danger-soft hover:border-danger"
-                            : "border-signal/40 bg-signal-soft hover:border-signal"
+                            ? "bg-danger-soft hover:shadow-lift"
+                            : "bg-signal-soft hover:shadow-lift"
                         }`}
                       >
                         <span className="min-w-0 flex-1">
@@ -240,7 +243,7 @@ export default function HomePage() {
         {/* 右カラム */}
         <div className="flex flex-col gap-5">
           {proposed.length > 0 && (
-            <Card className="border-signal/40 bg-signal-soft p-4">
+            <Card className="bg-signal-soft p-4">
               <p className="text-[12px] font-bold text-signal">未確認の派生タスク</p>
               <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
                 変更によって {proposed.length} 件のタスクが提案されています。確認して確定してください。

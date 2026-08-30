@@ -50,7 +50,7 @@ function NewWorkflowInner() {
   if (saved) {
     return (
       <div className="mx-auto max-w-[720px] px-6 py-10">
-        <div className="rounded-xl border border-ok/40 bg-ok-soft p-6 text-center">
+        <div className="rounded-xl bg-ok-soft p-6 text-center">
           <p className="text-[13px] font-bold text-ok">業務を登録しました</p>
           <h1 className="mt-2 text-[20px] font-bold tracking-tight">{saved.name}</h1>
           <p className="mt-2 text-[13px] leading-relaxed text-ink-2">

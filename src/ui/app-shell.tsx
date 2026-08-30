@@ -80,11 +80,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      {/*
+        左レーン。地に淡い青の滲みを敷く（rail-wash）。
+        滲みは ::before にあるので、中身は relative で上に重ねる。
+      */}
       <nav
-        className={`sticky top-0 flex h-screen w-[76px] shrink-0 flex-col items-center border-r border-line bg-rail py-4 ${wide}`}
+        className={`rail-wash sticky top-0 flex h-screen w-[76px] shrink-0 flex-col items-center overflow-hidden border-r border-line-soft py-4 ${wide}`}
         aria-label="メインナビゲーション"
       >
-        <div className={`mb-3 flex w-full items-center gap-1 ${collapsed ? "md:flex-col md:gap-1.5" : ""}`}>
+        <div className={`relative mb-4 flex w-full items-center gap-1 ${collapsed ? "md:flex-col md:gap-1.5" : ""}`}>
           {/*
             畳んだときは幅が 76px しかないので、社名を折り返さず頭文字だけ出す。
             どちらの状態でも HOME への入口であることは変えない。
@@ -107,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
             aria-expanded={!collapsed}
             title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
-            className={`hidden shrink-0 rounded-lg py-1 text-[13px] leading-none text-ink-3 hover:bg-surface-2 hover:text-ink-2 md:block ${
+            className={`hidden shrink-0 rounded-[9px] py-1 text-[13px] leading-none text-ink-3 transition-colors hover:bg-white/60 hover:text-ink-2 md:block ${
               collapsed ? "px-2" : "ml-auto px-2"
             }`}
           >
@@ -119,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           項目だけが独立してスクロールする（Phase 13）。
           ここが伸びても、下のユーザー欄と本文は動かない。
         */}
-        <div className="flex w-full min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+        <div className="relative flex w-full min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
           {NAV.map((item) => {
             const active =
               item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -128,8 +132,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 title={item.label}
-                className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors ${
-                  active ? "bg-brand-soft text-brand-ink" : "text-ink-2 hover:bg-surface-2"
+                className={`flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[13px] transition-[background-color,color,box-shadow] duration-150 ${
+                  active
+                    ? "bg-surface font-semibold text-brand-ink shadow-card"
+                    : "font-medium text-ink-2 hover:bg-white/55 hover:text-ink"
                 }`}
               >
                 <span className="w-4 shrink-0 text-center text-[15px] leading-none">{item.icon}</span>
@@ -144,7 +150,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
 
-        <div className="hidden w-full shrink-0 border-t border-line pt-3 md:block" ref={menuRef}>
+        <div className="relative hidden w-full shrink-0 border-t border-line-soft pt-3 md:block" ref={menuRef}>
           {overdueCount > 0 && !collapsed && (
             <div className="mb-2 rounded-lg bg-danger-soft px-2.5 py-1.5 text-[11px] font-medium text-danger">
               期限超過 {overdueCount}件
@@ -153,16 +159,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* 開いたメニュー。設定への入口をここに集める */}
           {menuOpen && (
-            <div className="mb-1.5 overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
+            <div className="mb-1.5 overflow-hidden rounded-[9px] border border-line-soft bg-surface shadow-pop">
               <Link
                 href="/settings"
-                className="block px-3 py-2 text-[12.5px] text-ink-2 hover:bg-surface-2"
+                className="block px-3.5 py-2.5 text-[12.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
               >
                 管理・設定
               </Link>
               <Link
                 href="/settings#users"
-                className="block border-t border-line-soft px-3 py-2 text-[12.5px] text-ink-2 hover:bg-surface-2"
+                className="block border-t border-line-soft px-3.5 py-2.5 text-[12.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
               >
                 使う人を切り替える
               </Link>
@@ -175,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             title={`${currentUser.name}（設定を開く）`}
-            className={`flex w-full items-center gap-2 rounded-lg py-1.5 text-left transition-colors hover:bg-surface-2 ${
+            className={`flex w-full items-center gap-2 rounded-[9px] py-2 text-left transition-colors hover:bg-white/60 ${
               collapsed ? "justify-center px-1" : "px-2.5"
             }`}
           >

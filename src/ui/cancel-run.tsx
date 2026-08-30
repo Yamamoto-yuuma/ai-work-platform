@@ -48,7 +48,7 @@ export function CancelRunPanel({
   }
 
   return (
-    <Card className="mt-4 border-danger/40">
+    <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-danger-soft px-5 py-3">
         <div>
           <h3 className="text-[14px] font-bold text-danger">この業務を中止する</h3>
@@ -105,7 +105,7 @@ export function CancelRunPanel({
         </div>
 
         {confirming ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-danger/40 bg-danger-soft px-3.5 py-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-danger-soft px-3.5 py-3">
             <p className="w-full text-[12.5px] font-bold text-danger">
               この業務を中止します。元に戻すことはできません。
             </p>

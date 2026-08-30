@@ -76,7 +76,7 @@ export function FlowGraph({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-line-soft bg-surface p-4 shadow-card">
+    <div className="overflow-x-auto rounded-xl bg-surface p-4 shadow-card">
       <svg width={width} height={height} className="mx-auto block" role="img" aria-label="業務フロー図">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">

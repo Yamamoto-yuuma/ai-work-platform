@@ -73,7 +73,7 @@ export function DeadlineCascadePanel({
   const accepted = proposals.filter((p) => selected.has(p.taskId));
 
   return (
-    <Card className="mb-5 border-signal/40 bg-signal-soft p-5">
+    <Card className="mb-5 bg-signal-soft p-5">
       <h2 className="text-[14px] font-bold text-signal">
         この変更で {proposals.length} 件の後続タスクに影響があります
       </h2>

@@ -62,7 +62,7 @@ export default function ImpactPage({ params }: { params: Promise<{ changeId: str
       />
 
       {/* 変更内容 */}
-      <Card className="mb-6 border-brand/30 bg-brand-soft p-5">
+      <Card className="mb-6 bg-brand-soft p-5">
         <p className="text-[11px] font-bold tracking-wide text-brand">変更内容</p>
         <p className="mt-1.5 text-[17px] font-bold text-brand-ink">{change.entityLabel}</p>
         <p className="mt-1 text-[14px] text-ink">
@@ -106,7 +106,7 @@ export default function ImpactPage({ params }: { params: Promise<{ changeId: str
                       const due = schedule?.proposals.find((p) => p.taskId === n.taskId)?.dueAt ?? t?.dueAt;
                       return (
                         <li key={n.id} className={`rounded-lg border px-3 py-2.5 ${
-                          n.confirmationState === "proposed" ? "border-signal/40 bg-signal-soft" : "border-line bg-surface"
+                          n.confirmationState === "proposed" ? "bg-signal-soft" : "border-line bg-surface"
                         }`}>
                           <p className="text-[12.5px] font-medium leading-snug">{n.label}</p>
                           {t?.description && <p className="mt-1 text-[11px] leading-relaxed text-ink-3">{t.description}</p>}
@@ -125,7 +125,7 @@ export default function ImpactPage({ params }: { params: Promise<{ changeId: str
           </div>
 
           {cycle && (
-            <Card className="mb-6 border-danger/40 bg-danger-soft p-4">
+            <Card className="mb-6 bg-danger-soft p-4">
               <p className="text-[13px] font-bold text-danger">依存関係に循環があります</p>
               <p className="mt-1 text-[12.5px] text-danger">{cycle.join(" → ")}</p>
             </Card>
@@ -178,7 +178,7 @@ export default function ImpactPage({ params }: { params: Promise<{ changeId: str
 
           {/* 確認ゲート */}
           {proposed.length > 0 && (
-            <Card className="border-signal/40 bg-signal-soft p-5">
+            <Card className="bg-signal-soft p-5">
               <p className="text-[13.5px] font-bold text-signal">{proposed.length}件のタスクが提案されています</p>
               <p className="mt-1 text-[12.5px] text-ink-2">
                 内容を確認して確定してください。確定するまでタスク一覧には反映されません。
@@ -202,7 +202,7 @@ export default function ImpactPage({ params }: { params: Promise<{ changeId: str
           )}
 
           {proposed.length === 0 && existing.length > 0 && (
-            <Card className="border-ok/40 bg-ok-soft p-4">
+            <Card className="bg-ok-soft p-4">
               <p className="text-[13px] font-bold text-ok">派生タスクは確定済みです</p>
               <Link href="/tasks?view=derived" className="mt-1 inline-block text-[12.5px] text-brand hover:underline">
                 タスク一覧で確認する →

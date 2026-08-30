@@ -76,7 +76,7 @@ function Field({
 function ErrorList({ errors }: { errors: DraftError[] }) {
   if (errors.length === 0) return null;
   return (
-    <div className="rounded-lg border border-danger/40 bg-danger-soft px-3.5 py-2.5">
+    <div className="rounded-lg bg-danger-soft px-3.5 py-2.5">
       <p className="text-[12.5px] font-bold text-danger">入力を確認してください</p>
       <ul className="mt-1 flex flex-col gap-0.5">
         {errors.map((e, i) => (
@@ -694,7 +694,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   </li>
                 );
               })}
-              <li className="rounded-lg border border-ok/40 bg-ok-soft px-3.5 py-2 text-[13px] font-medium text-ok">
+              <li className="rounded-lg bg-ok-soft px-3.5 py-2 text-[13px] font-medium text-ok">
                 完了
               </li>
               {draft.flowLocked && (

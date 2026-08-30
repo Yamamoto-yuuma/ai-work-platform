@@ -39,7 +39,7 @@ export default function KnowledgePage() {
         1件も無いうちにこれを出すと、もう用意されているように読めてしまう。
       */}
       {knowledge.length > 0 && (
-        <Card className="mb-5 border-brand/25 bg-brand-soft p-4">
+        <Card className="mb-5 bg-brand-soft p-4">
           <p className="text-[12.5px] leading-relaxed text-brand-ink">
             <strong className="font-bold">探さなくても出てきます。</strong>
             各ナレッジは業務のSTEPに紐付いており、該当のSTEPを開くとコンテキストパネルに自動的に表示されます。
@@ -82,7 +82,7 @@ export default function KnowledgePage() {
             const linked = workflows.filter((w) => k.linkedWorkflowKeys.includes(w.key));
             return (
               <li key={k.id}>
-                <Card className="p-4">
+                <Card className="p-5">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <h3 className="text-[14px] font-bold leading-snug">{k.title}</h3>
                     <div className="flex shrink-0 gap-1.5">

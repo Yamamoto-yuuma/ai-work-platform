@@ -52,7 +52,7 @@ export default function RulesPage() {
       (n, e) => n + (e.type === "addChecklistItems" ? e.items.length : e.type === "addFields" ? e.fields.length : 0), 0,
     );
     return (
-      <Card className={`p-4 ${phase === "expired" ? "opacity-55" : phase === "active" && rule.ruleType === "temporary" ? "border-signal/40" : ""}`}>
+      <Card className={`p-4 ${phase === "expired" ? "opacity-55" : phase === "active" && rule.ruleType === "temporary" ? "bg-signal-soft/50" : ""}`}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -83,7 +83,7 @@ export default function RulesPage() {
         </div>
 
         {preview?.id === rule.id && (
-          <div className="mt-3 rounded-lg border border-brand/30 bg-brand-soft p-3.5">
+          <div className="mt-3 rounded-lg bg-brand-soft p-3.5">
             <p className="text-[12px] font-bold text-brand">このルールの影響</p>
             {affected.length === 0 ? (
               <p className="mt-1.5 text-[12px] text-ink-2">影響するSTEPはありません。</p>

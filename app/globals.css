@@ -2,62 +2,84 @@
 @import "./fonts.css";
 
 @theme {
-  --color-ink: #14181d;
-  --color-ink-2: #4a5560;
-  --color-ink-3: #78848f;
   /*
-    地の色（Phase 13）。薄いブルーに寄せて、白とグレーだけの画面に
-    ほんの少し温度を持たせる。カードは白のままにして、地との差で
-    情報のまとまりが読めるようにする。強くしすぎない。
+    ── 色 ──────────────────────────────────────────────
+    白と、水で薄めたような青の間だけで組む。
+    青は「面を塗る色」ではなく「空間に差している光」として扱う。
+    強い青は、いま何をすべきかを指すところにだけ置く。
   */
-  --color-paper: #f1f5fa;
+  --color-ink: #101720;      /* 見出し・本文 */
+  --color-ink-2: #48566a;    /* 説明文 */
+  --color-ink-3: #7b8899;    /* 補助・単位・状態 */
+
+  /* 紙面。ほぼ白だが、わずかに青が差している */
+  --color-paper: #f4f7fb;
+  /* カードの面。ここは混ぜずに白のままにする。紙面との差でまとまりが出る */
   --color-surface: #ffffff;
-  --color-surface-2: #e9eff7;
-  --color-line: #d5dfeb;
-  --color-line-soft: #e4ebf4;
-  /* 左レーンの地。本文より一段沈ませて、作業領域との境をはっきりさせる */
-  --color-rail: #edf2f9;
+  /* 一段沈めた面。入れ子の箱・見出し帯・空の状態に使う */
+  --color-surface-2: #eef3f9;
+  /*
+    線。主役にしない。
+    line は区切りに使う実線、line-soft は「あるかないか」の淡さ。
+    面と影でまとまりが出せるところに線は引かない。
+  */
+  --color-line: #dde5ee;
+  --color-line-soft: #e9eff6;
+  /* 左レーンの地。紙面よりわずかに沈め、作業領域との境を面で示す */
+  --color-rail: #eaf0f8;
 
   /*
-    影（AI WORK HUB の共通ルール）。
-    線で囲むかわりに、地との明度差とごく薄い影でまとまりを作る。
-    枠線だけで区切ると、数が増えたときに画面が網目に見えて疲れる。
-    色は黒ではなく地の青を濃くしたもの。灰色の影は面が濁って安っぽくなる。
+    ── 影 ──────────────────────────────────────────────
+    3段階だけ。強くすることで上等に見せない。
+    「面が紙からわずかに浮いている」と感じる程度で止める。
 
-    card  … 通常のカード。触れていない状態
-    lift  … 押せるものに触れたとき。1段だけ持ち上げる
-    pop   … メニューなど、本文の上に重なるもの
-  */
-  --shadow-card: 0 1px 2px rgba(29, 55, 82, 0.05), 0 1px 3px rgba(29, 55, 82, 0.04);
-  --shadow-lift: 0 2px 4px rgba(29, 55, 82, 0.07), 0 4px 10px rgba(29, 55, 82, 0.06);
-  --shadow-pop: 0 4px 8px rgba(29, 55, 82, 0.08), 0 12px 28px rgba(29, 55, 82, 0.10);
-  /* 押し込まれているもの（選択中のタブなど）を面の内側に見せる */
-  --shadow-inset: inset 0 1px 2px rgba(29, 55, 82, 0.07);
+    色は黒ではなく、紙面の青を濃くした青灰。黒い影は面が濁って重くなる。
 
-  /*
-    角丸。3段階だけ。極端に丸くしない。
-    sm=入力欄やバッジ / md=ボタン・小さな箱 / lg=カード
+    card … 置いてあるもの。ほぼ気づかない
+    lift … 触れたもの。1段だけ持ち上がる
+    pop  … 本文の上に重なるもの（メニュー・パネル）
   */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --color-brand: #1d5a78;
-  --color-brand-soft: #dcecf4;
-  --color-brand-ink: #10405a;
-  --color-signal: #9a5312;
-  --color-signal-soft: #fbeada;
-  --color-danger: #a32d2d;
-  --color-danger-soft: #fbe3e3;
-  --color-ok: #256b4c;
-  --color-ok-soft: #dcf0e6;
-  --color-ai: #5a4a8c;
-  --color-ai-soft: #e9e4f5;
+  --shadow-card:
+    0 1px 1px rgba(31, 51, 77, 0.028),
+    0 1px 3px rgba(31, 51, 77, 0.035);
+  --shadow-lift:
+    0 1px 2px rgba(31, 51, 77, 0.035),
+    0 4px 12px rgba(31, 51, 77, 0.06);
+  --shadow-pop:
+    0 2px 6px rgba(31, 51, 77, 0.06),
+    0 16px 40px rgba(31, 51, 77, 0.10);
+  /* 選択中の面をわずかに沈ませる。押し込まれた感じを線ではなく面で出す */
+  --shadow-inset: inset 0 1px 2px rgba(31, 51, 77, 0.05);
+  /* 触れているものを示す輪。枠線を太らせる代わりに使う */
+  --ring-focus: 0 0 0 3px rgba(45, 108, 150, 0.16);
 
   /*
-    本文書体（Phase 13）。角を落とした、少し親しみのある書体にする。
-    M PLUS Rounded 1c は fonts.css で同梱しているので、OS を問わず必ず効く。
-    以降は、万一読み込めなかったときのために、これまでの並びを残している。
+    ── 角丸 ────────────────────────────────────────────
+    タグ < 入力欄・ボタン < カード。ピル型に寄せない。
   */
+  --radius-sm: 6px;    /* タグ・小さな印 */
+  --radius-md: 9px;    /* ボタン・入力欄・選べる面 */
+  --radius-lg: 12px;   /* 小さな箱・帯 */
+  --radius-xl: 14px;   /* カード */
+
+  /*
+    ── 差し色 ──────────────────────────────────────────
+    brand は淡い青の光。面を塗るのは brand-soft、
+    文字と主操作にだけ brand / brand-ink を使う。
+  */
+  --color-brand: #2d6c96;
+  --color-brand-soft: #e4eff7;
+  --color-brand-ink: #1b4b6b;
+  /* 状態の色。どれも薄い面に落ち着いた文字で置く */
+  --color-signal: #8a5518;
+  --color-signal-soft: #fbeee0;
+  --color-danger: #9c3535;
+  --color-danger-soft: #fbe6e6;
+  --color-ok: #2a6a50;
+  --color-ok-soft: #e0f0e8;
+  --color-ai: #5a4f88;
+  --color-ai-soft: #ebe7f5;
+
   --font-sans:
     "M PLUS Rounded 1c",
     "Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4",
@@ -75,66 +97,141 @@ body {
 * { box-sizing: border-box; }
 
 /*
-  入力欄の共通見た目（AI WORK HUB の共通ルール）。
-  同じ指定を画面ごとに書かない。枠線は地に沈む薄さにして、
-  触れたとき・入れているときだけはっきりさせる。
+  ここから下は独自クラス。components レイヤーに入れている。
+
+  Tailwind v4 はユーティリティを utilities レイヤーに置く。レイヤーの外に
+  書いた指定は、詳細度や順序に関係なくレイヤー内より強くなってしまい、
+  w-auto のような指定が効かなくなる（日付欄が横いっぱいに伸びる）。
+  同じ仕組みに乗せて、必要なときはユーティリティで上書きできるようにする。
 */
-.field {
-  width: 100%;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-line);
-  background: var(--color-surface);
-  padding: 0.5rem 0.75rem;
-  font: inherit;
-  font-size: 13px;
-  color: var(--color-ink);
-  outline: none;
-  box-shadow: var(--shadow-inset);
-  transition: border-color .15s ease, box-shadow .15s ease;
-}
-.field:hover { border-color: color-mix(in srgb, var(--color-brand) 35%, var(--color-line)); }
-.field:focus {
-  border-color: var(--color-brand);
-  /* 枠の外に淡い輪を出す。線を太くするより静か */
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 14%, transparent);
-}
-.field::placeholder { color: var(--color-ink-3); }
-/* 幅を内容に合わせたいもの（日付など）は個別に w-auto を足す */
-.field-sm { padding: 0.375rem 0.625rem; font-size: 12.5px; border-radius: var(--radius-sm); }
+@layer components {
+  /*
+    ── 入力欄 ────────────────────────────────────────────
+    四角い枠で囲うのをやめる。ごく淡い線と、紙面よりわずかに明るい面で
+    「ここに書ける」ことを示す。触れたときだけ淡い輪を出す。
+    枠線を太くして知らせると、その一箇所だけ線が主役になってしまう。
+  */
+  .field {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line-soft);
+    background: var(--color-surface);
+    padding: 0.5625rem 0.8125rem;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+  }
+  .field:hover { border-color: var(--color-line); }
+  .field:focus {
+    border-color: color-mix(in srgb, var(--color-brand) 45%, var(--color-line));
+    box-shadow: var(--ring-focus);
+  }
+  .field::placeholder { color: var(--color-ink-3); }
+  /* 既定は幅いっぱい。内容に合わせたいものは w-auto を足して上書きする */
+  .field { width: 100%; }
+  /* 幅を内容に合わせたいもの（日付など）は w-auto を足す */
+  .field-sm {
+    padding: 0.375rem 0.625rem;
+    font-size: 12.5px;
+    border-radius: var(--radius-sm);
+  }
 
-/*
-  選べる面（AI WORK HUB の共通ルール）。
-  業務タイプ・優先度・部品の種類など、「並んだ中から1つ選ぶ」ところで使う。
+  /*
+    ── 選べる面 ──────────────────────────────────────────
+    「並んだ中から1つ選ぶ」ところで使う。業務タイプ・優先度・部品の種類など。
 
-  選んでいないものは地に近く、触れたときだけ1段持ち上がる。
-  選んだものは色の面で示し、内側に沈ませる。線を太くして示さない。
-  太さで示すと、並んだときに枠の太さの違いを見比べることになって読みにくい。
-*/
-.pick {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-line-soft);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
-}
-.pick:hover {
-  border-color: color-mix(in srgb, var(--color-brand) 40%, var(--color-line));
-  box-shadow: var(--shadow-lift);
-}
-.pick-on {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-brand);
-  background: var(--color-brand-soft);
-  color: var(--color-brand-ink);
-  box-shadow: var(--shadow-inset);
-}
+    選んでいないものは白い面に置き、触れたときだけ淡い青が差して1段浮く。
+    選んだものは面の色で示し、わずかに沈める。線の太さでは示さない。
+    太さで示すと、並んだときに枠を見比べることになって読みにくい。
+  */
+  .pick {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line-soft);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+  }
+  .pick:hover {
+    background: color-mix(in srgb, var(--color-brand-soft) 45%, var(--color-surface));
+    border-color: color-mix(in srgb, var(--color-brand) 22%, var(--color-line));
+    box-shadow: var(--shadow-lift);
+  }
+  .pick-on {
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--color-brand) 30%, var(--color-line));
+    background: var(--color-brand-soft);
+    color: var(--color-brand-ink);
+    box-shadow: var(--shadow-inset);
+  }
 
-/* STEPレールの縦線 */
-.rail-line::before {
-  content: "";
-  position: absolute;
-  left: 11px; top: 24px; bottom: -8px;
-  width: 2px;
-  background: var(--color-line);
+  /*
+    ── 左レーンの地 ──────────────────────────────────────
+    水に青い絵の具を落としたときのような、輪郭のない滲みを敷く。
+
+    作り方は2枚重ね。
+
+    1枚目（::before）が滲みそのもの。大きさと濃さの違う楕円のにじみを
+    重ね、まとめて強くぼかす。1つ1つの円は見えず、全体として
+    「青い光が揺れている」だけに見えるようにする。
+    濃いところでも 0.10。文字とアイコンの読みやすさが先。
+    濃い部分は項目が並ぶ上部を外し、空いている下半分に置く。
+
+    2枚目（::after）は、ごく細かいノイズ。
+    薄い青のグラデーションは 8bit では階調が足りず、そのままだと
+    同心円の縞（バンディング）が出てしまう。ノイズを 0.035 で重ねて
+    境目を散らす。紙の繊維くらいの粒で、模様としては見えない。
+
+    画像ファイルは足さない。ノイズは SVG を data URI で埋めているだけで、
+    数百バイトしかなく、拡大縮小でも粗くならない。
+
+    どちらも ::before / ::after に置き、中身は position:relative で上に重ねる。
+  */
+  /*
+    position は指定しない。左レーンは sticky で貼り付いており、
+    ここで relative を上書きすると本文と一緒に流れてしまう。
+    sticky も位置の基準になるので、::before の absolute はそのまま効く。
+  */
+  .rail-wash { background: var(--color-rail); }
+  .rail-wash::before,
+  .rail-wash::after {
+    content: "";
+    position: absolute;
+    inset: -14%;
+    pointer-events: none;
+  }
+  .rail-wash::before {
+    background:
+      /* 上端に落ちた一滴。項目に重ならないよう、端に寄せて弱く */
+      radial-gradient(48% 22% at 12% 4%,
+        rgba(45, 108, 150, 0.055), rgba(45, 108, 150, 0.022) 55%, rgba(45, 108, 150, 0) 78%),
+      /* 中ほど。いちばん広く、いちばん濃い。ここは項目が無い */
+      radial-gradient(78% 34% at 62% 46%,
+        rgba(45, 108, 150, 0.10), rgba(45, 108, 150, 0.04) 52%, rgba(45, 108, 150, 0) 76%),
+      /* そこから左下へ流れた分 */
+      radial-gradient(62% 30% at 16% 66%,
+        rgba(58, 122, 168, 0.075), rgba(58, 122, 168, 0.03) 54%, rgba(58, 122, 168, 0) 78%),
+      /* 下に沈んで溜まった分。ここが薄いと下端が急に切れて見える */
+      radial-gradient(70% 26% at 78% 88%,
+        rgba(70, 132, 176, 0.06), rgba(70, 132, 176, 0.024) 55%, rgba(70, 132, 176, 0) 78%);
+    /* 縁を溶かす。これが無いと「楕円が置いてある」と分かってしまう */
+    filter: blur(34px);
+  }
+  .rail-wash::after {
+    /* feTurbulence の粒。色は持たせず、明暗のゆらぎだけを重ねる */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.035;
+    mix-blend-mode: multiply;
+  }
+
+  /* STEPレールの縦線 */
+  .rail-line::before {
+    content: "";
+    position: absolute;
+    left: 11px; top: 24px; bottom: -8px;
+    width: 2px;
+    background: var(--color-line);
+  }
+  .rail-line.is-done::before { background: var(--color-ok); }
 }
-.rail-line.is-done::before { background: var(--color-ok); }

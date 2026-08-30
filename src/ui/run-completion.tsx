@@ -46,7 +46,7 @@ export function RunCompletion({
   return (
     <div className="flex flex-col gap-4">
       {/* 完了したこと */}
-      <Card className="border-ok/40 bg-ok-soft p-6">
+      <Card className="bg-ok-soft p-6">
         <p className="text-[11px] font-bold tracking-wide text-ok">業務完了</p>
         <h2 className="mt-1.5 text-[19px] font-bold">{runLabel(run)}</h2>
         <p className="mt-1 text-[13px] text-ink-2">{def.name}</p>
@@ -107,8 +107,8 @@ export function RunCompletion({
       {/* 次に必要な行動 */}
       <Link href={nextHref}>
         <Card className={`p-5 transition-colors ${
-          next.urgency === "overdue" ? "border-danger/40 bg-danger-soft hover:border-danger"
-          : "border-brand/30 bg-brand-soft hover:border-brand"
+          next.urgency === "overdue" ? "bg-danger-soft hover:shadow-lift"
+          : "bg-brand-soft hover:shadow-lift"
         }`}>
           <p className={`text-[11px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
             次に着手すること

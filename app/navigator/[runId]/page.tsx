@@ -340,7 +340,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                 パネルを開いているあいだは貼り付けない（Phase 12）。
                 貼り付いたままだと、待ち・中止パネルの入力欄に重なって隠す。
               */}
-              <div className={`mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-brand/30 bg-brand-soft px-5 py-4 shadow-sm ${
+              <div className={`mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-brand-soft px-5 py-4 shadow-sm ${
                 changeOpen || waitOpen || cancelOpen ? "relative" : "sticky bottom-4"
               }`}>
                 <div className="min-w-0">
@@ -413,7 +413,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
             それでも後から変更は起きるので、変更起票の入口だけは残す（仕様 §10-3）。
           */
           <aside className="w-full shrink-0 lg:w-[312px]">
-            <div className="sticky top-4 overflow-hidden rounded-xl border border-line-soft bg-surface p-4 shadow-card">
+            <div className="sticky top-4 overflow-hidden rounded-xl bg-surface p-4 shadow-card">
               <p className="text-[12px] font-bold">
                 {isCanceled ? "この業務は中止されています"
                   : isWaiting ? "この業務は待ち中です"

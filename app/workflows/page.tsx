@@ -44,7 +44,7 @@ export default function WorkflowsPage() {
                   <Card className={`h-full p-4 ${
                     run.status === "paused"
                       ? "border-line bg-surface hover:border-signal"
-                      : "border-brand/30 bg-brand-soft hover:border-brand"
+                      : "bg-brand-soft hover:shadow-lift"
                   }`}>
                     <div className="flex items-start justify-between gap-2">
                       {/* 対象を持たない業務では業務名が下の見出しと同じになる */}

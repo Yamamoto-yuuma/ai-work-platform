@@ -161,8 +161,9 @@ export function WaitRunPanel({
 
   const change = (fn: () => void) => { fn(); setErrors([]); setConfirming(false); };
 
+  // 本文の上に開くパネル。線ではなく、浮きの強さで「開いた」ことを示す
   return (
-    <Card className="mt-4 border-signal/40">
+    <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-5 py-3">
         <div>
           <h3 className="text-[14px] font-bold">この業務を待ちにする</h3>
@@ -237,13 +238,13 @@ export function WaitRunPanel({
         )}
 
         {errors.length > 0 && (
-          <ul className="flex flex-col gap-1 rounded-lg border border-danger/40 bg-danger-soft px-3.5 py-2.5">
+          <ul className="flex flex-col gap-1 rounded-lg bg-danger-soft px-3.5 py-2.5">
             {errors.map((e, i) => <li key={i} className="text-[12.5px] text-danger">・{e}</li>)}
           </ul>
         )}
 
         {confirming ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-signal/40 bg-signal-soft px-3.5 py-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-signal-soft px-3.5 py-3">
             <p className="w-full text-[12.5px] leading-relaxed text-ink">
               <strong className="font-bold">{formatJaDate(until)}</strong> まで
               「<strong className="font-bold">{waitingFor.trim()}</strong>」を待ちます。
@@ -347,7 +348,7 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
         <CatSays message={catForWaiting(run, now)} tone="soft" />
 
         {editing ? (
-          <section className="rounded-lg border border-signal/40 bg-signal-soft p-4">
+          <section className="rounded-lg bg-signal-soft p-4">
             <p className="mb-3 text-[12.5px] font-bold text-signal">まだ待つ：次回確認日を決め直します</p>
             <label className="mb-1.5 block text-[12.5px] font-medium" htmlFor="wait-for-edit">何を待っているか</label>
             <input

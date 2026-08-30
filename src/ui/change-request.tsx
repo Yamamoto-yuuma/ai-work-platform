@@ -169,7 +169,7 @@ export function ChangeRequestPanel({
   }
 
   return (
-    <Card className="mt-4 border-signal/40">
+    <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-5 py-3">
         <div>
           <h3 className="text-[14px] font-bold">業務途中の変更を起票する</h3>
@@ -305,7 +305,7 @@ export function ChangeRequestPanel({
           )}
 
           {errors.length > 0 && (
-            <ul className="flex flex-col gap-1 rounded-lg border border-danger/40 bg-danger-soft px-3.5 py-2.5">
+            <ul className="flex flex-col gap-1 rounded-lg bg-danger-soft px-3.5 py-2.5">
               {errors.map((e, i) => (
                 <li key={i} className="text-[12.5px] text-danger">・{e}</li>
               ))}
@@ -373,7 +373,7 @@ function ImpactPreview({
   return (
     <div className="flex flex-col gap-4 p-5">
       {/* 変更内容 */}
-      <section className="rounded-lg border border-brand/30 bg-brand-soft px-4 py-3">
+      <section className="rounded-lg bg-brand-soft px-4 py-3">
         <p className="text-[11px] font-bold tracking-wide text-brand">変更内容</p>
         <p className="mt-1 text-[14px] font-bold text-brand-ink">{impact.change.entityLabel}</p>
         <p className="mt-0.5 text-[13px]">
@@ -471,7 +471,7 @@ function ImpactPreview({
       )}
 
       {already > 0 && (
-        <p className="rounded-lg border border-ok/40 bg-ok-soft px-3.5 py-2.5 text-[12.5px] text-ok">
+        <p className="rounded-lg bg-ok-soft px-3.5 py-2.5 text-[12.5px] text-ok">
           この変更による派生タスク {already} 件は作成済みです。重複しては作られません。
         </p>
       )}
@@ -488,7 +488,7 @@ function ImpactPreview({
       )}
 
       {impact.cycle && (
-        <p className="rounded-lg border border-danger/40 bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+        <p className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
           依存関係に循環があります：{impact.cycle.join(" → ")}
         </p>
       )}
@@ -519,7 +519,7 @@ function AppliedSummary({
   const total =
     applied.createdTasks.length + applied.updatedDeadlines.length + (applied.runDeadline ? 1 : 0);
   return (
-    <Card className="mt-4 border-ok/40">
+    <Card className="mt-4 shadow-pop">
       <header className="border-b border-line bg-ok-soft px-5 py-3">
         <p className="text-[11px] font-bold tracking-wide text-ok">変更を確定しました</p>
         <p className="mt-0.5 text-[14px] font-bold">{applied.changeLabel}</p>

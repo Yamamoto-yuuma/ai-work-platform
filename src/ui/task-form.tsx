@@ -170,7 +170,7 @@ export function TaskForm({
       </div>
 
       {errors.length > 0 && (
-        <div className="mt-4 rounded-lg border border-danger/40 bg-danger-soft p-3.5">
+        <div className="mt-4 rounded-lg bg-danger-soft p-3.5">
           <p className="mb-1.5 text-[12.5px] font-bold text-danger">保存できません</p>
           <ul className="flex flex-col gap-0.5">
             {errors.map((e, i) => (

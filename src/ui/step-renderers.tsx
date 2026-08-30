@@ -35,8 +35,8 @@ function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
       <label
         className={`flex cursor-pointer items-start gap-3 rounded-lg px-3.5 py-3 transition-[background-color,border-color,box-shadow] duration-150 ${
           checked
-            ? "border border-ok/40 bg-ok-soft shadow-inset"
-            : ruleId ? "border border-signal/40 bg-signal-soft" : "pick"
+            ? "bg-ok-soft shadow-inset"
+            : ruleId ? "bg-signal-soft" : "pick"
         }`}
       >
         <input
@@ -259,7 +259,7 @@ function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProp
       </div>
 
       {missing.length > 0 && (
-        <div className="rounded-lg border border-danger/40 bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
+        <div className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
           <strong className="font-bold">差し込み値が不足しています。</strong>
           <span className="ml-1">{missing.join(" / ")} が未設定のため、本文に〔未設定〕と表示されています。</span>
         </div>
@@ -479,7 +479,7 @@ function ApprovalRenderer({ step, stepRun, run, onCheck }: StepRendererProps) {
   return (
     <div className="flex flex-col gap-3">
       {!selfConfirm && (
-        <div className="rounded-lg border border-signal/40 bg-signal-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-signal">
+        <div className="rounded-lg bg-signal-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-signal">
           このSTEPは、確認を依頼した相手の返事を待つ内容です。
           （確認先の目安：{String(step.config.approverRole ?? "manager")}）
           <br />
@@ -522,7 +522,7 @@ function AiAssistRenderer() {
 
 function CompleteRenderer({ run }: StepRendererProps) {
   return (
-    <div className="rounded-lg border border-ok/40 bg-ok-soft p-6 text-center">
+    <div className="rounded-lg bg-ok-soft p-6 text-center">
       <p className="text-[15px] font-bold text-ok">この業務を完了します</p>
       <p className="mt-2 text-[13px] text-ink-2">{run.subject.label} の対応内容が記録されます。</p>
     </div>
@@ -566,7 +566,7 @@ function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) 
   if (items.length === 0 && fields.length === 0) return null;
 
   return (
-    <section className="mt-5 rounded-lg border border-signal/40 bg-signal-soft p-4">
+    <section className="mt-5 rounded-lg bg-signal-soft p-4">
       <h4 className="mb-3 flex items-center gap-1.5 text-[12px] font-bold text-signal">
         <span>⚑</span>一時ルールにより追加された確認項目
       </h4>
@@ -577,7 +577,7 @@ function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) 
             <label
               key={item.key}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
-                checked ? "border-ok/40 bg-ok-soft" : "border-signal/30 bg-surface hover:bg-surface-2"
+                checked ? "bg-ok-soft" : "border-signal/30 bg-surface hover:bg-surface-2"
               }`}
             >
               <input
