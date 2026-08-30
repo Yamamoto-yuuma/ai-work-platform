@@ -14,6 +14,8 @@ import { Badge, Card, LinkButton } from "./primitives";
 import type { WorkRun, WorkflowDefinition } from "@/core/model/types";
 import type { RunView } from "@/ui/use-navigator";
 import { runLabel } from "@/core/model/run-label";
+import { catForCompletion } from "@/core/cat/message";
+import { CatSays } from "./cat";
 
 export function RunCompletion({
   run, def, view,
@@ -55,6 +57,9 @@ export function RunCompletion({
           )}
         </div>
       </Card>
+
+      {/* 案内役の一言（仕様 §29）。「全部終わった」とは言わない */}
+      <CatSays message={catForCompletion({ openTaskCount: open.length, runId: run.id })} tone="soft" />
 
       {/* この業務から残った仕事 */}
       <Card className="p-5">

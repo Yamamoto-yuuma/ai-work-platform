@@ -19,6 +19,8 @@ import {
   type DraftError, type FlowDraft, type StepDraft, type WorkflowDraft,
 } from "@/core/workflow/draft";
 import type { StartTriggerKind, TaskPriority, WorkflowNotes } from "@/core/model/types";
+import { catForRegister } from "@/core/cat/message";
+import { CatSays } from "./cat";
 
 const INPUT =
   "w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none transition-colors focus:border-brand";
@@ -599,9 +601,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   <li key={i} className="text-[12.5px] text-ink-2">・{h}</li>
                 ))}
               </ul>
-              <p className="mt-1.5 text-[11.5px] text-ink-3">
-                このまま登録して、使いながら足していけます。
-              </p>
+              <CatSays className="mt-2 border-t border-line pt-2" message={catForRegister(unset)} />
             </div>
           )}
           <Card className="p-5">

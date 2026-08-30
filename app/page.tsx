@@ -15,6 +15,8 @@ import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
 import { describeStartTrigger } from "@/core/workflow/start-trigger";
 import { runLabel, subjectOf } from "@/core/model/run-label";
+import { catForHome } from "@/core/cat/message";
+import { CatSays } from "@/ui/cat";
 import { checkStatusOf } from "@/ui/wait-run";
 import type { WorkflowDefinition } from "@/core/model/types";
 
@@ -112,6 +114,21 @@ export default function HomePage() {
           </div>
         </div>
       </Link>
+
+      {/*
+        案内役の一言（仕様 §29）。順位を決めるのは NextActionResolver で、
+        猫はその結果が「なぜ上に来ているか」を言い換えるだけ。
+        カードの外に小さく置き、最初の3秒の情報量を増やさない。
+      */}
+      <CatSays
+        className="-mt-3 mb-5 px-1"
+        message={catForHome({
+          next,
+          now,
+          proposedCount: state.tasks.filter((t) => t.confirmationState === "proposed").length,
+          dueCheckCount: waiting.filter((w) => w.dueForCheck).length,
+        })}
+      />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6">

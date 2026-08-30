@@ -19,6 +19,8 @@ import { TASK_STATUS_LABEL } from "@/core/model/task-labels";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import type { WorkRun, WorkflowDefinition } from "@/core/model/types";
 import { runLabel, subjectOf } from "@/core/model/run-label";
+import { catForWaiting } from "@/core/cat/message";
+import { CatSays } from "./cat";
 
 /** 入力欄の表示形式はブラウザ任せなので、日本語表記を必ず添える */
 function formatJaDate(value: string): string {
@@ -313,6 +315,9 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
             </div>
           )}
         </dl>
+
+        {/* 案内役の一言（仕様 §29）。再開するかどうかは言わない */}
+        <CatSays message={catForWaiting(run, now)} tone="soft" />
 
         {editing ? (
           <section className="rounded-lg border border-signal/40 bg-signal-soft p-4">

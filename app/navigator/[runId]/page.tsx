@@ -22,6 +22,8 @@ import { CancelRunPanel, CanceledRunNotice } from "@/ui/cancel-run";
 import { WaitRunPanel, WaitingRunNotice } from "@/ui/wait-run";
 import type { StepRunStatus } from "@/core/model/types";
 import { runLabel, subjectOf } from "@/core/model/run-label";
+import { catForStep } from "@/core/cat/message";
+import { CatSays } from "@/ui/cat";
 
 const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
   done: { mark: "✓", cls: "border-ok bg-ok text-white" },
@@ -374,6 +376,20 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   未完了の項目が {stepView.completion.missing.length} 件あります
                 </p>
               )}
+
+              {/*
+                案内役の一言（仕様 §29）。STEP本体の下、これまで空いていた場所に置く。
+                判断はしない。いまどうなっているかを1〜2行で言い換えるだけ。
+              */}
+              <CatSays
+                className="mt-4"
+                message={catForStep({
+                  def, run, step: stepView.step, stepRuns: view.stepRuns, scope: view.scope,
+                  missingInfo: stepView.context.missingInfo,
+                  missingToComplete: stepView.completion.missing,
+                  progress: position, now,
+                })}
+              />
             </>
           ) : (
             <Card className="p-8 text-center text-[13px] text-ink-2">着手できるSTEPがありません。</Card>
