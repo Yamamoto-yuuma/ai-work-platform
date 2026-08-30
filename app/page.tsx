@@ -106,12 +106,15 @@ export default function HomePage() {
           <p className={`text-[19px] font-bold leading-snug ${next.urgency === "overdue" ? "text-danger" : "text-brand-ink"}`}>
             {next.headline}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-[12.5px] text-ink-2">
-            <span>{next.reason}</span>
-            {next.dueAt && (
-              <span>{next.kind === "check" ? "確認予定日" : "期限"} {fmt(next.dueAt)}</span>
-            )}
-          </div>
+          {/*
+            理由は猫が1回だけ言う（仕様 §29-1）。ここに同じ文を置くと二重になる。
+            期限そのものは事実なので残す。
+          */}
+          {next.dueAt && (
+            <div className="mt-2 text-[12.5px] text-ink-2">
+              {next.kind === "check" ? "確認予定日" : "期限"} {fmt(next.dueAt)}
+            </div>
+          )}
         </div>
       </Link>
 
@@ -122,12 +125,7 @@ export default function HomePage() {
       */}
       <CatSays
         className="-mt-3 mb-5 px-1"
-        message={catForHome({
-          next,
-          now,
-          proposedCount: state.tasks.filter((t) => t.confirmationState === "proposed").length,
-          dueCheckCount: waiting.filter((w) => w.dueForCheck).length,
-        })}
+        message={catForHome({ next, now })}
       />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">

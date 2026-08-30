@@ -56,21 +56,35 @@ export function CatSays({
   message,
   tone = "plain",
   className = "",
+  showWhenSilent = false,
 }: {
   message: CatMessage | null;
   /** plain = 地の色 / soft = 淡い枠。置く場所の背景に合わせる */
   tone?: "plain" | "soft";
   className?: string;
+  /**
+   * 言うことがないときも猫だけ置く（仕様 §29-2）。
+   * 猫の居場所が決まっている画面（ナビゲーター）でだけ使う。
+   */
+  showWhenSilent?: boolean;
 }) {
   const [dismissed, setDismissed] = useState<string[]>([]);
 
   // sessionStorage は描画後に読む（サーバとクライアントで表示を揃えるため）
   useEffect(() => setDismissed(readDismissed()), []);
 
-  if (!message) return null;
-  if (dismissed.includes(message.id)) return null;
-  const lines = message.lines.filter((l) => l.trim().length > 0);
-  if (lines.length === 0) return null;
+  const lines = message ? message.lines.filter((l) => l.trim().length > 0) : [];
+  const silent = !message || dismissed.includes(message.id) || lines.length === 0;
+
+  // 黙っているときは猫だけ。吹き出しも閉じるボタンも出さない
+  if (silent) {
+    if (!showWhenSilent) return null;
+    return (
+      <div className={`flex items-center ${className}`}>
+        <CatAvatar />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -87,7 +101,7 @@ export function CatSays({
       <button
         type="button"
         aria-label="この案内を閉じる"
-        onClick={() => { remember(message.id); setDismissed((d) => [...d, message.id]); }}
+        onClick={() => { remember(message!.id); setDismissed((d) => [...d, message!.id]); }}
         className="shrink-0 rounded px-1.5 text-[13px] leading-none text-ink-3 hover:bg-surface-2 hover:text-ink-2"
       >
         ×

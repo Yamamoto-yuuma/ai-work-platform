@@ -194,46 +194,43 @@ export function ContextPanel({
         )}
 
         {/*
-          業務途中の変更の入口（仕様 §10-3）。
-          「このSTEPの情報」ではなく操作なので、情報セクションとは分けて置く。
+          業務の途中で取れる操作。「このSTEPの情報」ではないので情報セクションと分ける。
+          説明文は畳み、ボタンだけを1行に並べる。スクロールなしで見えることを優先する。
         */}
         {(onRequestChange || onWaitRun || onCancelRun) && (
-          <div className="border-t border-line bg-surface-2 px-4 py-3.5">
-            {onRequestChange && (
-              <>
-                <p className="text-[12px] font-bold">業務に変更があった？</p>
-                <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
-                  期限や条件などが変わった場合、この業務から変更を起票して影響を確認できます。
-                </p>
-                <Button variant="secondary" size="sm" onClick={onRequestChange}>変更を起票</Button>
-                {historyHref && historyCount ? (
-                  <Link
-                    href={historyHref}
-                    className="mt-2 block text-[11.5px] text-brand hover:underline"
-                  >
-                    この業務の変更履歴（{historyCount}件）→
-                  </Link>
-                ) : null}
-              </>
-            )}
-            {onWaitRun && (
-              <div className={onRequestChange ? "mt-4 border-t border-line pt-3.5" : undefined}>
-                <p className="text-[12px] font-bold">今は進められない？</p>
-                <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
-                  返事や外部の処理を待つ場合は、次に確認する日を決めて一旦止められます。
-                </p>
-                <Button variant="secondary" size="sm" onClick={onWaitRun}>待ちにする</Button>
-              </div>
-            )}
-            {onCancelRun && (
-              <div className={onRequestChange || onWaitRun ? "mt-4 border-t border-line pt-3.5" : undefined}>
-                <p className="text-[12px] font-bold">この業務をやめる？</p>
-                <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
-                  完了ではなく、途中でやめた記録として残します。
-                </p>
-                <Button variant="ghost" size="sm" onClick={onCancelRun}>この業務を中止</Button>
-              </div>
-            )}
+          <div className="border-t border-line bg-surface-2 px-4 py-3">
+            <p className="mb-2 text-[11px] font-bold tracking-wide text-ink-3">この業務に対して</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {onRequestChange && (
+                <Button
+                  variant="secondary" size="sm" onClick={onRequestChange}
+                  title="期限や条件が変わった場合に起票して、影響を確認できます"
+                >
+                  変更を起票
+                </Button>
+              )}
+              {onWaitRun && (
+                <Button
+                  variant="secondary" size="sm" onClick={onWaitRun}
+                  title="返事や外部の処理を待つ場合、次に確認する日を決めて一旦止められます"
+                >
+                  待ちにする
+                </Button>
+              )}
+              {onCancelRun && (
+                <Button
+                  variant="ghost" size="sm" onClick={onCancelRun}
+                  title="完了ではなく、途中でやめた記録として残します"
+                >
+                  中止
+                </Button>
+              )}
+            </div>
+            {historyHref && historyCount ? (
+              <Link href={historyHref} className="mt-2 block text-[11.5px] text-brand hover:underline">
+                変更履歴（{historyCount}件）→
+              </Link>
+            ) : null}
           </div>
         )}
       </div>

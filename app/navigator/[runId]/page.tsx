@@ -371,23 +371,21 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   )}
                 </div>
               </div>
-              {!stepView.completion.canComplete && (
-                <p className="mt-2 text-right text-[12px] text-ink-3">
-                  未完了の項目が {stepView.completion.missing.length} 件あります
-                </p>
-              )}
-
+              {/*
+                足りない項目の件数はここに書かない。猫が1回だけ言う（仕様 §29-1）。
+                何が足りないかは、上のSTEP本体の未チェック項目そのものが示している。
+              */}
               {/*
                 案内役の一言（仕様 §29）。STEP本体の下、これまで空いていた場所に置く。
                 判断はしない。いまどうなっているかを1〜2行で言い換えるだけ。
               */}
               <CatSays
                 className="mt-4"
+                showWhenSilent
                 message={catForStep({
                   def, run, step: stepView.step, stepRuns: view.stepRuns, scope: view.scope,
-                  missingInfo: stepView.context.missingInfo,
                   missingToComplete: stepView.completion.missing,
-                  progress: position, now,
+                  now,
                 })}
               />
             </>

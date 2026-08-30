@@ -13,7 +13,9 @@ import { useStore } from "@/adapters/memory/store";
 import { useNow } from "@/ui/use-navigator";
 import { PageHeader } from "@/ui/primitives";
 import { WorkflowWizard } from "@/ui/workflow-wizard";
-import { compileWorkflow, draftFromWorkflow, emptyWorkflowDraft, type WorkflowDraft } from "@/core/workflow/draft";
+import { compileWorkflow, describeUnset, draftFromWorkflow, emptyWorkflowDraft, type WorkflowDraft } from "@/core/workflow/draft";
+import { catForRegistered } from "@/core/cat/message";
+import { CatSays } from "@/ui/cat";
 import { latestOf, makeWorkflowKey } from "@/core/workflow/registry";
 
 function NewWorkflowInner() {
@@ -32,7 +34,7 @@ function NewWorkflowInner() {
     return { ...d, key: "", name: `${source.name}のコピー` };
   }, [source]);
 
-  const [saved, setSaved] = useState<{ key: string; name: string } | null>(null);
+  const [saved, setSaved] = useState<{ key: string; name: string; unsetCount: number } | null>(null);
 
   function save(draft: WorkflowDraft) {
     const key = makeWorkflowKey(workflows, draft.name);
@@ -42,7 +44,7 @@ function NewWorkflowInner() {
       ...(draft.flowLocked && source ? { variables: source.variables } : {}),
     });
     dispatch({ type: "saveWorkflow", workflow });
-    setSaved({ key, name: workflow.name });
+    setSaved({ key, name: workflow.name, unsetCount: describeUnset(draft).length });
   }
 
   if (saved) {
@@ -54,6 +56,11 @@ function NewWorkflowInner() {
           <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
             この業務は「業務」一覧に並びました。開始すると、HOME・タスク・マップにも現れます。
           </p>
+          {/* 登録した直後だけ。未設定があるなら、後から足せることを伝える */}
+          <CatSays
+            className="mt-4 justify-center text-left"
+            message={catForRegistered({ key: saved.key, unsetCount: saved.unsetCount })}
+          />
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link
               href={`/workflows/${saved.key}`}

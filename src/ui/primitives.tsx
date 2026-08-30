@@ -37,10 +37,13 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
 
 export function Button({
   children, onClick, variant = "primary", size = "md", disabled, type = "button", className = "",
+  title,
 }: {
   children: ReactNode; onClick?: () => void;
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg"; disabled?: boolean; type?: "button" | "submit"; className?: string;
+  /** 説明を常時表示しないときの補足。ボタン中心のUIで使う */
+  title?: string;
 }) {
   const variants = {
     primary: "bg-brand text-white hover:bg-brand-ink border-brand",
@@ -51,7 +54,7 @@ export function Button({
   const sizes = { sm: "px-2.5 py-1 text-xs", md: "px-3.5 py-2 text-[13px]", lg: "px-5 py-2.5 text-sm" };
   return (
     <button
-      type={type} onClick={onClick} disabled={disabled}
+      type={type} onClick={onClick} disabled={disabled} title={title}
       className={`inline-flex items-center justify-center gap-1.5 rounded-lg border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${variants[variant]} ${sizes[size]} ${className}`}
     >
       {children}
