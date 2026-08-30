@@ -1,9 +1,41 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+/**
+ * AI WORK HUB の共通部品。
+ *
+ * 画面ごとに装飾を書かず、まとまり・押せるもの・状態の見せ方はここに集める。
+ * 考え方は次の3つだけ。
+ *
+ * 1. 枠線で囲うより、地との明度差とごく薄い影でまとまりを作る。
+ *    枠線を並べると画面が網目に見えて、長く見ていると疲れる。
+ * 2. 影は1段だけ。触れたときに1段持ち上げ、それ以上は重ねない。
+ * 3. 選択中は色の面で示す。線を太くして示さない。
+ *
+ * 影・角丸の実際の値は globals.css のトークンにある。
+ */
+
+export function Card({
+  children, className = "", interactive = false, tone = "plain",
+}: {
+  children: ReactNode;
+  className?: string;
+  /** 押せるカード。触れたときに1段持ち上げる */
+  interactive?: boolean;
+  /** 面の役割。plain=通常 / sunken=一段沈めた補助面 */
+  tone?: "plain" | "sunken";
+}) {
+  const base = tone === "sunken"
+    ? "border-line-soft bg-surface-2"
+    : "border-line-soft bg-surface shadow-card";
   return (
-    <div className={`rounded-xl border border-line bg-surface ${className}`}>{children}</div>
+    <div
+      className={`rounded-xl border ${base} ${
+        interactive ? "transition-shadow duration-150 hover:shadow-lift" : ""
+      } ${className}`}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -20,11 +52,11 @@ type Tone = "neutral" | "brand" | "signal" | "danger" | "ok" | "ai";
 
 const TONE: Record<Tone, string> = {
   neutral: "bg-surface-2 text-ink-2 border-line",
-  brand: "bg-brand-soft text-brand-ink border-brand/30",
-  signal: "bg-signal-soft text-signal border-signal/30",
-  danger: "bg-danger-soft text-danger border-danger/30",
-  ok: "bg-ok-soft text-ok border-ok/30",
-  ai: "bg-ai-soft text-ai border-ai/30",
+  brand: "bg-brand-soft text-brand-ink border-brand/25",
+  signal: "bg-signal-soft text-signal border-signal/25",
+  danger: "bg-danger-soft text-danger border-danger/25",
+  ok: "bg-ok-soft text-ok border-ok/25",
+  ai: "bg-ai-soft text-ai border-ai/25",
 };
 
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
@@ -35,27 +67,45 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
   );
 }
 
+/*
+  ボタン。
+  主操作だけを面で塗り、それ以外は地に近づけて静かにする。
+  押せることは、触れたときの持ち上がりと、押した瞬間の沈み込みで示す。
+*/
+const BTN_BASE =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg border font-medium " +
+  "transition-[background-color,border-color,box-shadow,transform] duration-150 " +
+  "active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45 " +
+  "disabled:shadow-none disabled:active:translate-y-0 " +
+  "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25";
+
+const BTN_VARIANTS = {
+  primary: "border-brand bg-brand text-white shadow-card hover:bg-brand-ink hover:shadow-lift",
+  secondary: "border-line bg-surface text-ink shadow-card hover:border-brand/40 hover:bg-surface-2 hover:shadow-lift",
+  ghost: "border-transparent bg-transparent text-ink-2 hover:bg-surface-2 hover:text-ink",
+  danger: "border-danger/35 bg-surface text-danger shadow-card hover:border-danger/60 hover:bg-danger-soft hover:shadow-lift",
+} as const;
+
+const BTN_SIZES = {
+  sm: "px-2.5 py-1 text-xs",
+  md: "px-3.5 py-2 text-[13px]",
+  lg: "px-5 py-2.5 text-sm",
+} as const;
+
 export function Button({
   children, onClick, variant = "primary", size = "md", disabled, type = "button", className = "",
   title,
 }: {
   children: ReactNode; onClick?: () => void;
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg"; disabled?: boolean; type?: "button" | "submit"; className?: string;
+  variant?: keyof typeof BTN_VARIANTS;
+  size?: keyof typeof BTN_SIZES; disabled?: boolean; type?: "button" | "submit"; className?: string;
   /** 説明を常時表示しないときの補足。ボタン中心のUIで使う */
   title?: string;
 }) {
-  const variants = {
-    primary: "bg-brand text-white hover:bg-brand-ink border-brand",
-    secondary: "bg-surface text-ink hover:bg-surface-2 border-line",
-    ghost: "bg-transparent text-ink-2 hover:bg-surface-2 border-transparent",
-    danger: "bg-surface text-danger hover:bg-danger-soft border-danger/40",
-  };
-  const sizes = { sm: "px-2.5 py-1 text-xs", md: "px-3.5 py-2 text-[13px]", lg: "px-5 py-2.5 text-sm" };
   return (
     <button
       type={type} onClick={onClick} disabled={disabled} title={title}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${BTN_BASE} ${BTN_VARIANTS[variant]} ${BTN_SIZES[size]} ${className}`}
     >
       {children}
     </button>
@@ -64,22 +114,28 @@ export function Button({
 
 export function LinkButton({
   children, href, variant = "primary", size = "md",
-}: { children: ReactNode; href: string; variant?: "primary" | "secondary" | "ghost"; size?: "sm" | "md" | "lg" }) {
-  const variants = {
-    primary: "bg-brand text-white hover:bg-brand-ink border-brand",
-    secondary: "bg-surface text-ink hover:bg-surface-2 border-line",
-    ghost: "bg-transparent text-ink-2 hover:bg-surface-2 border-transparent",
-  };
-  const sizes = { sm: "px-2.5 py-1 text-xs", md: "px-3.5 py-2 text-[13px]", lg: "px-5 py-2.5 text-sm" };
+}: {
+  children: ReactNode; href: string;
+  variant?: "primary" | "secondary" | "ghost"; size?: keyof typeof BTN_SIZES;
+}) {
   return (
-    <Link href={href} className={`inline-flex items-center justify-center gap-1.5 rounded-lg border font-medium transition-colors ${variants[variant]} ${sizes[size]}`}>
+    <Link href={href} className={`${BTN_BASE} ${BTN_VARIANTS[variant]} ${BTN_SIZES[size]}`}>
       {children}
     </Link>
   );
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg border border-dashed border-line px-4 py-6 text-center text-[13px] text-ink-3">{children}</p>;
+/**
+ * まだ何も無いときの表示。
+ * 「無い」ことだけでなく、次に何をすればよいかまで置けるようにする。
+ */
+export function Empty({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-line-soft bg-surface-2 px-6 py-9 text-center">
+      <p className="text-[13px] leading-relaxed text-ink-2">{children}</p>
+      {action && <div className="mt-3.5 flex flex-wrap justify-center gap-2">{action}</div>}
+    </div>
+  );
 }
 
 export function PageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {

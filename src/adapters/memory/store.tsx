@@ -17,8 +17,11 @@ import type { IntegrationStatus } from "@/ports";
 import { mergeWorkflows } from "@/core/workflow/registry";
 import { workflows as seedWorkflows } from "../../../seed/workflows";
 import { businessRules, derivationRules } from "../../../seed/rules";
-import { users, customers, companies, knowledge, emailTemplates } from "../../../seed/master";
-import { runs as seedRuns, stepRunsByRun as seedStepRuns, tasks as seedTasks, changeEvents as seedChanges } from "../../../seed/runs";
+import { users, customers, companies, emailTemplates, knowledge as sampleKnowledge } from "../../../seed/master";
+import {
+  runs as sampleRuns, stepRunsByRun as sampleStepRuns,
+  tasks as sampleTasks, changeEvents as sampleChanges,
+} from "../../../seed/runs";
 
 const STORAGE_KEY = "ai-work-platform:v1";
 
@@ -33,10 +36,19 @@ export interface AppState {
   runs: WorkRun[];
   stepRunsByRun: Record<string, StepRun[]>;
   tasks: Task[];
+  /**
+   * 登録済みのナレッジ。
+   * 以前はシードから直接読んでいたが、それだと「まだ何も登録していないのに
+   * 設定済みに見える」うえ、ユーザーが自分で足す土台にもならない。
+   * 状態として持つことで、空から始めて育てられるようにする。
+   */
+  knowledge: KnowledgeItem[];
   changeEvents: ChangeEvent[];
   workEvents: WorkEvent[];
   businessRules: BusinessRule[];
   currentUserId: string;
+  /** サンプルデータを読み込んでいるか。初期状態は空で始める */
+  sampleLoaded: boolean;
   /** デモ用の業務日。null なら実時刻。一時ルールの期間判定に使う */
   simulatedDate: string | null;
 }
@@ -50,6 +62,11 @@ export type Action =
   | { type: "confirmTasks"; taskIds: string[] }
   | { type: "rejectTasks"; taskIds: string[] }
   | { type: "updateTask"; taskId: string; patch: Partial<Task> }
+  /**
+   * タスクを消す（存在自体が不要だと判断したもの）。
+   * 「完了」とは別。完了は済んだ記録として残り、削除は記録ごと消える。
+   */
+  | { type: "deleteTask"; taskId: string }
   /** 業務実行の更新。変更起票（B-6）で期限を書き換えるためだけに使う */
   | { type: "updateRun"; runId: string; patch: Pick<WorkRun, "dueAt"> }
   /** 業務の中止（仕様 §6-4）。完了とは別の終わり方 */
@@ -67,20 +84,82 @@ export type Action =
   | { type: "addRule"; rule: BusinessRule }
   | { type: "setUser"; userId: string }
   | { type: "setSimulatedDate"; date: string | null }
+  /** 動きを見るためのサンプルデータを入れる／片付ける */
+  | { type: "loadSample" }
+  | { type: "clearSample" }
   | { type: "reset" }
   | { type: "hydrate"; state: AppState };
 
+/**
+ * 何も入っていない状態。ここが既定。
+ *
+ * 以前はサンプルの業務・タスク・ナレッジがそのまま入っていたので、
+ * 使い始めた時点で身に覚えのないものが並び、自分のものと見分けがつかなかった。
+ * 空から始めて、必要なら設定でサンプルを入れられるようにする。
+ *
+ * 業務フロー定義とルールはここには含めない。手順の型そのものなので、
+ * 消すと何も始められなくなる。不要なものは業務一覧から停止できる。
+ */
 function initialState(): AppState {
   return {
     userWorkflows: [],
-    runs: seedRuns,
-    stepRunsByRun: seedStepRuns,
-    tasks: seedTasks,
-    changeEvents: seedChanges,
+    runs: [],
+    stepRunsByRun: {},
+    tasks: [],
+    knowledge: [],
+    changeEvents: [],
     workEvents: [],
     businessRules,
     currentUserId: "user-me",
+    sampleLoaded: false,
     simulatedDate: null,
+  };
+}
+
+/** 動きを見るためのサンプル一式。自分で作ったものには触らない */
+function withSample(state: AppState): AppState {
+  const taken = new Set(state.tasks.map((t) => t.id));
+  const known = new Set(state.knowledge.map((k) => k.id));
+  return {
+    ...state,
+    runs: [...state.runs, ...sampleRuns.filter((r) => !state.runs.some((x) => x.id === r.id))],
+    stepRunsByRun: { ...sampleStepRuns, ...state.stepRunsByRun },
+    tasks: [...state.tasks, ...sampleTasks.filter((t) => !taken.has(t.id))],
+    knowledge: [...state.knowledge, ...sampleKnowledge.filter((k) => !known.has(k.id))],
+    changeEvents: [...state.changeEvents, ...sampleChanges.filter((c) => !state.changeEvents.some((x) => x.id === c.id))],
+    sampleLoaded: true,
+  };
+}
+
+/**
+ * いま画面にサンプルが混ざっているか。
+ * 旧いバージョンで保存された状態にはフラグが無いので、実データで判定する。
+ */
+export function hasSampleData(state: AppState): boolean {
+  return (
+    state.runs.some((r) => sampleRuns.some((x) => x.id === r.id)) ||
+    state.tasks.some((t) => sampleTasks.some((x) => x.id === t.id)) ||
+    state.knowledge.some((k) => sampleKnowledge.some((x) => x.id === k.id))
+  );
+}
+
+/** サンプルだけを片付ける。自分で作ったものは残す */
+function withoutSample(state: AppState): AppState {
+  const runIds = new Set(sampleRuns.map((r) => r.id));
+  const stepRuns = { ...state.stepRunsByRun };
+  for (const id of runIds) delete stepRuns[id];
+  return {
+    ...state,
+    runs: state.runs.filter((r) => !runIds.has(r.id)),
+    stepRunsByRun: stepRuns,
+    // サンプルの業務から生まれたタスクも一緒に片付ける
+    tasks: state.tasks.filter(
+      (t) => !sampleTasks.some((s) => s.id === t.id) && !(t.runId && runIds.has(t.runId)),
+    ),
+    knowledge: state.knowledge.filter((k) => !sampleKnowledge.some((s) => s.id === k.id)),
+    changeEvents: state.changeEvents.filter((c) => !sampleChanges.some((s) => s.id === c.id)),
+    workEvents: state.workEvents.filter((e) => !e.runId || !runIds.has(e.runId)),
+    sampleLoaded: false,
   };
 }
 
@@ -237,6 +316,16 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         tasks: state.tasks.map((t) => (t.id === action.taskId ? { ...t, ...action.patch } : t)),
       };
+
+    case "deleteTask":
+      // 消えるのはタスクだけ。業務の進捗も、そのタスクを作ったSTEPの記録も動かさない
+      return { ...state, tasks: state.tasks.filter((t) => t.id !== action.taskId) };
+
+    case "loadSample":
+      return withSample(state);
+
+    case "clearSample":
+      return withoutSample(state);
 
     case "updateRun": {
       const target = state.runs.find((r) => r.id === action.runId);
@@ -433,7 +522,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<StoreValue>(() => ({
     state, dispatch, workflows, derivationRules,
-    knowledge, customers, companies, users, emailTemplates, integrations,
+    knowledge: state.knowledge, customers, companies, users, emailTemplates, integrations,
     currentUser: users.find((u) => u.id === state.currentUserId) ?? users[0],
   }), [state, workflows]);
 

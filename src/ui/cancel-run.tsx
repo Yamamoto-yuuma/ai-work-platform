@@ -80,7 +80,7 @@ export function CancelRunPanel({
                 <li key={t.id}>
                   <Link
                     href={`/tasks/${t.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-[12.5px] hover:border-brand"
+                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px] hover:border-brand"
                   >
                     <span className="min-w-0 flex-1 truncate">{t.title}</span>
                     <Badge tone="neutral">{TASK_STATUS_LABEL[effectiveStatus(t, state.tasks)]}</Badge>
@@ -99,7 +99,7 @@ export function CancelRunPanel({
             id="cancel-reason" rows={2} value={reason}
             onChange={(e) => { setReason(e.target.value); setError(null); setConfirming(false); }}
             placeholder="例：顧客が検討を取り下げたため／別部署へ引き継いだため"
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+            className="field"
           />
           {error && <p className="mt-1.5 text-[12.5px] text-danger">{error}</p>}
         </div>
@@ -174,7 +174,7 @@ export function CanceledRunNotice({ run }: { run: WorkRun }) {
                 <li key={t.id}>
                   <Link
                     href={`/tasks/${t.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-[12.5px] hover:border-brand hover:bg-brand-soft"
+                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px] hover:border-brand hover:bg-brand-soft"
                   >
                     <span className="min-w-0 flex-1 truncate">{t.title}</span>
                     <Badge tone="neutral">{TASK_STATUS_LABEL[effectiveStatus(t, state.tasks)]}</Badge>

@@ -17,6 +17,30 @@
   --color-line-soft: #e4ebf4;
   /* 左レーンの地。本文より一段沈ませて、作業領域との境をはっきりさせる */
   --color-rail: #edf2f9;
+
+  /*
+    影（AI WORK HUB の共通ルール）。
+    線で囲むかわりに、地との明度差とごく薄い影でまとまりを作る。
+    枠線だけで区切ると、数が増えたときに画面が網目に見えて疲れる。
+    色は黒ではなく地の青を濃くしたもの。灰色の影は面が濁って安っぽくなる。
+
+    card  … 通常のカード。触れていない状態
+    lift  … 押せるものに触れたとき。1段だけ持ち上げる
+    pop   … メニューなど、本文の上に重なるもの
+  */
+  --shadow-card: 0 1px 2px rgba(29, 55, 82, 0.05), 0 1px 3px rgba(29, 55, 82, 0.04);
+  --shadow-lift: 0 2px 4px rgba(29, 55, 82, 0.07), 0 4px 10px rgba(29, 55, 82, 0.06);
+  --shadow-pop: 0 4px 8px rgba(29, 55, 82, 0.08), 0 12px 28px rgba(29, 55, 82, 0.10);
+  /* 押し込まれているもの（選択中のタブなど）を面の内側に見せる */
+  --shadow-inset: inset 0 1px 2px rgba(29, 55, 82, 0.07);
+
+  /*
+    角丸。3段階だけ。極端に丸くしない。
+    sm=入力欄やバッジ / md=ボタン・小さな箱 / lg=カード
+  */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --color-brand: #1d5a78;
   --color-brand-soft: #dcecf4;
   --color-brand-ink: #10405a;
@@ -49,6 +73,61 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; }
+
+/*
+  入力欄の共通見た目（AI WORK HUB の共通ルール）。
+  同じ指定を画面ごとに書かない。枠線は地に沈む薄さにして、
+  触れたとき・入れているときだけはっきりさせる。
+*/
+.field {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-ink);
+  outline: none;
+  box-shadow: var(--shadow-inset);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.field:hover { border-color: color-mix(in srgb, var(--color-brand) 35%, var(--color-line)); }
+.field:focus {
+  border-color: var(--color-brand);
+  /* 枠の外に淡い輪を出す。線を太くするより静か */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 14%, transparent);
+}
+.field::placeholder { color: var(--color-ink-3); }
+/* 幅を内容に合わせたいもの（日付など）は個別に w-auto を足す */
+.field-sm { padding: 0.375rem 0.625rem; font-size: 12.5px; border-radius: var(--radius-sm); }
+
+/*
+  選べる面（AI WORK HUB の共通ルール）。
+  業務タイプ・優先度・部品の種類など、「並んだ中から1つ選ぶ」ところで使う。
+
+  選んでいないものは地に近く、触れたときだけ1段持ち上がる。
+  選んだものは色の面で示し、内側に沈ませる。線を太くして示さない。
+  太さで示すと、並んだときに枠の太さの違いを見比べることになって読みにくい。
+*/
+.pick {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line-soft);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.pick:hover {
+  border-color: color-mix(in srgb, var(--color-brand) 40%, var(--color-line));
+  box-shadow: var(--shadow-lift);
+}
+.pick-on {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-ink);
+  box-shadow: var(--shadow-inset);
+}
 
 /* STEPレールの縦線 */
 .rail-line::before {

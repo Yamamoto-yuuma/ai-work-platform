@@ -21,9 +21,9 @@ import {
 import type { StartTriggerKind, TaskPriority, WorkflowNotes } from "@/core/model/types";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none transition-colors focus:border-brand";
+  "field";
 const SMALL_INPUT =
-  "rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] outline-none focus:border-brand";
+  "field field-sm w-auto";
 
 /**
  * 名前が未入力のものの呼び名（Phase 12 / P2-1）。
@@ -200,12 +200,16 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
               <button
                 type="button"
                 onClick={() => go(s.n as 1 | 2 | 3 | 4 | 5)}
-                className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                /*
+                  いま居る段は面で示し、通った段は押せる面、まだの段は地に沈める。
+                  3つの状態が色の濃さの順に並ぶので、どこまで来たかが一目で分かる。
+                */
+                className={`w-full px-3 py-2 text-left ${
                   state === "current"
-                    ? "border-brand bg-brand-soft"
+                    ? "pick-on"
                     : state === "done"
-                      ? "border-line bg-surface hover:border-brand"
-                      : "border-line-soft bg-surface-2"
+                      ? "pick"
+                      : "rounded-lg border border-line-soft bg-surface-2 text-ink-3"
                 }`}
               >
                 <p className={`text-[11px] tabular-nums ${state === "todo" ? "text-ink-3" : "text-brand"}`}>
@@ -266,7 +270,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   key={k.value} type="button"
                   onClick={() => patch({ workKind: k.value })}
                   className={`rounded-lg border px-3.5 py-2.5 text-left transition-colors ${
-                    draft.workKind === k.value ? "border-brand bg-brand-soft" : "border-line bg-surface hover:border-brand"
+                    draft.workKind === k.value ? "pick-on" : "pick"
                   }`}
                 >
                   <p className="text-[13px] font-bold">{k.label}</p>
@@ -433,7 +437,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     key={p.value} type="button"
                     onClick={() => patch({ defaultPriority: p.value as TaskPriority })}
                     className={`rounded-lg border px-3 py-1.5 text-[12.5px] transition-colors ${
-                      draft.defaultPriority === p.value ? "border-brand bg-brand-soft font-bold" : "border-line bg-surface hover:border-brand"
+                      draft.defaultPriority === p.value ? "pick-on font-bold" : "pick"
                     }`}
                   >
                     {p.label}
@@ -459,7 +463,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   key={c.kind} type="button"
                   onClick={() => patch({ startTrigger: { ...draft.startTrigger, kind: c.kind } })}
                   className={`rounded-lg border px-3.5 py-2 text-left transition-colors ${
-                    draft.startTrigger.kind === c.kind ? "border-brand bg-brand-soft" : "border-line bg-surface hover:border-brand"
+                    draft.startTrigger.kind === c.kind ? "pick-on" : "pick"
                   }`}
                 >
                   <p className="text-[12.5px] font-bold">{c.label}</p>
@@ -493,7 +497,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                           },
                         })}
                         className={`h-9 w-9 rounded-lg border text-[12.5px] font-medium transition-colors ${
-                          on ? "border-brand bg-brand text-white" : "border-line bg-surface hover:border-brand"
+                          on ? "border-brand bg-brand text-white" : "pick"
                         }`}
                       >
                         {w}
@@ -669,7 +673,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                 const f = draft.flow[s.key] ?? { kind: "next" as const };
                 const spec = getComponentSpec(s.componentType);
                 return (
-                  <li key={s.key} className="rounded-lg border border-line bg-surface px-3.5 py-2">
+                  <li key={s.key} className="rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="tabular-nums text-[11px] text-ink-3">{i + 1}</span>
                       <span className="text-[13px] font-medium">{s.title || "（名称未設定）"}</span>
@@ -800,7 +804,7 @@ function StepDetailEditor({
                 key={c.type} type="button"
                 onClick={() => onChange({ componentType: c.type })}
                 className={`rounded-lg border px-3 py-2 text-left transition-colors ${
-                  step.componentType === c.type ? "border-brand bg-brand-soft" : "border-line bg-surface hover:border-brand"
+                  step.componentType === c.type ? "pick-on" : "pick"
                 }`}
               >
                 <p className="text-[12.5px] font-bold">{getComponentSpec(c.type).icon} {c.label}</p>
@@ -1171,7 +1175,7 @@ function FlowEditor({
                         : [...flow.toStepKeys, s.key],
                     })}
                     className={`rounded-lg border px-2.5 py-1 text-[12px] transition-colors ${
-                      on ? "border-brand bg-brand-soft font-medium" : "border-line bg-surface hover:border-brand"
+                      on ? "pick-on font-medium" : "pick"
                     }`}
                   >
                     {nameOf(s.title)}

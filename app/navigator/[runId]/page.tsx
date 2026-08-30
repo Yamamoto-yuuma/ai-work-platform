@@ -413,7 +413,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
             それでも後から変更は起きるので、変更起票の入口だけは残す（仕様 §10-3）。
           */
           <aside className="w-full shrink-0 lg:w-[312px]">
-            <div className="sticky top-4 overflow-hidden rounded-xl border border-line bg-surface p-4">
+            <div className="sticky top-4 overflow-hidden rounded-xl border border-line-soft bg-surface p-4 shadow-card">
               <p className="text-[12px] font-bold">
                 {isCanceled ? "この業務は中止されています"
                   : isWaiting ? "この業務は待ち中です"

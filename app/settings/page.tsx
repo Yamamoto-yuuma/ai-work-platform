@@ -3,7 +3,7 @@
 /** 設定（仕様 §12画面 / §23 権限 / §22 外部連携）。管理系画面へのハブも兼ねる */
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useStore, clearStorage } from "@/adapters/memory/store";
+import { useStore, clearStorage, hasSampleData } from "@/adapters/memory/store";
 import { allComponentSpecs } from "@/components-registry/registry";
 import { isRuleActive } from "@/core/rules/resolver";
 import { Badge, Button, Card, PageHeader } from "@/ui/primitives";
@@ -24,6 +24,7 @@ const PERMISSIONS = [
 export default function SettingsPage() {
   const { state, dispatch, users, integrations, currentUser } = useStore();
   const router = useRouter();
+  const sampleShown = hasSampleData(state);
 
   return (
     <div className="mx-auto max-w-[960px] px-6 py-6">
@@ -56,7 +57,7 @@ export default function SettingsPage() {
                 className={`rounded-lg border px-3.5 py-2.5 text-left transition-colors ${
                   (state.simulatedDate ?? null) === o.date
                     ? "border-brand bg-brand-soft"
-                    : "border-line bg-surface hover:bg-surface-2"
+                    : "pick"
                 }`}
               >
                 <span className="block text-[13px] font-medium">{o.label}</span>
@@ -188,25 +189,54 @@ export default function SettingsPage() {
         </Card>
       </section>
 
+      {/*
+        サンプルデータ。
+        既定では何も入っていない。動きを見たいときだけ入れて、
+        使い始めるときに片付けられるようにする。
+      */}
+      <section id="sample" className="mb-7 scroll-mt-6">
+        <h2 className="mb-3 text-[13px] font-bold">サンプルデータ</h2>
+        <Card className="p-4">
+          <p className="text-[12.5px] leading-relaxed text-ink-2">
+            動きを確かめるための業務・タスク・ナレッジの一式です。
+            初期状態では入っていません。片付けても、自分で登録したものは残ります。
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {sampleShown ? (
+              <Button variant="secondary" onClick={() => dispatch({ type: "clearSample" })}>
+                サンプルデータを片付ける
+              </Button>
+            ) : (
+              <Button variant="secondary" onClick={() => dispatch({ type: "loadSample" })}>
+                サンプルデータを読み込む
+              </Button>
+            )}
+            <span className="text-[11.5px] text-ink-3">
+              {sampleShown ? "いまサンプルが入っています" : "いまは自分のデータだけです"}
+            </span>
+          </div>
+        </Card>
+      </section>
+
       {/* データ */}
       <section>
         <h2 className="mb-3 text-[13px] font-bold">データ</h2>
         <Card className="p-4">
-          <p className="text-[12px] text-ink-2">
-            Phase 1 のデータはブラウザの localStorage に保存されています。
-            業務を進めた状態をリセットして、シードデータの初期状態に戻せます。
+          <p className="text-[12.5px] leading-relaxed text-ink-2">
+            データはこのブラウザの中だけに保存されています。
+            初期化すると、登録した業務・進行中の業務・タスク・ナレッジがすべて消えます。元に戻せません。
           </p>
           <div className="mt-3">
             <Button
               variant="danger"
               onClick={() => {
-                if (!window.confirm("進行中の業務・タスクの変更をすべて破棄し、初期状態に戻します。よろしいですか？")) return;
+                if (!window.confirm("登録したものを含め、すべてのデータを消して空の状態に戻します。元に戻せません。よろしいですか？")) return;
                 clearStorage();
                 dispatch({ type: "reset" });
                 router.push("/");
               }}
             >
-              デモデータを初期状態に戻す
+              すべてのデータを消す
             </Button>
           </div>
         </Card>

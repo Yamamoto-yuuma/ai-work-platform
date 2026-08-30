@@ -192,7 +192,7 @@ export function WaitRunPanel({
             id="wait-for" type="text" value={waitingFor}
             onChange={(e) => change(() => setWaitingFor(e.target.value))}
             placeholder="例：先方からの回答"
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+            className="field"
           />
           <p className="mt-1.5 text-[11.5px] text-ink-3">
             例：顧客からの回答／見積システムの処理／上長への確認の返事／自分で後日あらためて確認
@@ -206,7 +206,7 @@ export function WaitRunPanel({
           <input
             id="wait-until" type="date" value={until}
             onChange={(e) => change(() => setUntil(e.target.value))}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+            className="field w-auto"
           />
           {until && <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(until)}</p>}
           <QuickCheckDates now={now} onPick={(v) => change(() => setUntil(v))} />
@@ -225,7 +225,7 @@ export function WaitRunPanel({
                 <li key={t.id}>
                   <Link
                     href={`/tasks/${t.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-[12.5px] hover:border-brand"
+                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px] hover:border-brand"
                   >
                     <span className="min-w-0 flex-1 truncate">{t.title}</span>
                     <Badge tone="neutral">{TASK_STATUS_LABEL[effectiveStatus(t, state.tasks)]}</Badge>
@@ -353,13 +353,13 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
             <input
               id="wait-for-edit" type="text" value={waitingFor}
               onChange={(e) => { setWaitingFor(e.target.value); setError(null); }}
-              className="mb-3 w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+              className="mb-3 field"
             />
             <label className="mb-1.5 block text-[12.5px] font-medium" htmlFor="wait-until-edit">次回いつ確認するか</label>
             <input
               id="wait-until-edit" type="date" value={until}
               onChange={(e) => { setUntil(e.target.value); setError(null); }}
-              className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+              className="field w-auto"
             />
             {until && <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(until)}</p>}
             <QuickCheckDates now={now} onPick={(v) => { setUntil(v); setError(null); }} />

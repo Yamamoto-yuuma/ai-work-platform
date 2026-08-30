@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { Badge, Button, Card, LinkButton, PageHeader } from "@/ui/primitives";
+import { DeleteTaskButton } from "@/ui/delete-task";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
@@ -290,15 +291,22 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         )}
       </div>
 
-      {task.confirmationState === "confirmed" && task.status !== "done" && (
-        <div className="mt-5 flex gap-2">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        {task.confirmationState === "confirmed" && task.status !== "done" && (
           <Button onClick={() => dispatch({ type: "updateTask", taskId: task.id, patch: { status: "done" } })}>
             このタスクを完了にする
             {released.length > 0 && `（${released.length}件が着手可能になります）`}
           </Button>
-          <LinkButton href="/tasks" variant="secondary">一覧へ戻る</LinkButton>
-        </div>
-      )}
+        )}
+        <LinkButton href="/tasks" variant="secondary">一覧へ戻る</LinkButton>
+        {/*
+          完了の隣だが役割は別。完了は済んだ記録として残り、削除は記録ごと消える。
+          並びの端に置いて、間違えて押しにくくする。
+        */}
+        <span className="ml-auto">
+          <DeleteTaskButton task={task} size="md" onDeleted={() => router.push("/tasks")} />
+        </span>
+      </div>
     </div>
   );
 }

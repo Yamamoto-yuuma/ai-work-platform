@@ -8,6 +8,7 @@ import { useNow } from "@/ui/use-navigator";
 import Link from "next/link";
 import { Badge, Button, Card, Empty, PageHeader } from "@/ui/primitives";
 import { TaskForm } from "@/ui/task-form";
+import { DeleteTaskButton } from "@/ui/delete-task";
 import { newTaskFromDraft } from "@/core/model/task-draft";
 import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
@@ -84,17 +85,16 @@ function TasksInner() {
     const raised = nowPriority !== t.priority;
 
     return (
-      <li>
-        <Link
-          href={`/tasks/${t.id}`}
-          className={`block rounded-lg border px-4 py-3 transition-colors hover:border-brand ${
-            t.id === createdId
-              ? "border-ok bg-ok-soft"
-              : t.confirmationState === "proposed"
-                ? "border-signal/40 bg-signal-soft"
-                : "border-line bg-surface"
-          }`}
-        >
+      <li
+        className={`group relative rounded-xl border transition-shadow hover:shadow-card ${
+          t.id === createdId
+            ? "border-ok/50 bg-ok-soft"
+            : t.confirmationState === "proposed"
+              ? "border-signal/40 bg-signal-soft"
+              : "border-line-soft bg-surface"
+        }`}
+      >
+        <Link href={`/tasks/${t.id}`} className="block px-4 py-3">
           <span className="flex items-start gap-3">
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-1.5">
@@ -136,6 +136,13 @@ function TasksInner() {
             )}
           </span>
         </Link>
+        {/*
+          間違えて作ったタスクを片付ける入口。リンクの内側には置けないので、
+          行の右下に重ねる。ふだんは薄く、行に触れたときだけはっきりさせる。
+        */}
+        <span className="absolute bottom-1.5 right-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          <DeleteTaskButton task={t} />
+        </span>
       </li>
     );
   }
@@ -193,8 +200,10 @@ function TasksInner() {
         {VIEWS.map((v) => (
           <button
             key={v.key} onClick={() => setView(v.key)}
-            className={`rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
-              view === v.key ? "border-brand bg-brand text-white" : "border-line bg-surface text-ink-2 hover:bg-surface-2"
+            className={`rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-[background-color,border-color,box-shadow] duration-150 ${
+              view === v.key
+                ? "border-brand bg-brand text-white shadow-card"
+                : "border-line-soft bg-surface text-ink-2 shadow-card hover:border-brand/40 hover:bg-surface-2 hover:shadow-lift"
             }`}
           >
             {v.label}
@@ -204,13 +213,13 @@ function TasksInner() {
           </button>
         ))}
 
-        <label className="ml-auto flex items-center gap-2 text-[12px] text-ink-3">
+        <label className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-ink-3">
           担当者
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
             aria-label="担当者で絞り込む"
-            className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink outline-none focus:border-brand"
+            className="field field-sm w-auto"
           >
             <option value="all">すべての担当者</option>
             <option value={state.currentUserId}>自分（{mineCount}件）</option>

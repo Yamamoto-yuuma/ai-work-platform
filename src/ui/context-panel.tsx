@@ -99,7 +99,7 @@ export function ContextPanel({
           <Section title="適用中のルール" icon="⚖">
             <ul className="flex flex-col gap-1.5">
               {ctx.rules.map((r) => (
-                <li key={r.id} className="rounded-lg border border-line bg-surface-2 px-3 py-2">
+                <li key={r.id} className="rounded-lg border border-line-soft bg-surface-2 px-3 py-2">
                   <div className="flex items-center gap-1.5">
                     <Badge tone={r.ruleType === "temporary" ? "signal" : "neutral"}>
                       {{ case: "個別案件", temporary: "期間限定", department: "部署", standard: "標準" }[r.ruleType]}
@@ -140,7 +140,7 @@ export function ContextPanel({
             <ul className="flex flex-col gap-1.5">
               {ctx.derivedTasks.slice(0, 5).map((t) => (
                 <li key={t.id}>
-                  <Link href={`/tasks/${t.id}`} className="block rounded-lg border border-line bg-surface-2 px-3 py-2 hover:border-brand">
+                  <Link href={`/tasks/${t.id}`} className="block rounded-lg border border-line-soft bg-surface-2 px-3 py-2 hover:border-brand">
                     <span className="text-[12.5px]">{t.title}</span>
                     {t.confirmationState === "proposed" && <Badge tone="signal">提案中</Badge>}
                   </Link>

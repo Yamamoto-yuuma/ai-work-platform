@@ -33,8 +33,10 @@ function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
     const checked = Boolean(stepRun.checklistState[item.key]);
     return (
       <label
-        className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 transition-colors ${
-          checked ? "border-ok/40 bg-ok-soft" : ruleId ? "border-signal/40 bg-signal-soft" : "border-line bg-surface hover:bg-surface-2"
+        className={`flex cursor-pointer items-start gap-3 rounded-lg px-3.5 py-3 transition-[background-color,border-color,box-shadow] duration-150 ${
+          checked
+            ? "border border-ok/40 bg-ok-soft shadow-inset"
+            : ruleId ? "border border-signal/40 bg-signal-soft" : "pick"
         }`}
       >
         <input
@@ -89,7 +91,7 @@ function FieldsRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
                     key={String(o.value)} type="button"
                     onClick={() => onOutput({ [f.key]: o.value })}
                     className={`rounded-lg border px-3.5 py-2 text-[13px] transition-colors ${
-                      value === o.value ? "border-brand bg-brand text-white" : "border-line bg-surface hover:bg-surface-2"
+                      value === o.value ? "border-brand bg-brand text-white" : "pick"
                     }`}
                   >
                     {o.label}
@@ -101,7 +103,7 @@ function FieldsRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
                 type={f.type === "date" ? "date" : f.type === "number" ? "number" : "text"}
                 value={value === undefined || value === null ? "" : String(value).slice(0, f.type === "date" ? 10 : undefined)}
                 onChange={(e) => onOutput({ [f.key]: f.type === "number" ? Number(e.target.value) : e.target.value })}
-                className="w-full max-w-md rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                className="field max-w-md"
                 placeholder={`${f.label}を入力`}
               />
             )}
@@ -226,7 +228,7 @@ function CompanySearchRenderer({ step, stepRun, onOutput }: StepRendererProps) {
             onChange={(e) => onOutput({ reason: e.target.value })}
             rows={3}
             placeholder="なぜこの企業を選定したかを記録してください（後から判断の根拠を追跡するため）"
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+            className="field"
           />
           <p className="mt-2 text-[12px] text-ink-3">選択 {selected.length} 社 ／ 除外 {excluded.length} 社</p>
         </div>
@@ -267,7 +269,7 @@ function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProp
         <label className="mb-1.5 block text-[13px] font-medium">件名</label>
         <input
           value={subject} onChange={(e) => onOutput({ subject: e.target.value })}
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+          className="field"
         />
       </div>
       <div>
@@ -275,7 +277,7 @@ function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProp
         <textarea
           value={body} onChange={(e) => onOutput({ body: e.target.value })}
           rows={12}
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 font-mono text-[12.5px] leading-relaxed outline-none focus:border-brand"
+          className="field font-mono text-[12.5px] leading-relaxed"
         />
       </div>
 
@@ -303,7 +305,7 @@ function DocumentComposeRenderer({ step, stepRun, run, onOutput }: StepRendererP
       <textarea
         value={body} onChange={(e) => onOutput({ body: e.target.value })}
         rows={16}
-        className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 font-mono text-[12.5px] leading-relaxed outline-none focus:border-brand"
+        className="field font-mono text-[12.5px] leading-relaxed"
       />
       <div className="flex items-center gap-2 rounded-lg border border-dashed border-ai/40 bg-ai-soft px-3.5 py-2.5">
         <span className="text-ai">✦</span>
@@ -337,7 +339,7 @@ function TaskCreateRenderer({ step, stepRun, run, onCheck }: StepRendererProps) 
           <label
             key={key}
             className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 transition-colors ${
-              checked ? "border-line bg-surface hover:bg-surface-2" : "border-line bg-surface-2 opacity-60"
+              checked ? "pick" : "border-line bg-surface-2 opacity-60"
             }`}
           >
             <input
@@ -500,7 +502,7 @@ function KnowledgeViewRenderer({ step }: StepRendererProps) {
   return (
     <div className="flex flex-col gap-3">
       {items.map((k) => (
-        <div key={k.id} className="rounded-lg border border-line bg-surface p-4">
+        <div key={k.id} className="rounded-lg border border-line-soft bg-surface p-4 shadow-card">
           <h4 className="mb-1.5 text-[13px] font-bold">{k.title}</h4>
           <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">{k.body}</p>
         </div>
@@ -599,7 +601,7 @@ function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) 
             <input
               value={String(stepRun.output[f.key] ?? "")}
               onChange={(e) => onOutput({ [f.key]: e.target.value })}
-              className="w-full max-w-md rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+              className="field max-w-md"
             />
           </div>
         ))}

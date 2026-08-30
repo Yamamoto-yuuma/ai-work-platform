@@ -194,7 +194,7 @@ export function ChangeRequestPanel({
                 <label
                   key={t.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
-                    t.id === targetId ? "border-brand bg-brand-soft" : "border-line bg-surface hover:bg-surface-2"
+                    t.id === targetId ? "pick-on" : "pick"
                   }`}
                 >
                   <input
@@ -227,7 +227,7 @@ export function ChangeRequestPanel({
                     id="change-entity" type="text" value={entityLabel}
                     onChange={(e) => setEntityLabel(e.target.value)}
                     placeholder="例：秋の業務効率化キャンペーン"
-                    className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                    className="field"
                   />
                 </div>
               )}
@@ -236,7 +236,7 @@ export function ChangeRequestPanel({
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium">変更前</label>
                 {target.currentValue ? (
-                  <p className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px] tabular-nums">
+                  <p className="rounded-lg border border-line-soft bg-surface-2 px-3 py-2 text-[13px] tabular-nums">
                     {target.valueType === "date" ? fmtDate(target.currentValue) : target.currentValue}
                   </p>
                 ) : (
@@ -246,14 +246,14 @@ export function ChangeRequestPanel({
                       <input
                         type="date" value={beforeInput}
                         onChange={(e) => setBeforeInput(e.target.value)}
-                        className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                        className="field w-auto"
                       />
                     ) : (
                       <input
                         type="text" value={beforeInput}
                         onChange={(e) => setBeforeInput(e.target.value)}
                         placeholder="変更前の内容"
-                        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                        className="field"
                       />
                     )}
                     <p className="mt-1.5 text-[11.5px] text-ink-3">
@@ -273,7 +273,7 @@ export function ChangeRequestPanel({
                     <input
                       id="change-after" type="date" value={after}
                       onChange={(e) => setAfter(e.target.value)}
-                      className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                      className="field w-auto"
                     />
                     {after && (
                       <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(after)}</p>
@@ -284,7 +284,7 @@ export function ChangeRequestPanel({
                     id="change-after" type="text" value={after}
                     onChange={(e) => setAfter(e.target.value)}
                     placeholder="変更後の内容"
-                    className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                    className="field"
                   />
                 )}
               </div>
@@ -298,7 +298,7 @@ export function ChangeRequestPanel({
                   id="change-reason" rows={2} value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="なぜ変更が必要になったかを記録します（後から判断の根拠を追跡するため）"
-                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+                  className="field"
                 />
               </div>
             </>
@@ -391,7 +391,7 @@ function ImpactPreview({
       {target.kind === "run-deadline" && (
         <section>
           <h4 className="mb-2 text-[12px] font-bold text-ink-3">この業務の期限</h4>
-          <p className="rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[13px]">
+          <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2.5 shadow-card text-[13px]">
             <span className="text-ink-3 line-through tabular-nums">{describeValue(impact.change.before)}</span>
             <span className="mx-2 text-ink-3">→</span>
             <span className="font-bold tabular-nums">{describeValue(impact.change.after)}</span>
@@ -534,7 +534,7 @@ function AppliedSummary({
         {applied.runDeadline && (
           <section>
             <h4 className="mb-2 text-[12px] font-bold text-ink-3">この業務の期限</h4>
-            <p className="rounded-lg border border-line bg-surface px-3.5 py-2 text-[12.5px]">
+            <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px]">
               <span className="tabular-nums text-ink-3 line-through">{fmtDate(applied.runDeadline.from)}</span>
               <span className="mx-2 text-ink-3">→</span>
               <Badge tone="brand">{fmtDate(applied.runDeadline.to)}</Badge>
@@ -547,7 +547,7 @@ function AppliedSummary({
             <h4 className="mb-2 text-[12px] font-bold text-ink-3">期限が変わったタスク</h4>
             <ul className="flex flex-col gap-1">
               {applied.updatedDeadlines.map((d, i) => (
-                <li key={i} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-[12.5px]">
+                <li key={i} className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px]">
                   <span className="min-w-0 flex-1 truncate">{d.title}</span>
                   <span className="shrink-0 tabular-nums text-ink-3 line-through">{fmtDate(d.from)}</span>
                   <span className="text-ink-3">→</span>
@@ -566,7 +566,7 @@ function AppliedSummary({
                 <li key={t.id}>
                   <Link
                     href={`/tasks/${t.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-[12.5px] hover:border-brand hover:bg-brand-soft"
+                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px] hover:border-brand hover:bg-brand-soft"
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
                     {t.impactLayer && <Badge tone={IMPACT_TONE[t.impactLayer]}>{IMPACT_LABEL[t.impactLayer]}</Badge>}

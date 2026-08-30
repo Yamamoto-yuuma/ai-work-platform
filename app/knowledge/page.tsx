@@ -34,29 +34,47 @@ export default function KnowledgePage() {
         description="マニュアル・FAQ・社内ルール・資料です。通常は業務のSTEPから必要なものが自動的に提示されるため、この画面は補助的な位置づけです。"
       />
 
-      <Card className="mb-5 border-brand/30 bg-brand-soft p-4">
-        <p className="text-[12.5px] leading-relaxed text-brand-ink">
-          <strong className="font-bold">探さなくても出てきます。</strong>
-          各ナレッジは業務のSTEPに紐付いており、該当のSTEPを開くとコンテキストパネルに自動的に表示されます。
-        </p>
-      </Card>
+      {/*
+        「探さなくても出てくる」のは、紐付いたナレッジがある場合の話。
+        1件も無いうちにこれを出すと、もう用意されているように読めてしまう。
+      */}
+      {knowledge.length > 0 && (
+        <Card className="mb-5 border-brand/25 bg-brand-soft p-4">
+          <p className="text-[12.5px] leading-relaxed text-brand-ink">
+            <strong className="font-bold">探さなくても出てきます。</strong>
+            各ナレッジは業務のSTEPに紐付いており、該当のSTEPを開くとコンテキストパネルに自動的に表示されます。
+          </p>
+        </Card>
+      )}
 
+      {/* 1件も無いときは、検索欄も種別の絞り込みも出さない。絞る対象が無い */}
+      {knowledge.length > 0 && (
       <div className="mb-4 flex flex-wrap gap-2">
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="キーワードで検索"
-          className="min-w-[200px] flex-1 rounded-lg border border-line bg-surface px-3.5 py-2 text-[13px] outline-none focus:border-brand"
+          className="min-w-[200px] flex-1 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13px] outline-none focus:border-brand"
         />
         <select
           value={kind} onChange={(e) => setKind(e.target.value)}
-          className="rounded-lg border border-line bg-surface px-3 py-2 text-[13px] outline-none focus:border-brand"
+          className="field w-auto"
         >
           <option value="all">すべての種別</option>
           {Object.entries(KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
 
-      {filtered.length === 0 ? (
+      )}
+
+      {knowledge.length === 0 ? (
+        <Empty>
+          まだナレッジは登録されていません。
+          <br />
+          社内資料・業務マニュアル・サービス資料・過去のやり取りなど、
+          <br />
+          業務のSTEPで手元にあってほしいものをここに貯めていきます。
+        </Empty>
+      ) : filtered.length === 0 ? (
         <Empty>該当するナレッジはありません</Empty>
       ) : (
         <ul className="flex flex-col gap-2.5">
