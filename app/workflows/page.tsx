@@ -5,7 +5,7 @@ import { useStore } from "@/adapters/memory/store";
 import { useLatestWorkflows } from "@/ui/use-navigator";
 import { Badge, Card, LinkButton, PageHeader } from "@/ui/primitives";
 import { runProgress } from "@/core/flow/engine";
-import { WORK_KIND_LABEL, describeStartTrigger } from "@/core/workflow/start-trigger";
+import { WORK_KIND_LABEL, describeStart } from "@/core/workflow/start-trigger";
 import { runLabel, subjectOf } from "@/core/model/run-label";
 
 export default function WorkflowsPage() {
@@ -93,8 +93,9 @@ export default function WorkflowsPage() {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {w.workKind && <Badge tone="neutral">{WORK_KIND_LABEL[w.workKind]}</Badge>}
                       {w.origin === "user" && <Badge tone="brand">自分で登録</Badge>}
-                      {w.startTrigger && w.startTrigger.kind !== "manual" && (
-                        <span className="text-[11px] text-ink-3">{describeStartTrigger(w.startTrigger)}</span>
+                      {(w.startSchedules?.some((s) => s.enabled)
+                        || (w.startTrigger && w.startTrigger.kind !== "manual")) && (
+                        <span className="text-[11px] text-ink-3">{describeStart(w).join("／")}</span>
                       )}
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line-soft pt-3 text-[11.5px] text-ink-3">

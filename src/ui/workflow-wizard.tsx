@@ -13,10 +13,12 @@ import { Badge, Button, Card } from "./primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { describeStartTrigger } from "@/core/workflow/start-trigger";
+import { describeRepeat } from "@/core/workflow/start-schedule";
 import {
-  DESCRIPTION_MAX, NAME_MAX, REGISTERABLE_COMPONENTS, WORK_KINDS,
-  describeUnset, emptyStepDraft, nextFieldKey, nextStepKey, validateWorkflowDraft,
-  type DraftError, type FlowDraft, type StepDraft, type WorkflowDraft,
+  DESCRIPTION_MAX, NAME_MAX, REGISTERABLE_COMPONENTS, START_REPEAT_CHOICES, WORK_KINDS,
+  describeUnset, emptyStartSchedule, emptyStepDraft, nextFieldKey, nextStepKey,
+  validateWorkflowDraft,
+  type DraftError, type FlowDraft, type StartScheduleDraft, type StepDraft, type WorkflowDraft,
 } from "@/core/workflow/draft";
 import type { StartTriggerKind, TaskPriority, WorkflowNotes } from "@/core/model/types";
 
@@ -45,11 +47,133 @@ const STAGES = [
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
+/**
+ * 開始スケジュール1本。
+ *
+ * 予定ごとに独立して直せる。無効にしても消さずに残せるようにしてあるのは、
+ * 「今月だけ止める」ようなときに、作り直さずに済ませたいから。
+ */
+function ScheduleRow({
+  schedule, index, onChange, onRemove,
+}: {
+  schedule: StartScheduleDraft;
+  index: number;
+  onChange: (next: StartScheduleDraft) => void;
+  onRemove: () => void;
+}) {
+  const set = (patch: Partial<StartScheduleDraft>) => onChange({ ...schedule, ...patch });
+  const off = !schedule.enabled;
+
+  // 画面下に出す1行。設定しながら結果を確かめられるようにする
+  const preview = describeRepeat(
+    schedule.repeatKind === "weekly"
+      ? { kind: "weekly", weekdays: schedule.weekdays }
+      : schedule.repeatKind === "monthly-day"
+        ? { kind: "monthly-day", day: Number(schedule.monthDay) || 1 }
+        : schedule.repeatKind === "monthly-last"
+          ? { kind: "monthly-last" }
+          : { kind: "daily" },
+  );
+
+  return (
+    <div className={`rounded-[9px] bg-surface-2 p-4 ${off ? "opacity-60" : ""}`}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="text-[11.5px] font-bold text-ink-3">スケジュール {index + 1}</span>
+        <input
+          className="field field-sm w-auto flex-1 min-w-[140px]"
+          placeholder="呼び名（任意）"
+          value={schedule.label}
+          onChange={(e) => set({ label: e.target.value })}
+        />
+        {/*
+          いまの状態をそのまま押せるようにする。
+          文字だけだと見出しに見えるので、状態に関わらず面を持たせる。
+        */}
+        <Button
+          variant="secondary" size="sm"
+          aria-pressed={schedule.enabled}
+          title={off ? "この予定を有効に戻します" : "消さずに一旦止めます"}
+          onClick={() => set({ enabled: !schedule.enabled })}
+        >
+          <span
+            aria-hidden="true"
+            className={`inline-block h-1.5 w-1.5 rounded-full ${off ? "bg-ink-3" : "bg-ok"}`}
+          />
+          {off ? "停止中" : "有効"}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onRemove}>削除</Button>
+      </div>
+
+      <div className="mb-2.5 grid gap-1.5 sm:grid-cols-4">
+        {START_REPEAT_CHOICES.map((c) => (
+          <button
+            key={c.kind} type="button"
+            onClick={() => set({ repeatKind: c.kind })}
+            className={`px-3 py-1.5 text-left ${schedule.repeatKind === c.kind ? "pick-on" : "pick"}`}
+          >
+            <span className="block text-[12px] font-medium">{c.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {schedule.repeatKind === "weekly" && (
+        <div className="mb-2.5 flex flex-wrap gap-1.5">
+          {WEEKDAYS.map((w, i) => {
+            const on = schedule.weekdays.includes(i);
+            return (
+              <button
+                key={i} type="button"
+                aria-pressed={on}
+                onClick={() => set({
+                  weekdays: on
+                    ? schedule.weekdays.filter((x) => x !== i)
+                    : [...schedule.weekdays, i],
+                })}
+                className={`h-9 w-9 text-[12.5px] font-medium ${
+                  on ? "pick-on" : "pick"
+                }`}
+              >
+                {w}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {schedule.repeatKind === "monthly-day" && (
+        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12.5px] text-ink-2">
+          <span>毎月</span>
+          <input
+            type="number" min={1} max={31}
+            className="field field-sm w-auto w-20"
+            aria-label="毎月の何日に開始するか"
+            value={schedule.monthDay}
+            onChange={(e) => set({ monthDay: e.target.value })}
+          />
+          <span>日</span>
+          <span className="text-[11.5px] text-ink-3">その月に無い日は月末に寄せます</span>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-[12.5px] text-ink-2" htmlFor={`time-${schedule.id}`}>開始時刻</label>
+        <input
+          id={`time-${schedule.id}`} type="time"
+          className="field field-sm w-auto"
+          value={schedule.time}
+          onChange={(e) => set({ time: e.target.value })}
+        />
+        <span className="ml-auto text-[11.5px] text-ink-3">
+          {preview} {schedule.time || "--:--"} 以降に出ます
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const TRIGGER_CHOICES: { kind: StartTriggerKind; label: string; hint: string }[] = [
   { kind: "manual", label: "自分で開始する", hint: "業務一覧から手で始めます" },
   { kind: "date", label: "日付が来たら", hint: "指定した日に「今日開始する業務」に出ます" },
-  { kind: "weekday", label: "曜日が来たら", hint: "毎週その曜日に出ます" },
-  { kind: "time", label: "時間が来たら", hint: "毎日、指定時刻以降に出ます" },
   { kind: "event", label: "出来事が起きたら", hint: "きっかけを記録します。開始は自分で判断します" },
   { kind: "after-workflow", label: "他の業務が終わったら", hint: "先行業務の完了後に出ます" },
   { kind: "task", label: "タスクが発生したら", hint: "きっかけを記録します。開始は自分で判断します" },
@@ -450,6 +574,58 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
             </Field>
           </Card>
 
+          {/*
+            繰り返しの開始予定。1つの業務に何本でも持てる。
+            例：週2回の定例と、月末の締めを同じ業務に並べて置く。
+          */}
+          <Card className="flex flex-col gap-4 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-[13.5px] font-bold">開始スケジュール</h3>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+                  繰り返し始める業務は、ここに予定を並べます。1つの業務にいくつでも足せます。
+                  同じ日に複数が重なっても、案内は1回にまとまります。
+                </p>
+              </div>
+              <Button
+                variant="secondary" size="sm"
+                onClick={() => patch({
+                  startSchedules: [
+                    ...draft.startSchedules,
+                    emptyStartSchedule(`sch-${Date.now().toString(36)}-${draft.startSchedules.length + 1}`),
+                  ],
+                })}
+              >
+                ＋ 開始スケジュールを追加
+              </Button>
+            </div>
+
+            {draft.startSchedules.length === 0 ? (
+              <p className="rounded-[9px] bg-surface-2 px-4 py-5 text-center text-[12.5px] leading-relaxed text-ink-3">
+                繰り返しの予定はまだありません。
+                <br />
+                決まった曜日や月末に始める業務なら、ここに足しておくとHOMEに出ます。
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {draft.startSchedules.map((sc, i) => (
+                  <li key={sc.id}>
+                    <ScheduleRow
+                      schedule={sc}
+                      index={i}
+                      onChange={(next) => patch({
+                        startSchedules: draft.startSchedules.map((x) => (x.id === sc.id ? next : x)),
+                      })}
+                      onRemove={() => patch({
+                        startSchedules: draft.startSchedules.filter((x) => x.id !== sc.id),
+                      })}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
           <Card className="flex flex-col gap-4 p-5">
             <div>
               <h3 className="text-[13.5px] font-bold">いつ始める業務か</h3>
@@ -477,41 +653,6 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                 <input
                   type="date" className={INPUT} value={draft.startTrigger.date}
                   onChange={(e) => patch({ startTrigger: { ...draft.startTrigger, date: e.target.value } })}
-                />
-              </Field>
-            )}
-            {draft.startTrigger.kind === "weekday" && (
-              <Field label="開始する曜日">
-                <div className="flex flex-wrap gap-1.5">
-                  {WEEKDAYS.map((w, i) => {
-                    const on = draft.startTrigger.weekdays.includes(i);
-                    return (
-                      <button
-                        key={i} type="button"
-                        onClick={() => patch({
-                          startTrigger: {
-                            ...draft.startTrigger,
-                            weekdays: on
-                              ? draft.startTrigger.weekdays.filter((x) => x !== i)
-                              : [...draft.startTrigger.weekdays, i],
-                          },
-                        })}
-                        className={`h-9 w-9 rounded-lg border text-[12.5px] font-medium transition-colors ${
-                          on ? "border-brand bg-brand text-white" : "pick"
-                        }`}
-                      >
-                        {w}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-            )}
-            {draft.startTrigger.kind === "time" && (
-              <Field label="開始する時刻">
-                <input
-                  type="time" className={`${INPUT} w-40`} value={draft.startTrigger.time}
-                  onChange={(e) => patch({ startTrigger: { ...draft.startTrigger, time: e.target.value } })}
                 />
               </Field>
             )}
@@ -644,6 +785,29 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   note: draft.startTrigger.note || undefined,
                 })}</dd>
               </div>
+              {/* 予定は本数が変わるので、1行にまとめず並べて出す */}
+              {draft.startSchedules.filter((sc) => sc.time.trim()).length > 0 && (
+                <div className="flex justify-between gap-3 border-b border-line-soft pb-1.5">
+                  <dt className="shrink-0 text-ink-3">開始スケジュール</dt>
+                  <dd className="text-right">
+                    {draft.startSchedules.filter((sc) => sc.time.trim()).map((sc) => (
+                      <span key={sc.id} className="block">
+                        {sc.label.trim() ? `${sc.label.trim()}：` : ""}
+                        {describeRepeat(
+                          sc.repeatKind === "weekly"
+                            ? { kind: "weekly", weekdays: sc.weekdays }
+                            : sc.repeatKind === "monthly-day"
+                              ? { kind: "monthly-day", day: Number(sc.monthDay) || 1 }
+                              : sc.repeatKind === "monthly-last"
+                                ? { kind: "monthly-last" }
+                                : { kind: "daily" },
+                        )} {sc.time}
+                        {!sc.enabled && <span className="ml-1.5 text-ink-3">（停止中）</span>}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-3 border-b border-line-soft pb-1.5">
                 <dt className="text-ink-3">期限</dt>
                 <dd>{draft.deadlineDays ? `開始から${draft.deadlineDays}${draft.deadlineBusinessDaysOnly ? "営業" : ""}日` : "なし"}</dd>

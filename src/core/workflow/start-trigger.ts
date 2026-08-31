@@ -6,6 +6,7 @@
  */
 import type { StartTrigger, WorkRun, WorkflowDefinition } from "../model/types";
 import { evaluate } from "../flow/condition";
+import { describeSchedule, startOccasion } from "./start-schedule";
 
 export const WORK_KIND_LABEL = {
   routine: "定型業務",
@@ -32,6 +33,23 @@ function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear()
     && a.getMonth() === b.getMonth()
     && a.getDate() === b.getDate();
+}
+
+/**
+ * 業務の開始条件を、画面に出す文字列の並びにする。
+ * 繰り返しの予定が複数あればその数だけ返す。無ければ開始条件を1つ返す。
+ */
+export function describeStart(def: WorkflowDefinition): string[] {
+  const lines = (def.startSchedules ?? [])
+    .filter((s) => s.enabled)
+    .map((s) => describeSchedule(s));
+  if (lines.length > 0) {
+    // 予定のほかに日付や出来事の条件もあるなら、それも添える
+    const t = def.startTrigger;
+    if (t && t.kind !== "manual") lines.push(describeStartTrigger(t));
+    return lines;
+  }
+  return [describeStartTrigger(def.startTrigger)];
 }
 
 /** 開始条件を1文にする。画面はこの文字列を出すだけにする */
@@ -70,9 +88,16 @@ export function isStartDue(
   def: WorkflowDefinition,
   input: { runs: WorkRun[]; now: Date },
 ): boolean {
+  const { now } = input;
+
+  /*
+    繰り返しの予定が当たっていれば、それだけで今日の対象。
+    複数当たっても startOccasion が1つにまとめるので、ここでは真偽しか見ない。
+  */
+  if (startOccasion({ workflowKey: def.key, schedules: def.startSchedules, now })) return true;
+
   const t = def.startTrigger;
   if (!t) return false;
-  const { now } = input;
 
   switch (t.kind) {
     case "date": {

@@ -13,7 +13,7 @@ import { Badge, Button, Card, LinkButton, SectionTitle, Empty } from "@/ui/primi
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
-import { describeStartTrigger } from "@/core/workflow/start-trigger";
+import { describeStart } from "@/core/workflow/start-trigger";
 import { runLabel, subjectOf } from "@/core/model/run-label";
 import { catForHome } from "@/core/cat/message";
 import { CatSays } from "@/ui/cat";
@@ -178,14 +178,18 @@ export default function HomePage() {
                 {startable.map((def) => (
                   <li
                     key={def.key}
-                    className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3"
+                    className="flex flex-wrap items-center gap-3 rounded-[9px] bg-surface px-4 py-3 shadow-card"
                   >
                     <span className="min-w-0 flex-1">
                       <Link href={`/workflows/${def.key}`} className="block truncate text-[13px] font-medium hover:text-brand">
                         {def.name}
                       </Link>
+                      {/*
+                        今日出ている理由。予定が複数当たっていても業務は1件なので、
+                        理由だけを並べる。開始の入口は1つのまま。
+                      */}
                       <span className="mt-0.5 block text-[11.5px] text-ink-3">
-                        {describeStartTrigger(def.startTrigger)}
+                        {describeStart(def).join("／")}
                       </span>
                     </span>
                     <Button size="sm" onClick={() => startWorkflow(def)}>開始する</Button>

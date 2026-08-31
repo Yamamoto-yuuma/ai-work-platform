@@ -16,7 +16,7 @@ import { getComponentSpec } from "@/components-registry/registry";
 import { orderedSteps, outgoingEdges, runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
 import { latestOf } from "@/core/workflow/registry";
-import { WORK_KIND_LABEL, describeStartTrigger } from "@/core/workflow/start-trigger";
+import { WORK_KIND_LABEL, describeStart } from "@/core/workflow/start-trigger";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { runLabel } from "@/core/model/run-label";
 import type { WorkflowNotes } from "@/core/model/types";
@@ -240,7 +240,9 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
               )}
               <div className="flex justify-between gap-3">
                 <dt className="shrink-0 text-ink-3">開始条件</dt>
-                <dd className="text-right">{describeStartTrigger(def.startTrigger)}</dd>
+                <dd className="text-right">
+                  {describeStart(def).map((line, i) => <span key={i} className="block">{line}</span>)}
+                </dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-ink-3">期限</dt>

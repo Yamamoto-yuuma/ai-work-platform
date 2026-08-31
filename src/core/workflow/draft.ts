@@ -9,7 +9,8 @@
  * フローエンジン（core/flow）はこの定義がどこから来たかを知らない。
  */
 import type {
-  ComparisonOp, ConditionExpr, DeadlineRule, FlowEdge, StartTrigger, StepDefinition,
+  ComparisonOp, ConditionExpr, DeadlineRule, FlowEdge, StartSchedule, StartScheduleRepeat,
+  StartTrigger, StepDefinition,
   TaskPriority, VariableDef, WorkComponentType, WorkQuota, WorkKind,
   WorkflowDefinition, WorkflowNotes,
 } from "../model/types";
@@ -122,6 +123,44 @@ export interface StartTriggerDraft {
   note: string;
 }
 
+/**
+ * 開始スケジュールの下書き。
+ * 入力途中は数値も文字列で持つ（空欄を許すため）。
+ */
+export interface StartScheduleDraft {
+  id: string;
+  label: string;
+  repeatKind: StartScheduleRepeat["kind"];
+  /** weekly のとき。0=日 … 6=土 */
+  weekdays: number[];
+  /** monthly-day のとき。1〜31の文字列 */
+  monthDay: string;
+  time: string;
+  enabled: boolean;
+}
+
+export const START_REPEAT_CHOICES: {
+  kind: StartScheduleRepeat["kind"]; label: string; hint: string;
+}[] = [
+  { kind: "daily", label: "毎日", hint: "曜日を問わず毎日" },
+  { kind: "weekly", label: "毎週", hint: "曜日を選ぶ" },
+  { kind: "monthly-day", label: "毎月（日付）", hint: "毎月の決まった日" },
+  { kind: "monthly-last", label: "毎月（月末）", hint: "その月の最終日" },
+];
+
+export function emptyStartSchedule(id: string): StartScheduleDraft {
+  return {
+    id,
+    label: "",
+    repeatKind: "weekly",
+    weekdays: [],
+    monthDay: "1",
+    // 業務の区切りに置かれることが多いので、夕方を既定にする
+    time: "17:00",
+    enabled: true,
+  };
+}
+
 export interface WorkflowDraft {
   /** 既存の定義を編集しているときだけ入る */
   key: string;
@@ -135,6 +174,8 @@ export interface WorkflowDraft {
   deadlineDays: string;
   deadlineBusinessDaysOnly: boolean;
   startTrigger: StartTriggerDraft;
+  /** 繰り返しの開始予定。何本でも持てる */
+  startSchedules: StartScheduleDraft[];
   quota: QuotaDraft;
   steps: StepDraft[];
   /** STEPキー → 進み方 */
@@ -201,6 +242,7 @@ export function emptyWorkflowDraft(): WorkflowDraft {
     deadlineDays: "",
     deadlineBusinessDaysOnly: true,
     startTrigger: emptyStartTrigger(),
+    startSchedules: [],
     quota: { enabled: false, metric: "count", period: "month", target: "", direction: "atLeast" },
     steps: [],
     flow: {},
@@ -369,6 +411,23 @@ export function validateWorkflowDraft(draft: WorkflowDraft): DraftError[] {
   if (t.kind === "after-workflow" && !t.afterWorkflowKey) errors.push({ stage: 4, message: "先行する業務を選んでください" });
   if (t.kind === "condition" && !t.note.trim()) errors.push({ stage: 4, message: "成立させたい条件を書いてください" });
 
+  // 開始スケジュール。中身が足りないものは、消すか埋めるかを選んでもらう
+  draft.startSchedules.forEach((sc, i) => {
+    const nth = `${i + 1}本目の開始スケジュール`;
+    if (!sc.time.trim()) {
+      errors.push({ stage: 4, message: `${nth}の開始時刻を入力してください` });
+    }
+    if (sc.repeatKind === "weekly" && sc.weekdays.length === 0) {
+      errors.push({ stage: 4, message: `${nth}の曜日を選んでください` });
+    }
+    if (sc.repeatKind === "monthly-day") {
+      const day = Number(sc.monthDay);
+      if (!Number.isFinite(day) || day < 1 || day > 31) {
+        errors.push({ stage: 4, message: `${nth}の日付は1〜31で入力してください` });
+      }
+    }
+  });
+
   return errors;
 }
 
@@ -418,6 +477,67 @@ function toStartTrigger(d: StartTriggerDraft): StartTrigger | undefined {
   if (d.taskLabel.trim()) t.taskLabel = d.taskLabel.trim();
   if (d.note.trim()) t.note = d.note.trim();
   return t;
+}
+
+function scheduleToDraft(s: StartSchedule): StartScheduleDraft {
+  return {
+    id: s.id,
+    label: s.label ?? "",
+    repeatKind: s.repeat.kind,
+    weekdays: s.repeat.kind === "weekly" ? [...s.repeat.weekdays] : [],
+    monthDay: s.repeat.kind === "monthly-day" ? String(s.repeat.day) : "1",
+    time: s.time,
+    enabled: s.enabled,
+  };
+}
+
+/** 昔の「曜日で開始」「時間で開始」を、繰り返しの予定1本に読み替える */
+function legacyRepeatAsSchedule(t: StartTrigger | undefined): StartScheduleDraft[] {
+  if (!t) return [];
+  if (t.kind === "weekday" && (t.weekdays ?? []).length > 0) {
+    return [{
+      id: "sch-legacy-weekday", label: "",
+      repeatKind: "weekly", weekdays: [...(t.weekdays ?? [])],
+      monthDay: "1", time: t.time || "09:00", enabled: true,
+    }];
+  }
+  if (t.kind === "time" && t.time) {
+    return [{
+      id: "sch-legacy-time", label: "",
+      repeatKind: "daily", weekdays: [],
+      monthDay: "1", time: t.time, enabled: true,
+    }];
+  }
+  return [];
+}
+
+/** 下書きを定義の形にする。中身が足りないものは落とす */
+function toStartSchedules(list: StartScheduleDraft[]): StartSchedule[] | undefined {
+  const out: StartSchedule[] = [];
+  for (const d of list) {
+    if (!d.time.trim()) continue;
+    let repeat: StartScheduleRepeat;
+    if (d.repeatKind === "weekly") {
+      if (d.weekdays.length === 0) continue;
+      repeat = { kind: "weekly", weekdays: [...d.weekdays].sort((a, b) => a - b) };
+    } else if (d.repeatKind === "monthly-day") {
+      const day = Number(d.monthDay);
+      if (!Number.isFinite(day) || day < 1 || day > 31) continue;
+      repeat = { kind: "monthly-day", day };
+    } else if (d.repeatKind === "monthly-last") {
+      repeat = { kind: "monthly-last" };
+    } else {
+      repeat = { kind: "daily" };
+    }
+    out.push({
+      id: d.id,
+      ...(d.label.trim() ? { label: d.label.trim() } : {}),
+      repeat,
+      time: d.time,
+      enabled: d.enabled,
+    });
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 function toQuota(q: QuotaDraft): WorkQuota | undefined {
@@ -710,6 +830,7 @@ export function compileWorkflow(input: CompileInput): WorkflowDefinition {
     updatedAt: iso,
     workKind: draft.workKind,
     startTrigger: toStartTrigger(draft.startTrigger),
+    ...(toStartSchedules(draft.startSchedules) ? { startSchedules: toStartSchedules(draft.startSchedules) } : {}),
     defaultPriority: draft.defaultPriority,
     ...(toQuota(draft.quota) ? { quota: toQuota(draft.quota) } : {}),
     notes: draft.notes,
@@ -844,8 +965,18 @@ export function draftFromWorkflow(def: WorkflowDefinition): WorkflowDraft {
     deadlineDays:
       def.deadlineRule?.offsetDays === undefined ? "" : String(def.deadlineRule.offsetDays),
     deadlineBusinessDaysOnly: def.deadlineRule?.businessDaysOnly !== false,
+    /*
+      昔の「曜日で開始」「時間で開始」は繰り返しの予定なので、
+      編集画面ではスケジュール側へ移して扱う。定義側の startTrigger は
+      触らないので、編集して保存するまで既存の判定はそのまま動く。
+    */
+    startSchedules: [
+      ...(def.startSchedules ?? []).map(scheduleToDraft),
+      ...legacyRepeatAsSchedule(t),
+    ],
     startTrigger: {
-      kind: t?.kind ?? "manual",
+      // 予定へ移した種別は、開始条件としては「自分で開始する」に戻す
+      kind: t && (t.kind === "weekday" || t.kind === "time") ? "manual" : t?.kind ?? "manual",
       date: t?.date ?? "",
       weekdays: t?.weekdays ?? [],
       time: t?.time ?? "",

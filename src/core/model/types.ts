@@ -159,6 +159,41 @@ export interface StartTrigger {
   note?: string;
 }
 
+/**
+ * 繰り返しの型。
+ * 「いつ」を表すだけで、時刻は持たない。時刻は StartSchedule 側にある。
+ */
+export type StartScheduleRepeat =
+  /** 毎日 */
+  | { kind: "daily" }
+  /** 毎週。0=日 … 6=土 */
+  | { kind: "weekly"; weekdays: number[] }
+  /** 毎月の指定日。1〜31。その月に無い日は月末に寄せる（31日→2月28日） */
+  | { kind: "monthly-day"; day: number }
+  /** 毎月の月末 */
+  | { kind: "monthly-last" };
+
+/**
+ * 業務を始める日時のスケジュール（1業務に複数）。
+ *
+ * 1つの業務に複数の周期を持たせるためのもの。
+ * 例：週2回の定例と、月末の締めを同じ業務に並べて持たせる。
+ *
+ * これが来ても業務を勝手に始めない。「今日始める業務」として
+ * 提示するところまでで、始めるかどうかは自分が決める（仕様 §26）。
+ */
+export interface StartSchedule {
+  /** 定義の中で一意。編集しても変えない */
+  id: string;
+  /** 自分でつける呼び名。空なら繰り返しの説明をそのまま出す */
+  label?: string;
+  repeat: StartScheduleRepeat;
+  /** この時刻以降に提示する（HH:mm） */
+  time: string;
+  /** 外しても消さずに残しておけるようにする */
+  enabled: boolean;
+}
+
 /** ノルマ・目標（仕様 §28-3）。件数と時間の2系統だけを持つ */
 export interface WorkQuota {
   /** count = ○件、hours = ○時間 */
@@ -220,8 +255,18 @@ export interface WorkflowDefinition {
   // --- 以下はすべて任意。未設定でも既存の動作は変わらない ---
   /** どんな性質の業務か */
   workKind?: WorkKind;
-  /** いつ始める業務か */
+  /**
+   * いつ始める業務か。
+   * 繰り返しの予定は startSchedules 側に置く。ここは1回きりの日付や、
+   * 出来事きっかけなど、周期を持たない開始条件を表す。
+   */
   startTrigger?: StartTrigger;
+  /**
+   * 繰り返しの開始予定。1つの業務に何本でも持てる。
+   * 同じ日に複数が重なっても、開始の機会は1つにまとめる
+   * （core/workflow/start-schedule.ts の startOccasion）。
+   */
+  startSchedules?: StartSchedule[];
   /** この業務から生まれる作業の既定の優先度 */
   defaultPriority?: TaskPriority;
   /** 期限が近づいたときの優先度の上げ方 */
