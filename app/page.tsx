@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNextAction, useNow, useStartableToday, useWorkflows } from "@/ui/use-navigator";
-import { Badge, Button, Card, LinkButton, SectionTitle, Empty } from "@/ui/primitives";
+import { Badge, Button, Card, LinkButton, Row, RowList, SectionTitle, Empty } from "@/ui/primitives";
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
@@ -82,7 +82,8 @@ export default function HomePage() {
           <p className="text-[12px] text-ink-3">
             {now.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
           </p>
-          <h1 className="mt-0.5 text-xl font-bold tracking-tight">{currentUser.name} さんの今日</h1>
+          {/* 自分ひとりで使うものなので、自分の名前は出さない */}
+          <h1 className="mt-0.5 text-xl font-bold tracking-tight">今日やること</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <LinkButton href="/workflows/new" variant="secondary">＋ 業務を登録</LinkButton>
@@ -93,12 +94,11 @@ export default function HomePage() {
       {/* 最上部：今やるべき唯一のこと */}
       <Link href={nextHref} className="mb-5 block">
         {/*
-          今日いちばん先に触るもの。1枚だけなので、面の色で十分に目立つ。
-          枠線で囲うと帯が重くなるので、線は引かず薄い面と影で置く。
+          今日いちばん先に触るもの。
+          面は白のままにして、急ぎかどうかは見出しと文字の色だけで示す。
+          この大きさで面を塗ると、画面のほとんどが色になってしまう。
         */}
-        <div className={`rounded-xl p-6 shadow-card transition-shadow duration-150 hover:shadow-lift ${
-          next.urgency === "overdue" ? "bg-danger-soft" : "bg-brand-soft"
-        }`}>
+        <div className="rounded-xl bg-surface p-6 shadow-card transition-shadow duration-150 hover:shadow-lift">
           <div className="mb-2 flex items-center gap-2">
             <span className={`text-[11px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
               いま着手すること
@@ -137,18 +137,14 @@ export default function HomePage() {
           {dueChecks.length > 0 && (
             <section>
               <SectionTitle>今日確認する（{dueChecks.length}）</SectionTitle>
-              <ul className="flex flex-col gap-1.5">
+              <RowList>
                 {dueChecks.map(({ run, reason }) => {
                   const st = checkStatusOf(run.waitingUntil, now);
                   return (
-                    <li key={run.id}>
+                    <Row key={run.id} tone={st.overdue ? "danger" : "signal"}>
                       <Link
                         href={`/navigator/${run.id}`}
-                        className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
-                          st.overdue
-                            ? "bg-danger-soft hover:shadow-lift"
-                            : "bg-signal-soft hover:shadow-lift"
-                        }`}
+                        className="flex items-center gap-3 px-4 py-2.5"
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[13px] font-bold">{runLabel(run)}</span>
@@ -163,10 +159,10 @@ export default function HomePage() {
                           {st.overdue ? `確認期限超過 ${st.label}` : "今日が確認予定日"}
                         </Badge>
                       </Link>
-                    </li>
+                    </Row>
                   );
                 })}
-              </ul>
+              </RowList>
             </section>
           )}
 
@@ -174,12 +170,9 @@ export default function HomePage() {
           {startable.length > 0 && (
             <section>
               <SectionTitle>今日開始する業務（{startable.length}）</SectionTitle>
-              <ul className="flex flex-col gap-1.5">
+              <RowList>
                 {startable.map((def) => (
-                  <li
-                    key={def.key}
-                    className="flex flex-wrap items-center gap-3 rounded-[9px] bg-surface px-4 py-3 shadow-card"
-                  >
+                  <Row key={def.key} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                     <span className="min-w-0 flex-1">
                       <Link href={`/workflows/${def.key}`} className="block truncate text-[13px] font-medium hover:text-brand">
                         {def.name}
@@ -193,9 +186,9 @@ export default function HomePage() {
                       </span>
                     </span>
                     <Button size="sm" onClick={() => startWorkflow(def)}>開始する</Button>
-                  </li>
+                  </Row>
                 ))}
-              </ul>
+              </RowList>
             </section>
           )}
 
@@ -219,12 +212,12 @@ export default function HomePage() {
                 <Empty>他に着手できる作業はありません</Empty>
               )
             ) : (
-              <ul className="flex flex-col gap-1.5">
+              <RowList>
                 {upNext.map((a, i) => (
-                  <li key={i}>
+                  <Row key={i}>
                     <Link
                       href={a.runId && (a.kind === "step" || a.kind === "check") ? `/navigator/${a.runId}` : a.taskId ? `/tasks/${a.taskId}` : "/tasks"}
-                      className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3 hover:border-brand"
+                      className="flex items-center gap-3 px-4 py-2.5"
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-medium">{a.headline}</span>
@@ -236,9 +229,9 @@ export default function HomePage() {
                         </Badge>
                       )}
                     </Link>
-                  </li>
+                  </Row>
                 ))}
-              </ul>
+              </RowList>
             )}
           </section>
 

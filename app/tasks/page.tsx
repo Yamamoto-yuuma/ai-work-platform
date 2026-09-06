@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNow } from "@/ui/use-navigator";
 import Link from "next/link";
-import { Badge, Button, Card, Empty, PageHeader } from "@/ui/primitives";
+import { Badge, Button, Card, Empty, PageHeader, Row, RowList } from "@/ui/primitives";
 import { TaskForm } from "@/ui/task-form";
 import { DeleteTaskButton } from "@/ui/delete-task";
 import { newTaskFromDraft } from "@/core/model/task-draft";
@@ -85,20 +85,13 @@ function TasksInner() {
     const raised = nowPriority !== t.priority;
 
     return (
-      <li
-        /*
-          行は置いてある紙のように、わずかに浮かせる。
-          触れたときにもう1段だけ上げる。囲む線は引かない。
-        */
-        className={`group relative rounded-xl shadow-card transition-shadow duration-150 hover:shadow-lift ${
-          t.id === createdId
-            ? "bg-ok-soft"
-            : t.confirmationState === "proposed"
-              ? "bg-signal-soft"
-              : "bg-surface"
-        }`}
-      >
-        <Link href={`/tasks/${t.id}`} className="block px-5 py-3.5">
+      /*
+        1件ずつをカードにせず、ひと続きの面を線で切った行にする。
+        件数が増えても増えるのは線1本だけで、上から順に読み下せる。
+        状態のあるものだけ、地を淡く染める。
+      */
+      <Row tone={t.id === createdId ? "ok" : t.confirmationState === "proposed" ? "signal" : "plain"}>
+        <Link href={`/tasks/${t.id}`} className="block px-4 py-2.5">
           <span className="flex items-start gap-3">
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-1.5">
@@ -121,9 +114,10 @@ function TasksInner() {
                 <span className={raised ? "font-medium text-danger" : undefined}>
                   優先度 {priorityLabel}{raised && "（期限が近いため引き上げ）"}
                 </span>
-                <span className={isMine ? "font-medium text-brand" : undefined}>
-                  担当 {assignee?.name ?? "未割当"}{isMine && "（自分）"}
-                </span>
+                {/* 自分が担当なら出さない。他人のときだけ知る必要がある */}
+                {!isMine && (
+                  <span>担当 {assignee?.name ?? "未割当"}</span>
+                )}
               </span>
 
               {blockedBy.length > 0 && (
@@ -144,10 +138,10 @@ function TasksInner() {
           間違えて作ったタスクを片付ける入口。リンクの内側には置けないので、
           行の右下に重ねる。ふだんは薄く、行に触れたときだけはっきりさせる。
         */}
-        <span className="absolute bottom-1.5 right-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+        <span className="absolute bottom-1 right-1.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
           <DeleteTaskButton task={t} />
         </span>
-      </li>
+      </Row>
     );
   }
 
@@ -260,9 +254,9 @@ function TasksInner() {
                 </span>
               </h2>
             )}
-            <ul className="flex flex-col gap-2">
+            <RowList>
               {list.map((t) => <TaskRow key={t.id} t={t} />)}
-            </ul>
+            </RowList>
           </section>
         ))
       )}

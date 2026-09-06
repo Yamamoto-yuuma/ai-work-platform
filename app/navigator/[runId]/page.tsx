@@ -149,12 +149,16 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
             {isCanceled && <Badge tone="neutral">中止</Badge>}
             {isDone && <Badge tone="ok">完了</Badge>}
             {isWaiting && <Badge tone="signal">待ち中</Badge>}
-            <span className="text-[12.5px] text-ink-2">
-              担当：{assignee ? assignee.name : "未割当"}
-              {assignee && assignee.id === currentUser.id && (
-                <span className="ml-1 text-[11px] font-bold text-brand">（自分）</span>
-              )}
-            </span>
+            {/*
+              担当が自分のときは出さない。自分ひとりで使うものなので、
+              毎回自分の名前を読まされることに意味がない。
+              他人が担当のときだけ、知る必要があるので出す。
+            */}
+            {(!assignee || assignee.id !== currentUser.id) && (
+              <span className="text-[12.5px] text-ink-2">
+                担当：{assignee ? assignee.name : "未割当"}
+              </span>
+            )}
             {run.dueAt && (() => {
               // 終わった業務を「超過」と呼ばない。超過判定は進行中の業務だけ
               const overdue = !isFinished && new Date(run.dueAt) < now;

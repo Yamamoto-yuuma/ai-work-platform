@@ -9,7 +9,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows } from "@/ui/use-navigator";
-import { Badge, Card, Empty, PageHeader } from "@/ui/primitives";
+import { Badge, Card, Empty, PageHeader, Row, RowList } from "@/ui/primitives";
 
 const KIND_LABEL = { manual: "マニュアル", faq: "FAQ", policy: "社内ルール", material: "資料" } as const;
 const SOURCE_LABEL = { internal: "社内", gdrive: "Google Drive", notion: "Notion" } as const;
@@ -53,7 +53,7 @@ export default function KnowledgePage() {
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="キーワードで検索"
-          className="min-w-[200px] flex-1 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13px] outline-none focus:border-brand"
+          className="field min-w-[200px] flex-1"
         />
         <select
           value={kind} onChange={(e) => setKind(e.target.value)}
@@ -77,21 +77,25 @@ export default function KnowledgePage() {
       ) : filtered.length === 0 ? (
         <Empty>該当するナレッジはありません</Empty>
       ) : (
-        <ul className="flex flex-col gap-2.5">
+        <RowList>
           {filtered.map((k) => {
             const linked = workflows.filter((w) => k.linkedWorkflowKeys.includes(w.key));
             return (
-              <li key={k.id}>
-                <Card className="p-5">
+              /*
+                1件ずつをカードにせず、ひと続きの面を線で切った行にする。
+                本文は縮めない。ここは読むための画面で、詳細を開く先が無い。
+              */
+              <Row key={k.id}>
+                <div className="px-4 py-3">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h3 className="text-[14px] font-bold leading-snug">{k.title}</h3>
+                    <h3 className="text-[13.5px] font-semibold leading-snug">{k.title}</h3>
                     <div className="flex shrink-0 gap-1.5">
                       <Badge tone="neutral">{KIND_LABEL[k.kind]}</Badge>
                       <Badge tone={k.source === "internal" ? "neutral" : "brand"}>{SOURCE_LABEL[k.source]}</Badge>
                     </div>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink-2">{k.body}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line-soft pt-2.5 text-[11.5px] text-ink-3">
+                  <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink-2">{k.body}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-3">
                     <span>更新 {new Date(k.updatedAt).toLocaleDateString("ja-JP")}</span>
                     {linked.length > 0 && (
                       <span>
@@ -105,18 +109,16 @@ export default function KnowledgePage() {
                       </span>
                     )}
                   </div>
-                </Card>
-              </li>
+                </div>
+              </Row>
             );
           })}
-        </ul>
+        </RowList>
       )}
 
-      <Card className="mt-6 border-dashed p-4 text-center">
-        <p className="text-[12.5px] text-ink-3">
-          Google Drive / Notion からの取り込みは Phase 7 で接続します。現在は社内データのみを表示しています。
-        </p>
-      </Card>
+      <p className="mt-5 text-center text-[12px] text-ink-3">
+        Google Drive / Notion からの取り込みは Phase 7 で接続します。現在は社内データのみを表示しています。
+      </p>
     </div>
   );
 }

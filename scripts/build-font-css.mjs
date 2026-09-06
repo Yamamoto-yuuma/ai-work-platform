@@ -1,5 +1,5 @@
 /**
- * app/fonts.css と public/fonts/mplus-rounded/ を作り直す。
+ * app/fonts.css と public/fonts/zen-kaku/ を作り直す。
  *
  * 同梱している M PLUS Rounded 1c（SIL Open Font License 1.1）を
  * 別のバージョンに入れ替えるときだけ使う。ふだんの開発では動かさない。
@@ -13,10 +13,10 @@
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 
-const FAMILY = "M PLUS Rounded 1c";
+const FAMILY = "Zen Kaku Gothic New";
 /** 400 と 700 だけ持つ。500 は 400 で表示される */
 const WEIGHTS = [400, 700];
-const OUT_DIR = "public/fonts/mplus-rounded";
+const OUT_DIR = "public/fonts/zen-kaku";
 const OUT_CSS = "app/fonts.css";
 // woff2 の URL は、ブラウザの User-Agent で出し分けられる
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
@@ -33,9 +33,9 @@ await rm(OUT_DIR, { recursive: true, force: true });
 await mkdir(OUT_DIR, { recursive: true });
 
 const header = `/*
- * M PLUS Rounded 1c（SIL Open Font License 1.1）の読み込み。
+ * Zen Kaku Gothic New（SIL Open Font License 1.1）の読み込み。
  *
- * 外部へは読みに行かず、public/fonts に置いたものだけを使う（Phase 13）。
+ * 外部へは読みに行かず、public/fonts に置いたものだけを使う。
  * Google Fonts から読む形も試したが、回線の状態で描画が止まり、
  * 同じ検証が 1分20秒から 6分40秒まで伸びた。毎日開くものに、
  * 外側の都合で止まる要素は置かない。
@@ -59,7 +59,7 @@ for (const face of faces) {
 
   const i = seq.get(weight) ?? 0;
   seq.set(weight, i + 1);
-  const name = `mplus-${weight}-${String(i).padStart(3, "0")}.woff2`;
+  const name = `zen-${weight}-${String(i).padStart(3, "0")}.woff2`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} を取得できません: ${res.status}`);
@@ -71,7 +71,7 @@ for (const face of faces) {
     `  font-style: normal;\n` +
     `  font-weight: ${weight};\n` +
     `  font-display: swap;\n` +
-    `  src: url("/fonts/mplus-rounded/${name}") format("woff2");\n` +
+    `  src: url("/fonts/zen-kaku/${name}") format("woff2");\n` +
     `  unicode-range: ${range};\n}`,
   );
 }

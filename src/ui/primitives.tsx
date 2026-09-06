@@ -43,6 +43,36 @@ export function Card({
   );
 }
 
+/**
+ * 詰まった行の一覧。
+ *
+ * 件数の多い一覧は、1件ずつをカードにして並べない。
+ * ひと続きの白い面を細い線で切って、上から順に読めるようにする。
+ * 実際の見た目は globals.css の .rows / .row にある。
+ */
+export function RowList({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <ul className={`rows ${className}`}>{children}</ul>;
+}
+
+/** 行の地の色。ふだんは白のまま。状態があるときだけ淡い面にする */
+const ROW_TONE = {
+  plain: "",
+  signal: "bg-signal-soft",
+  danger: "bg-danger-soft",
+  ok: "bg-ok-soft",
+  sunken: "bg-surface-2",
+} as const;
+
+export function Row({
+  children, tone = "plain", className = "",
+}: {
+  children: ReactNode;
+  tone?: keyof typeof ROW_TONE;
+  className?: string;
+}) {
+  return <li className={`row group ${ROW_TONE[tone]} ${className}`}>{children}</li>;
+}
+
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-3.5 flex items-baseline justify-between gap-3">
