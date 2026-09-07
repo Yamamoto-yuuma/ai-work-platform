@@ -156,6 +156,14 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                           {s.guidance && (
                             <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">{s.guidance}</p>
                           )}
+                          {(s.followUps ?? []).length > 0 && (
+                            <p className="mt-1 text-[11.5px] text-ink-3">
+                              完了後に確認：
+                              {(s.followUps ?? [])
+                                .map((f) => `${f.label}（${f.afterDays === 0 ? "当日" : `${f.afterDays}${f.businessDaysOnly ? "営業日" : "日"}後`}）`)
+                                .join("／")}
+                            </p>
+                          )}
                           {s.preconditions && (
                             <p className="mt-1 text-[11.5px] text-ink-3">前提：{s.preconditions}</p>
                           )}

@@ -10,7 +10,7 @@
  */
 import type {
   ComparisonOp, ConditionExpr, DeadlineRule, FlowEdge, StartSchedule, StartScheduleRepeat,
-  StartTrigger, StepDefinition,
+  StartTrigger, StepDefinition, StepFollowUp,
   TaskPriority, VariableDef, WorkComponentType, WorkQuota, WorkKind,
   WorkflowDefinition, WorkflowNotes,
 } from "../model/types";
@@ -56,12 +56,25 @@ export interface FieldDraft {
   options: { value: string; label: string }[];
 }
 
+/** 「あとで見ておくこと」の入力値。日数は入力中を扱えるよう文字列で持つ */
+export interface FollowUpDraft {
+  label: string;
+  /** 完了から何日後か。空文字は 0 扱い */
+  afterDays: string;
+  businessDaysOnly: boolean;
+}
+
 export interface StepDraft {
   /** 定義内で一意。既存STEPを編集するときは変えない（実行中の業務が参照している） */
   key: string;
   title: string;
   guidance: string;
   preconditions: string;
+  /**
+   * このSTEPを終えたあとに見ておくこと。
+   * STEPにはせず、完了した時点でタスクとして切り出す。
+   */
+  followUps: FollowUpDraft[];
   componentType: WorkComponentType;
   required: boolean;
   /** 数値の文字列。空文字は未設定 */
@@ -217,6 +230,7 @@ export function emptyStepDraft(index: number): StepDraft {
     title: "",
     guidance: "",
     preconditions: "",
+    followUps: [],
     componentType: "checklist",
     required: true,
     estimatedMinutes: "",
@@ -547,6 +561,24 @@ function toQuota(q: QuotaDraft): WorkQuota | undefined {
   return { metric: q.metric, period: q.period, target, direction: q.direction };
 }
 
+/**
+ * 「あとで見ておくこと」を保存する形にする。
+ * 名前の無い行は落とす。日数が読めないものは当日扱いにする
+ * （読めない値で先の日付を作ると、いつ出るか分からなくなる）。
+ */
+function followUpsOf(s: StepDraft): StepFollowUp[] {
+  return s.followUps
+    .filter((f) => f.label.trim().length > 0)
+    .map((f) => {
+      const days = Number(f.afterDays);
+      return {
+        label: f.label.trim(),
+        afterDays: Number.isFinite(days) && days >= 0 ? Math.floor(days) : 0,
+        ...(f.businessDaysOnly ? { businessDaysOnly: true } : {}),
+      };
+    });
+}
+
 function stepConfig(s: StepDraft): Record<string, unknown> {
   // 登録画面で作りきれない部品は、元の設定をそのまま残す
   if (s.locked) return s.rawConfig;
@@ -778,6 +810,7 @@ export function compileWorkflow(input: CompileInput): WorkflowDefinition {
       ...(deadlineRule ? { deadlineRule } : {}),
       ...(s.knowledgeRefs.length > 0 ? { knowledgeRefs: s.knowledgeRefs } : {}),
       ...(s.preconditions.trim() ? { preconditions: s.preconditions.trim() } : {}),
+      ...(followUpsOf(s).length > 0 ? { followUps: followUpsOf(s) } : {}),
       ruleTags: [key],
     };
   });
@@ -927,6 +960,11 @@ export function draftFromWorkflow(def: WorkflowDefinition): WorkflowDraft {
       title: s.title,
       guidance: s.guidance ?? "",
       preconditions: s.preconditions ?? "",
+      followUps: (s.followUps ?? []).map((f) => ({
+        label: f.label,
+        afterDays: String(f.afterDays),
+        businessDaysOnly: f.businessDaysOnly === true,
+      })),
       componentType: s.componentType,
       required: s.required,
       estimatedMinutes: s.estimatedMinutes === undefined ? "" : String(s.estimatedMinutes),

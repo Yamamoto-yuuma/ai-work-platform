@@ -16,6 +16,7 @@ import { ContextPanel } from "@/ui/context-panel";
 import { Badge, Button, Card, LinkButton } from "@/ui/primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { generateStepTasks } from "@/core/task/from-step";
+import { generateFollowUpTasks } from "@/core/task/follow-up";
 import { RunCompletion } from "@/ui/run-completion";
 import { ChangeRequestPanel } from "@/ui/change-request";
 import { CancelRunPanel, CanceledRunNotice } from "@/ui/cancel-run";
@@ -123,7 +124,14 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
     const generated = generateStepTasks({
       step: stepView.step, stepRun: stepView.stepRun, run, now,
     });
-    if (generated.length > 0) dispatch({ type: "addTasks", tasks: generated });
+    /*
+      「あとで見ておくこと」を切り出す。
+      いま手を止めさせず、期日が来たら一覧に出るようにする。
+      こちらも ID は決定的なので、やり直しても積み上がらない。
+    */
+    const followUps = generateFollowUpTasks({ step: stepView.step, run, now });
+    const born = [...generated, ...followUps];
+    if (born.length > 0) dispatch({ type: "addTasks", tasks: born });
 
     setSelected(finalActivate[0] ?? null);
   }
@@ -276,6 +284,19 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   {stepView.step.preconditions && (
                     <p className="mt-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-[12px] leading-relaxed text-ink-2">
                       前提：{stepView.step.preconditions}
+                    </p>
+                  )}
+                  {/*
+                    このSTEPを終えたあとに見ておくこと。
+                    先に見せておくことで「あとで自分が思い出す」必要をなくす。
+                    いま手を止める話ではないので、注意ではなく予告として置く。
+                  */}
+                  {(stepView.step.followUps ?? []).length > 0 && (
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
+                      完了すると確認タスクが作られます：
+                      {(stepView.step.followUps ?? [])
+                        .map((f) => `${f.label}（${f.afterDays === 0 ? "当日" : `${f.afterDays}${f.businessDaysOnly ? "営業日" : "日"}後`}）`)
+                        .join("／")}
                     </p>
                   )}
                   {stepView.context.stepDeadline && (

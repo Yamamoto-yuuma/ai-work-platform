@@ -950,6 +950,76 @@ function StepDetailEditor({
         />
       </Field>
 
+      {/*
+        必ず通る手順でも、条件で分かれる道でもない作業の置き場。
+        「自動送信のあと、エラーが出ていないか見ておく」のような、
+        たぶん大丈夫だが見ておかないと事故る、たぐいのもの。
+
+        STEPにはしない。STEPにすると毎回そこで手が止まる。
+        完了した時点でタスクに切り出し、指定した日数後に一覧へ出す。
+      */}
+      <Field label="このSTEPを終えたあとに見ておくこと" hint="任意">
+        {step.followUps.length === 0 ? (
+          <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">
+            まだありません。ここに書いたものは、このSTEPを終えた時点で
+            確認タスクとして切り出され、指定した日数後に一覧へ出ます。
+          </p>
+        ) : (
+          <ul className="mb-2 flex flex-col gap-2">
+            {step.followUps.map((f, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-2">
+                <input
+                  className="field flex-1 min-w-[200px]"
+                  value={f.label}
+                  aria-label={`見ておくこと ${i + 1}`}
+                  placeholder="例：エラーが出ていないか確認する"
+                  onChange={(e) => onChange({
+                    followUps: step.followUps.map((x, j) => j === i ? { ...x, label: e.target.value } : x),
+                  })}
+                />
+                <span className="flex items-center gap-1.5 text-[12px] text-ink-2">
+                  <input
+                    type="number" min={0} max={365} inputMode="numeric"
+                    className="field field-sm w-[68px]"
+                    value={f.afterDays}
+                    aria-label={`何日後 ${i + 1}`}
+                    onChange={(e) => onChange({
+                      followUps: step.followUps.map((x, j) => j === i ? { ...x, afterDays: e.target.value } : x),
+                    })}
+                  />
+                  日後
+                </span>
+                <label className="flex items-center gap-1.5 text-[12px] text-ink-2">
+                  <input
+                    type="checkbox" checked={f.businessDaysOnly}
+                    aria-label={`営業日で数える ${i + 1}`}
+                    onChange={(e) => onChange({
+                      followUps: step.followUps.map((x, j) => j === i ? { ...x, businessDaysOnly: e.target.checked } : x),
+                    })}
+                    className="h-3.5 w-3.5 accent-[var(--color-brand)]"
+                  />
+                  営業日
+                </label>
+                <Button
+                  variant="ghost" size="sm"
+                  onClick={() => onChange({ followUps: step.followUps.filter((_, j) => j !== i) })}
+                >
+                  削除
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Button
+          variant="secondary" size="sm"
+          onClick={() => onChange({
+            followUps: [...step.followUps, { label: "", afterDays: "1", businessDaysOnly: false }],
+          })}
+        >
+          ＋ 見ておくことを追加
+        </Button>
+      </Field>
+
       <Field label="STEPの種類" required>
         {step.locked ? (
           <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">

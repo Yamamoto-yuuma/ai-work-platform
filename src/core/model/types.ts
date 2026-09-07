@@ -103,6 +103,27 @@ export interface StepDefinition {
   completionCriteria?: ConditionExpr;
   /** このSTEPに入る前に済んでいるべきこと。ナビゲーターに注意として出す */
   preconditions?: string;
+  /*
+    このSTEPを終えたあとに見ておくこと（仕様 §9-1 の拡張）。
+
+    「必ず通る手順」でも「条件で分かれる道」でもない、
+    “たぶん大丈夫だが、見ておかないと事故る” たぐいの作業を置く。
+    例：自動送信のあとに、エラーが出ていないかを翌日に確認する。
+
+    STEPにはしない。STEPにすると、毎回そこで手が止まる。
+    完了した時点でタスクとして切り出し、期日が来たら一覧に出す。
+  */
+  followUps?: StepFollowUp[];
+}
+
+/** STEP完了後の「あとで見ておくこと」 */
+export interface StepFollowUp {
+  /** 何を見るか。タスク名になる */
+  label: string;
+  /** 完了から何日後に見るか。0 なら当日 */
+  afterDays: number;
+  /** 暦日ではなく営業日で数える */
+  businessDaysOnly?: boolean;
 }
 
 export interface FlowEdge {
