@@ -11,6 +11,7 @@ import { useStore } from "@/adapters/memory/store";
 import { rankActions } from "@/core/context/next-action";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoogleAutoSync } from "./google-auto-sync";
+import { GlobalSearch } from "./global-search";
 
 const NAV = [
   { href: "/", label: "HOME", icon: "⌂" },
@@ -213,6 +214,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/settings" className="underline underline-offset-2">設定で戻す</Link>
           </div>
         )}
+        {/*
+          画面上部の帯。どの画面にいても、ここから探し始められる。
+          目的の場所へ直接飛ばすためのもので、検索結果の一覧は挟まない。
+          下の見出しの帯（TopBar）と重ならないよう、こちらが上に来る。
+        */}
+        <div className="sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-line-soft bg-paper/95 px-6 backdrop-blur-sm">
+          <GlobalSearch />
+        </div>
         <main>{children}</main>
       </div>
     </div>

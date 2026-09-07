@@ -5,8 +5,9 @@
  * この画面は「取りこぼしを拾う補助手段」であり、主導線ではない。
  * 本来は業務STEPから必要なものが提示される。
  */
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows } from "@/ui/use-navigator";
 import { Badge, Card, Cells, Empty, Row, RowHead, RowList, Tabs, TopBar } from "@/ui/primitives";
@@ -28,13 +29,21 @@ type KindKey = (typeof KINDS)[number]["key"];
 /* 見出し行と各行で同じ列幅を使う。ここがずれると表に見えなくなる */
 const TEMPLATE = "minmax(0,1fr) 100px 108px 88px";
 
-export default function KnowledgePage() {
+function KnowledgeInner() {
   const { knowledge } = useStore();
   const workflows = useWorkflows();
+  const search = useSearchParams();
   const [q, setQ] = useState("");
   const [kind, setKind] = useState<KindKey>("all");
   // 一覧から離れずに中身を読むための右パネル
   const [openId, setOpenId] = useState<string | null>(null);
+
+  /*
+    検索から直接ここへ来たとき、その1件を開いた状態で見せる。
+    一覧に着地させると、探し当てたものをもう一度探すことになる。
+  */
+  const wanted = search.get("open");
+  useEffect(() => { if (wanted) setOpenId(wanted); }, [wanted]);
 
   const filtered = knowledge.filter((k) => {
     if (kind !== "all" && k.kind !== kind) return false;
@@ -174,5 +183,13 @@ export default function KnowledgePage() {
         </Drawer>
       )}
     </div>
+  );
+}
+
+export default function KnowledgePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-[13px] text-ink-3">読み込み中…</div>}>
+      <KnowledgeInner />
+    </Suspense>
   );
 }

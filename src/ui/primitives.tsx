@@ -275,7 +275,8 @@ export function TopBar({
   children?: ReactNode;
 }) {
   return (
-    <div className="sticky top-0 z-20 -mx-6 mb-5 border-b border-line bg-paper/95 px-6 pt-4 backdrop-blur-sm">
+    /* 上の検索の帯（h-12）の下に貼り付く。重ねない */
+    <div className="sticky top-12 z-20 -mx-6 mb-5 border-b border-line bg-paper/95 px-6 pt-4 backdrop-blur-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-[17px] font-bold leading-tight tracking-tight">{title}</h1>
