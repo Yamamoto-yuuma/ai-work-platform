@@ -108,7 +108,13 @@ export function search(input: {
     hits.push({
       kind: "task", id: t.id, title: t.title,
       hint: [def?.name, finished ? "完了" : null].filter(Boolean).join("／") || undefined,
-      href: `/tasks/${t.id}`,
+      /*
+        一覧に着地して、その1件を開いた状態にする。
+        別の詳細ページへ飛ばすと、探し当てたあとに画面ごと入れ替わり、
+        続けて別のものを見たいときに戻る操作が要る。
+        一覧に居れば、閉じてそのまま次を探せる。
+      */
+      href: `/tasks?open=${encodeURIComponent(t.id)}`,
       dimmed: finished,
       score: base + (finished ? -20 : LIVE),
     });

@@ -1,7 +1,7 @@
 "use client";
 
 /** タスク一覧（仕様 §9-5）。提案中のタスクは確定済みと明確に区別する */
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNow } from "@/ui/use-navigator";
@@ -61,6 +61,22 @@ function TasksInner() {
   const [cascade, setCascade] = useState<{
     sourceTitle: string; direction: "later" | "earlier"; proposals: DeadlineProposal[];
   } | null>(null);
+
+  /*
+    検索から直接ここへ来たとき、その1件を開いた状態で見せる。
+    ついでに、その行が背後の一覧に映るビューへ移す。
+    パネルの後ろに当の行が無いと、閉じたときに行き場を見失う。
+  */
+  const wanted = search.get("open");
+  useEffect(() => {
+    if (!wanted) return;
+    setOpenId(wanted);
+    const t = state.tasks.find((x) => x.id === wanted);
+    if (t) setView(t.status === "done" ? "done" : "all");
+    // 開くのは URL が指した一度だけ。閉じたあとに開き直さないよう、
+    // タスクの中身が変わっても再実行はしない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted]);
   const now = useNow();
 
   const open = state.tasks.filter((t) => t.confirmationState !== "rejected");
