@@ -69,6 +69,20 @@ function loadGis(): Promise<void> {
  * アクセストークンを取る。
  * 一度同意していれば、次からは画面を出さずに通る（prompt を空にしている）。
  */
+/**
+ * 画面を出さずにトークンを取り直す。
+ * 一度許可していて、その端末で Google にログインしていれば黙って通る。
+ * 通らなければ何もしない（自動取り込みのために、勝手に画面を出さない）。
+ */
+export async function connectSilently(): Promise<boolean> {
+  try {
+    await connect();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function connect(): Promise<void> {
   const clientId = googleClientId();
   if (!clientId) throw new Error("Google のクライアントIDが設定されていません");

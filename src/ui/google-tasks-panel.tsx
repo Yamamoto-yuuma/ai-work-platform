@@ -5,21 +5,29 @@
  *
  * 読み取りだけ。こちらからは書き戻さない。
  * 取り込むかどうかの判断は core/integration/google-tasks.ts が持ち、
- * ここは押す入口と、結果の見せ方だけを受け持つ。
- *
- * 勝手に取り込まない。押したときだけ動く。
- * 開くたびに黙って増えていると、自分の一覧が自分のものでなくなる。
+ * 手順は services/google-import.ts にある。ここは入口と見せ方だけ。
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/adapters/memory/store";
 import { Badge, Button, Card } from "./primitives";
-import { newTaskId } from "@/lib/id";
-import { describeImport, planImport, type ImportPlan } from "@/core/integration/google-tasks";
+import { importGoogleTasks } from "@/services/google-import";
 import {
-  connect, disconnect, fetchTaskLists, fetchTasks, googleClientId, isConnected,
+  connect, disconnect, googleClientId, isConnected,
 } from "@/adapters/google/tasks";
+import {
+  isAutoSyncOn, readLastImport, rememberLastImport, setAutoSync, type LastImport,
+} from "./google-sync-prefs";
 
 type Phase = "idle" | "connecting" | "importing";
+
+function whenLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return "たった今";
+  if (mins < 60) return `${mins}分前`;
+  return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 export function GoogleTasksPanel() {
   const { state, dispatch } = useStore();
@@ -28,6 +36,15 @@ export function GoogleTasksPanel() {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [auto, setAuto] = useState(true);
+  const [last, setLast] = useState<LastImport | null>(null);
+
+  // localStorage は描画後に読む（サーバとクライアントで表示を揃えるため）
+  useEffect(() => {
+    setAuto(isAutoSyncOn());
+    setLast(readLastImport());
+    setConnected(isConnected());
+  }, []);
 
   const imported = state.tasks.filter((t) => t.external?.service === "google-tasks").length;
 
@@ -46,28 +63,16 @@ export function GoogleTasksPanel() {
   async function onImport() {
     setError(null); setResult(null); setPhase("importing");
     try {
-      const lists = await fetchTaskLists();
-      if (lists.length === 0) { setResult("Google に ToDo リストがありませんでした"); return; }
-
-      // リストごとに計画を立てて、まとめて反映する
-      const total: ImportPlan = { created: [], updated: [], untouched: 0, goneOnRemote: [] };
-      for (const list of lists) {
-        const incoming = await fetchTasks(list.id);
-        const plan = planImport({
-          incoming, listId: list.id, existing: state.tasks,
-          assigneeId: state.currentUserId, now: new Date(), newId: newTaskId,
-        });
-        total.created.push(...plan.created);
-        total.updated.push(...plan.updated);
-        total.untouched += plan.untouched;
-        total.goneOnRemote.push(...plan.goneOnRemote);
-      }
-
-      if (total.created.length > 0) dispatch({ type: "addTasks", tasks: total.created });
-      for (const u of total.updated) {
+      const r = await importGoogleTasks({
+        existing: state.tasks, assigneeId: state.currentUserId, now: new Date(),
+      });
+      if (r.plan.created.length > 0) dispatch({ type: "addTasks", tasks: r.plan.created });
+      for (const u of r.plan.updated) {
         dispatch({ type: "updateTask", taskId: u.taskId, patch: u.patch });
       }
-      setResult(`${lists.length}件のリストから：${describeImport(total)}`);
+      rememberLastImport(r.message);
+      setLast(readLastImport());
+      setResult(r.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : "取り込めませんでした");
       setConnected(isConnected());
@@ -105,8 +110,26 @@ export function GoogleTasksPanel() {
       </div>
       <p className="mt-1.5 text-[12px] leading-relaxed text-ink-2">
         Google の ToDo リストをこちらのタスク一覧に取り込みます。読み取りだけで、
-        こちらの変更が Google に書き戻ることはありません。押したときだけ取り込みます。
+        こちらの変更が Google に書き戻ることはありません。
       </p>
+
+      {/*
+        自動取り込みの入り切り。
+        アプリを開いているあいだだけ動く。閉じているあいだは動かない。
+      */}
+      <label className="mt-3 flex cursor-pointer items-start gap-2">
+        <input
+          type="checkbox" checked={auto}
+          onChange={(e) => { setAuto(e.target.checked); setAutoSync(e.target.checked); }}
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[var(--color-brand)]"
+        />
+        <span className="text-[12.5px] leading-relaxed">
+          自動で取り込む
+          <span className="ml-1.5 text-[11.5px] text-ink-3">
+            この画面を開いたときと、開いているあいだ10分ごと。閉じているあいだは動きません
+          </span>
+        </span>
+      </label>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!connected ? (
@@ -126,6 +149,9 @@ export function GoogleTasksPanel() {
             </Button>
           </>
         )}
+        {last && !result && !error && (
+          <span className="text-[11.5px] text-ink-3">最終取り込み {whenLabel(last.at)}</span>
+        )}
       </div>
 
       {result && (
@@ -133,6 +159,10 @@ export function GoogleTasksPanel() {
       )}
       {error && (
         <p className="mt-2.5 rounded-lg bg-danger-soft px-3 py-2 text-[12px] text-danger">{error}</p>
+      )}
+      {/* 自動で取り込んだ結果も、あとから確かめられるようにしておく */}
+      {last && !result && !error && (
+        <p className="mt-2.5 text-[11.5px] text-ink-3">{last.message}</p>
       )}
 
       <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-3">

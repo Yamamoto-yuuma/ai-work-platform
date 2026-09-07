@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { rankActions } from "@/core/context/next-action";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GoogleAutoSync } from "./google-auto-sync";
 
 const NAV = [
   { href: "/", label: "HOME", icon: "⌂" },
@@ -80,6 +81,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      {/*
+        Google ToDo リストの自動取り込み。画面には何も出さない。
+        クライアントIDが設定されていなければ、通信もしない。
+      */}
+      <GoogleAutoSync />
       {/*
         左レーン。白で通す。
         紙面よりわずかに明るい純白にして、色ではなく面の違いと細い線で
