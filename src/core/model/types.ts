@@ -556,6 +556,13 @@ export interface KnowledgeItem {
   linkedStepKeys: string[];
   linkedWorkflowKeys: string[];
   updatedAt: string;
+  /*
+    置き場所。「テンプレはどこにあるか」を残すための欄。
+    URL でも、共有フォルダのパスでも、棚の場所でもよい。
+    http(s) のときだけ開ける形にして、それ以外は写せる文字として出す。
+    形式を縛ると、書けないものが出てきて結局どこにも残らない。
+  */
+  location?: string;
 }
 
 export interface EmailTemplate {

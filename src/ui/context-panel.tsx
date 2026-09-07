@@ -7,6 +7,7 @@
  */
 import Link from "next/link";
 import type { StepContext } from "@/core/model/types";
+import { KnowledgeLocation } from "./knowledge-location";
 import { Badge, Button } from "./primitives";
 
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
@@ -127,7 +128,12 @@ export function ContextPanel({
                       {k.title}
                       <span className="ml-1.5 text-[11px] text-ink-3 group-open:hidden">開く</span>
                     </summary>
-                    <p className="whitespace-pre-wrap border-t border-line px-3 py-2 text-[12px] leading-relaxed text-ink-2">{k.body}</p>
+                    <div className="border-t border-line px-3 py-2">
+                      {k.body && (
+                        <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-ink-2">{k.body}</p>
+                      )}
+                      <KnowledgeLocation location={k.location} />
+                    </div>
                   </details>
                 </li>
               ))}

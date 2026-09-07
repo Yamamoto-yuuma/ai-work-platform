@@ -139,12 +139,15 @@ export function search(input: {
     const base = Math.max(
       match(k.title, q),
       match(k.body, q) * 0.5,
+      // 置き場所そのもので探すことがある（ファイル名・フォルダ名を覚えている）
+      match(k.location ?? "", q) * 0.6,
       Math.max(0, ...k.tags.map((tag) => match(tag, q) * 0.7)),
     );
     if (base === 0) continue;
     hits.push({
       kind: "knowledge", id: k.id, title: k.title,
-      hint: undefined,
+      // 探している理由がだいたい在り処なので、開く前に見せる
+      hint: k.location,
       href: `/knowledge?open=${encodeURIComponent(k.id)}`,
       score: base,
     });

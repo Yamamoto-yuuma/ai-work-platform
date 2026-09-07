@@ -59,6 +59,14 @@ export type Action =
   | { type: "setStepDraft"; runId: string; stepKey: string; output?: Record<string, unknown>; checklist?: Record<string, boolean> }
   | { type: "startRun"; run: WorkRun; stepRuns: StepRun[] }
   | { type: "addTasks"; tasks: Task[] }
+  /*
+    ナレッジの追加・書き換え・削除。
+    「テンプレはどこにあるか」を自分で残せるようにするための操作。
+    業務の進行（Run / StepRun）には触れない。
+  */
+  | { type: "addKnowledge"; item: KnowledgeItem }
+  | { type: "updateKnowledge"; id: string; patch: Partial<KnowledgeItem> }
+  | { type: "deleteKnowledge"; id: string }
   | { type: "confirmTasks"; taskIds: string[] }
   | { type: "rejectTasks"; taskIds: string[] }
   | { type: "updateTask"; taskId: string; patch: Partial<Task> }
@@ -294,6 +302,28 @@ function reducer(state: AppState, action: Action): AppState {
       const existing = new Set(state.tasks.map((t) => t.id));
       return { ...state, tasks: [...state.tasks, ...action.tasks.filter((t) => !existing.has(t.id))] };
     }
+
+    case "addKnowledge":
+      // 同じ id は取り込まない（addTasks と同じ扱い）
+      return state.knowledge.some((k) => k.id === action.item.id)
+        ? state
+        : { ...state, knowledge: [action.item, ...state.knowledge] };
+
+    case "updateKnowledge":
+      return {
+        ...state,
+        knowledge: state.knowledge.map((k) =>
+          k.id === action.id ? { ...k, ...action.patch, updatedAt: new Date().toISOString() } : k,
+        ),
+      };
+
+    case "deleteKnowledge":
+      /*
+        業務やSTEPからの参照（knowledgeRefs）はここでは触らない。
+        参照先が無いときは、コンテキストパネル側が黙って出さない作りになっている。
+        定義を書き換えると、消しただけのつもりで業務の中身が変わってしまう。
+      */
+      return { ...state, knowledge: state.knowledge.filter((k) => k.id !== action.id) };
 
     case "confirmTasks":
       return {

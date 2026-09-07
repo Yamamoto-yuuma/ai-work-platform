@@ -20,3 +20,8 @@ export function createId(prefix: string): string {
 export function newTaskId(): string {
   return createId("task");
 }
+
+/** 自分で書いたナレッジの ID */
+export function newKnowledgeId(): string {
+  return createId("kn");
+}

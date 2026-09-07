@@ -12,6 +12,7 @@ import { getComponentSpec } from "@/components-registry/registry";
 import { readTemplates, isTemplateSelected, resolveTemplateDue } from "@/core/task/from-step";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { resolveEmailDraft } from "@/core/message/email-draft";
+import { KnowledgeLocation } from "./knowledge-location";
 import { getStep, orderedSteps } from "@/core/flow/engine";
 
 export interface StepRendererProps {
@@ -504,7 +505,10 @@ function KnowledgeViewRenderer({ step }: StepRendererProps) {
       {items.map((k) => (
         <div key={k.id} className="rounded-lg border border-line-soft bg-surface p-4 shadow-card">
           <h4 className="mb-1.5 text-[13px] font-bold">{k.title}</h4>
-          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">{k.body}</p>
+          {k.body && (
+            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">{k.body}</p>
+          )}
+          <KnowledgeLocation location={k.location} />
         </div>
       ))}
     </div>
