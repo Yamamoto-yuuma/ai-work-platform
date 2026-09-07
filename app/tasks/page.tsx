@@ -31,6 +31,12 @@ const VIEWS = [
   { key: "derived", label: "派生別" },
   { key: "proposed", label: "提案中" },
   { key: "all", label: "すべて" },
+  /*
+    終わったものの置き場。
+    完了したタスクは他のどのビューにも出さない（下の filtered 参照）。
+    消してしまうのではなく、ここに寄せて後から見返せるようにする。
+  */
+  { key: "done", label: "完了" },
 ] as const;
 
 type ViewKey = (typeof VIEWS)[number]["key"];
@@ -42,6 +48,8 @@ function TasksInner() {
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [creating, setCreating] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  // 完了にすると行が一覧から消える。消えたことと戻し方をその場に出す
+  const [justDone, setJustDone] = useState<{ id: string; title: string } | null>(null);
   // 一覧から離れずに中身を見るための右パネル。開いているタスクのid
   const [openId, setOpenId] = useState<string | null>(null);
   // パネルの中で直したいときがある。開き直させない
@@ -56,6 +64,13 @@ function TasksInner() {
   const proposed = open.filter((t) => t.confirmationState === "proposed");
 
   const filtered = open.filter((t) => {
+    /*
+      終わったものは、抱えている仕事の一覧に混ぜない。
+      済んだ行が残っていると、件数も画面の高さも「まだやること」を
+      表さなくなる。見返したいときは「完了」に寄せてある。
+    */
+    if (view === "done") return t.status === "done";
+    if (t.status === "done") return false;
     if (view === "proposed") return t.confirmationState === "proposed";
     if (t.confirmationState === "proposed") return false;
     const u = urgencyOf(t.dueAt, now);
@@ -104,10 +119,16 @@ function TasksInner() {
 
   /** その場で終わらせる。完了と未着手のあいだだけを行き来する */
   function toggleDone(t: Task) {
+    const nextDone = t.status !== "done";
     dispatch({
       type: "updateTask", taskId: t.id,
-      patch: { status: t.status === "done" ? "todo" : "done" },
+      patch: { status: nextDone ? "done" : "todo" },
     });
+    /*
+      完了にすると、その行は「完了」以外のビューから消える。
+      黙って消えると取り消せないので、消えたことと戻し方をその場に残す。
+    */
+    setJustDone(nextDone && view !== "done" ? { id: t.id, title: t.title } : null);
   }
 
   function TaskRow({ t }: { t: Task }) {
@@ -241,7 +262,7 @@ function TasksInner() {
               count: v.key === "proposed" ? proposed.length : undefined,
             }))}
             value={view}
-            onChange={setView}
+            onChange={(v) => { setView(v); setJustDone(null); }}
           />
           <label className="mb-2 flex shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-ink-3">
             担当者
@@ -277,6 +298,32 @@ function TasksInner() {
           }}
           onCancel={() => setCreating(false)}
         />
+      )}
+
+      {/* 完了にした直後だけ出す。押し間違えても1回で戻せるようにする */}
+      {justDone && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg bg-ok-soft px-4 py-2.5">
+          <span className="text-[12.5px] font-medium text-ok">
+            「{justDone.title}」を完了にしました
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              dispatch({ type: "updateTask", taskId: justDone.id, patch: { status: "todo" } });
+              setJustDone(null);
+            }}
+            className="text-[12.5px] text-brand hover:underline"
+          >
+            元に戻す
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("done")}
+            className="text-[12.5px] text-ink-3 hover:text-ink hover:underline"
+          >
+            完了したタスクを見る →
+          </button>
+        </div>
       )}
 
       {createdId && !creating && (

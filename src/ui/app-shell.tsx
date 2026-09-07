@@ -81,13 +81,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/*
-        左レーン。ここだけ濃い紺で沈める。
-        右の白が作業面、左の紺が移動するための場所、と明度で分ける。
-        地には光の滲みを敷いている（rail-wash）。滲みは ::before に
-        あるので、中身は relative で上に重ねる。
+        左レーン。白で通す。
+        紙面よりわずかに明るい純白にして、色ではなく面の違いと細い線で
+        本文と分ける。地には淡い滲みを敷いている（rail-wash）。
+        滲みは ::before にあるので、中身は relative で上に重ねる。
       */}
       <nav
-        className={`rail-wash sticky top-0 flex h-screen w-[76px] shrink-0 flex-col items-center overflow-hidden py-4 text-rail-ink ${wide}`}
+        className={`rail-wash sticky top-0 flex h-screen w-[76px] shrink-0 flex-col items-center overflow-hidden border-r border-line-soft py-4 text-rail-ink ${wide}`}
         aria-label="メインナビゲーション"
       >
         <div className={`relative mb-4 flex w-full items-center gap-1 ${collapsed ? "md:flex-col md:gap-1.5" : ""}`}>
@@ -97,11 +97,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           */}
           <Link href="/" title="AI WORK HUB" className={collapsed ? "" : "min-w-0 px-2 md:px-2.5"}>
             {collapsed ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-[11px] font-bold tracking-tight text-rail-ink">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-[11px] font-bold tracking-tight text-brand-ink">
                 AI
               </span>
             ) : (
-              <span className="block whitespace-nowrap text-[11px] font-bold leading-tight tracking-tight text-rail-ink">
+              <span className="block whitespace-nowrap text-[11px] font-bold leading-tight tracking-tight text-brand">
                 AI WORK HUB
               </span>
             )}
@@ -113,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
             aria-expanded={!collapsed}
             title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
-            className={`hidden shrink-0 rounded-[9px] py-1 text-[13px] leading-none text-rail-ink-2 transition-colors hover:bg-white/10 hover:text-rail-ink md:block ${
+            className={`hidden shrink-0 rounded-[9px] py-1 text-[13px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-2 md:block ${
               collapsed ? "px-2" : "ml-auto px-2"
             }`}
           >
@@ -136,8 +136,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 title={item.label}
                 className={`flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[13px] transition-[background-color,color,box-shadow] duration-150 ${
                   active
-                    ? "bg-white/12 font-semibold text-white"
-                    : "font-medium text-rail-ink-2 hover:bg-white/[0.07] hover:text-rail-ink"
+                    ? "bg-brand-soft font-semibold text-brand-ink"
+                    : "font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
                 }`}
               >
                 <span className="w-4 shrink-0 text-center text-[15px] leading-none">{item.icon}</span>
@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="relative hidden w-full shrink-0 border-t border-rail-line pt-3 md:block" ref={menuRef}>
           {overdueCount > 0 && !collapsed && (
-            <div className="mb-2 rounded-lg bg-white/[0.07] px-2.5 py-1.5 text-[11px] font-medium text-rail-danger">
+            <div className="mb-2 rounded-lg bg-danger-soft px-2.5 py-1.5 text-[11px] font-medium text-danger">
               期限超過 {overdueCount}件
             </div>
           )}
@@ -183,7 +183,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             title="設定を開く"
-            className={`flex w-full items-center gap-2 rounded-[9px] py-2 text-left text-rail-ink-2 transition-colors hover:bg-white/[0.07] hover:text-rail-ink ${
+            className={`flex w-full items-center gap-2 rounded-[9px] py-2 text-left text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink ${
               collapsed ? "justify-center px-1" : "px-2.5"
             }`}
           >
