@@ -11,7 +11,9 @@ import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
 import { TaskForm } from "@/ui/task-form";
-import { TASK_PRIORITIES, patchFromDraft } from "@/core/model/task-draft";
+import { TASK_PRIORITIES, patchFromDraft, describeTaskRepeat } from "@/core/model/task-draft";
+import { completeTaskEffects } from "@/core/task/repeat";
+import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT } from "@/core/model/task-labels";
 import { blockingPredecessors, effectiveStatus, releasedOnComplete, directDependents } from "@/core/task/dependency";
 import { proposeDependentDeadlines, shiftDirection, type DeadlineProposal } from "@/core/schedule/cascade";
@@ -93,6 +95,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         </Badge>
         {task.source === "derived" && <Badge tone="ai">派生タスク</Badge>}
         {task.source === "manual" && <Badge>手動作成</Badge>}
+        {/* 繰り返しは、期限と並べて見えるところに置く。次がいつ来るかの前提になる */}
+        {task.repeat && <Badge tone="brand">繰り返し {describeTaskRepeat(task.repeat)}</Badge>}
         {task.source === "flow" && <Badge tone="brand">業務フロー由来</Badge>}
         {task.dueAt ? (
           <Badge tone={urgencyOf(task.dueAt, now) === "overdue" ? "danger" : "brand"}>
@@ -293,7 +297,12 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {task.confirmationState === "confirmed" && task.status !== "done" && (
-          <Button onClick={() => dispatch({ type: "updateTask", taskId: task.id, patch: { status: "done" } })}>
+          <Button onClick={() => {
+            /* 繰り返しなら次の1件が生まれる。一覧から完了にしたときと同じ判断を通す */
+            const { patch, created } = completeTaskEffects({ task, now, newId: newTaskId });
+            if (created) dispatch({ type: "addTasks", tasks: [created] });
+            dispatch({ type: "updateTask", taskId: task.id, patch });
+          }}>
             このタスクを完了にする
             {released.length > 0 && `（${released.length}件が着手可能になります）`}
           </Button>

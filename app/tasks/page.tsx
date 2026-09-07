@@ -14,7 +14,8 @@ import { TaskForm } from "@/ui/task-form";
 import { DeadlineCascadePanel } from "@/ui/deadline-cascade";
 import { proposeDependentDeadlines, shiftDirection, type DeadlineProposal } from "@/core/schedule/cascade";
 import { DeleteTaskButton } from "@/ui/delete-task";
-import { newTaskFromDraft, patchFromDraft } from "@/core/model/task-draft";
+import { newTaskFromDraft, patchFromDraft, describeTaskRepeat } from "@/core/model/task-draft";
+import { completeTaskEffects, reopenTaskEffects } from "@/core/task/repeat";
 import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
@@ -49,7 +50,9 @@ function TasksInner() {
   const [creating, setCreating] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   // 完了にすると行が一覧から消える。消えたことと戻し方をその場に出す
-  const [justDone, setJustDone] = useState<{ id: string; title: string } | null>(null);
+  const [justDone, setJustDone] = useState<
+    { id: string; title: string; nextDueAt?: string } | null
+  >(null);
   // 一覧から離れずに中身を見るための右パネル。開いているタスクのid
   const [openId, setOpenId] = useState<string | null>(null);
   // パネルの中で直したいときがある。開き直させない
@@ -117,18 +120,33 @@ function TasksInner() {
     ? "20px minmax(0,1fr) 92px 72px 92px 104px 58px"
     : "20px minmax(0,1fr) 92px 72px 92px 58px";
 
+  /**
+   * 完了に戻す。
+   * 繰り返しで湧いた次の1件が手つかずなら、それも一緒に引き取る
+   * （判断は core/task/repeat.ts に置き、詳細画面と同じ結果になるようにする）。
+   */
+  function reopen(t: Task) {
+    const { patch, removeTaskId } = reopenTaskEffects({ task: t, allTasks: state.tasks });
+    dispatch({ type: "updateTask", taskId: t.id, patch });
+    if (removeTaskId) dispatch({ type: "deleteTask", taskId: removeTaskId });
+    setJustDone(null);
+  }
+
   /** その場で終わらせる。完了と未着手のあいだだけを行き来する */
   function toggleDone(t: Task) {
-    const nextDone = t.status !== "done";
-    dispatch({
-      type: "updateTask", taskId: t.id,
-      patch: { status: nextDone ? "done" : "todo" },
-    });
+    if (t.status === "done") { reopen(t); return; }
+
+    // 繰り返しなら、ここで次の1件が生まれる
+    const { patch, created } = completeTaskEffects({ task: t, now, newId: newTaskId });
+    if (created) dispatch({ type: "addTasks", tasks: [created] });
+    dispatch({ type: "updateTask", taskId: t.id, patch });
     /*
       完了にすると、その行は「完了」以外のビューから消える。
       黙って消えると取り消せないので、消えたことと戻し方をその場に残す。
     */
-    setJustDone(nextDone && view !== "done" ? { id: t.id, title: t.title } : null);
+    setJustDone(view !== "done"
+      ? { id: t.id, title: t.title, nextDueAt: created?.dueAt }
+      : null);
   }
 
   function TaskRow({ t }: { t: Task }) {
@@ -184,6 +202,16 @@ function TasksInner() {
             {t.source === "manual" && <Badge>{TASK_SOURCE_LABEL.manual}</Badge>}
             {t.source === "flow" && <Badge tone="brand">{TASK_SOURCE_LABEL.flow}</Badge>}
             {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
+            {/* 繰り返しは印だけ。周期そのものは列を1本増やすほどの情報ではない */}
+            {t.repeat && (
+              <span
+                aria-label={`繰り返し：${describeTaskRepeat(t.repeat)}`}
+                title={`${describeTaskRepeat(t.repeat)}に繰り返します`}
+                className="shrink-0 text-[12px] leading-none text-ink-3"
+              >
+                ↻
+              </span>
+            )}
           </span>
 
           {/* 期限は日付そのものより「あとどれだけか」を出す。急ぎだけ色を差す */}
@@ -305,12 +333,21 @@ function TasksInner() {
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg bg-ok-soft px-4 py-2.5">
           <span className="text-[12.5px] font-medium text-ok">
             「{justDone.title}」を完了にしました
+            {/* 繰り返しなら、次がいつ来るかまで言う。黙って湧かせない */}
+            {justDone.nextDueAt && (
+              <>
+                。次回分（
+                {new Date(justDone.nextDueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
+                ）を作りました
+              </>
+            )}
           </span>
           <button
             type="button"
             onClick={() => {
-              dispatch({ type: "updateTask", taskId: justDone.id, patch: { status: "todo" } });
-              setJustDone(null);
+              const t = state.tasks.find((x) => x.id === justDone.id);
+              if (t) reopen(t);
+              else setJustDone(null);
             }}
             className="text-[12.5px] text-brand hover:underline"
           >
@@ -523,6 +560,12 @@ function TasksInner() {
             </span>
           </Line>
           <Line k="優先度">{priorityLabel}</Line>
+          {task.repeat && (
+            <Line k="繰り返し">
+              {describeTaskRepeat(task.repeat)}
+              <span className="ml-1.5 text-[11.5px] text-ink-3">完了にすると次の1件が作られます</span>
+            </Line>
+          )}
           {task.assigneeId !== state.currentUserId && (
             <Line k="担当">{assignee?.name ?? "未割当"}</Line>
           )}

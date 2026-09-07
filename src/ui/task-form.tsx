@@ -9,8 +9,9 @@
 import { useState } from "react";
 import type { Task, User } from "@/core/model/types";
 import {
-  TASK_PRIORITIES, TITLE_MAX, DESCRIPTION_MAX,
-  draftFromTask, emptyTaskDraft, isDirty, validateTaskDraft,
+  TASK_PRIORITIES, TASK_REPEAT_CHOICES, TITLE_MAX, DESCRIPTION_MAX,
+  describeTaskRepeat, draftFromTask, emptyTaskDraft, isDirty,
+  repeatFromDraft, validateTaskDraft,
   type TaskDraft, type TaskDraftError,
 } from "@/core/model/task-draft";
 import { Button, Card } from "./primitives";
@@ -24,6 +25,8 @@ function formatJaDate(value: string): string {
 
 const INPUT =
   "w-full rounded-lg border bg-surface px-3 py-2 text-[13px] outline-none transition-colors focus:border-brand";
+
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 function Field({
   label, required, error, hint, hintTone, children,
@@ -167,6 +170,72 @@ export function TaskForm({
             </select>
           </Field>
         </div>
+
+        {/*
+          繰り返し。
+          次の1件は「完了にした時」に作る。先の分まで並べない。
+          言葉は業務の開始スケジュールと揃えてある（毎日／毎週／毎月）。
+        */}
+        <Field label="繰り返し" error={errorOf("repeatWeekdays") ?? errorOf("repeatMonthDay")}>
+          <div className="grid gap-1.5 sm:grid-cols-5">
+            {TASK_REPEAT_CHOICES.map((c) => (
+              <button
+                key={c.value} type="button"
+                aria-pressed={draft.repeatKind === c.value}
+                onClick={() => set("repeatKind", c.value)}
+                className={`px-3 py-1.5 text-left text-[12px] font-medium ${
+                  draft.repeatKind === c.value ? "pick-on" : "pick"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+
+          {draft.repeatKind === "weekly" && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {WEEKDAYS.map((w, i) => {
+                const on = draft.repeatWeekdays.includes(i);
+                return (
+                  <button
+                    key={i} type="button" aria-pressed={on} aria-label={`${w}曜日`}
+                    onClick={() => set("repeatWeekdays",
+                      on ? draft.repeatWeekdays.filter((x) => x !== i) : [...draft.repeatWeekdays, i])}
+                    className={`h-9 w-9 text-[12.5px] font-medium ${on ? "pick-on" : "pick"}`}
+                  >
+                    {w}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {draft.repeatKind === "monthly-day" && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[12.5px] text-ink-2">毎月</span>
+              <input
+                type="number" min={1} max={31} inputMode="numeric"
+                value={draft.repeatMonthDay}
+                onChange={(e) => set("repeatMonthDay", e.target.value)}
+                aria-label="繰り返す日"
+                className="field field-sm w-[72px]"
+              />
+              <span className="text-[12.5px] text-ink-2">日</span>
+              {/* 無い日を指定したときに黙って飛ばさないことを、その場で伝える */}
+              {Number(draft.repeatMonthDay) > 28 && (
+                <span className="text-[11.5px] text-ink-3">
+                  その月に無い日は月末に寄せます
+                </span>
+              )}
+            </div>
+          )}
+
+          <p className="mt-1.5 text-[11.5px] text-ink-3">
+            {draft.repeatKind === "none"
+              ? "繰り返しません"
+              : `${describeTaskRepeat(repeatFromDraft(draft))}。完了にすると、次の1件が作られます`}
+          </p>
+        </Field>
       </div>
 
       {errors.length > 0 && (

@@ -30,4 +30,6 @@ export const TASK_SOURCE_LABEL: Record<TaskSource, string> = {
   "derived": "派生",
   "ai": "AI",
   "schedule": "定期",
+  // 外から取り込んだもの。どこから来たかは詳細で示す
+  "external": "連携",
 };

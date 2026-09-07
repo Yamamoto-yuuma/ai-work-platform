@@ -374,7 +374,7 @@ export interface ChangeEvent {
 
 export type TaskStatus = "todo" | "doing" | "blocked" | "waiting-approval" | "done" | "canceled";
 export type TaskPriority = "low" | "normal" | "high" | "urgent";
-export type TaskSource = "manual" | "flow" | "derived" | "ai" | "schedule";
+export type TaskSource = "manual" | "flow" | "derived" | "ai" | "schedule" | "external";
 /** 自動生成は proposed を経由する（仕様 §9-3 / §10-6） */
 export type ConfirmationState = "confirmed" | "proposed" | "rejected";
 export type ImpactLayer = "direct" | "indirect" | "check";
@@ -399,6 +399,37 @@ export interface Task {
   impactLayer?: ImpactLayer;
   dependsOn: string[];
   createdAt: string;
+  /*
+    繰り返し。業務の開始スケジュールと同じ語彙を使う。
+    次の1件は完了にした時に作る（core/task/repeat.ts）。
+    先の分まで作り置きしない。並べると、いま抱えている量が分からなくなる。
+  */
+  repeat?: StartScheduleRepeat;
+  /** 完了時に作った次の1件。同じタスクから2件目を作らないための目印 */
+  repeatNextTaskId?: string;
+  /** どの回から生まれたか。ひとつ前をたどれるようにしておく */
+  repeatFromTaskId?: string;
+  /*
+    外から取り込んだタスク（Google ToDo リストなど）。
+    向こうで作られたものなので、こちらでは持ち主を名乗らない。
+    externalUpdatedAt は「前回取り込んだ時点の、向こうの更新時刻」。
+    これがあるので、向こうが動いていないのにこちらの変更を
+    上書きしてしまう、という事故を防げる。
+  */
+  external?: ExternalOrigin;
+}
+
+/** 取り込み元。いまは Google ToDo リストだけ */
+export interface ExternalOrigin {
+  service: "google-tasks";
+  /** 向こうでの id。取り込み直しても二重に増やさないための鍵 */
+  id: string;
+  /** 向こうのリスト（ToDo リストは複数持てる） */
+  listId: string;
+  /** 前回取り込んだ時点の、向こうの更新時刻（RFC3339） */
+  updatedAt: string;
+  /** 向こうの画面で開くための入口 */
+  url?: string;
 }
 
 // ---------------------------------------------------------------------------

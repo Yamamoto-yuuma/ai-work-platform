@@ -7,6 +7,7 @@ import { useStore, clearStorage, hasSampleData } from "@/adapters/memory/store";
 import { allComponentSpecs } from "@/components-registry/registry";
 import { isRuleActive } from "@/core/rules/resolver";
 import { Badge, Button, Card, PageHeader } from "@/ui/primitives";
+import { GoogleTasksPanel } from "@/ui/google-tasks-panel";
 
 const ROLE_LABEL = { executor: "実行者", designer: "業務設計者", admin: "管理者", viewer: "閲覧者" } as const;
 
@@ -154,6 +155,8 @@ export default function SettingsPage() {
       <section className="mb-7">
         <h2 className="mb-3 text-[13px] font-bold">外部連携</h2>
         <div className="flex flex-col gap-2">
+          {/* 実際に繋がるものを先に置く。予定のものと同じ並びに埋めない */}
+          <GoogleTasksPanel />
           {integrations.map((i) => (
             <Card key={i.key} className="flex flex-wrap items-center gap-3 p-4">
               <div className="min-w-0 flex-1">
