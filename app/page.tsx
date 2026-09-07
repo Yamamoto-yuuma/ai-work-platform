@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNextAction, useNow, useStartableToday, useWorkflows } from "@/ui/use-navigator";
-import { Badge, Button, Card, LinkButton, Row, RowList, SectionTitle, Empty } from "@/ui/primitives";
+import { Badge, Button, Card, LinkButton, Row, RowList, SectionTitle, TopBar, Empty } from "@/ui/primitives";
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
@@ -76,20 +76,18 @@ export default function HomePage() {
     : "/workflows";
 
   return (
-    <div className="mx-auto max-w-[1180px] px-6 py-6">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[12px] text-ink-3">
-            {now.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
-          </p>
-          {/* 自分ひとりで使うものなので、自分の名前は出さない */}
-          <h1 className="mt-0.5 text-xl font-bold tracking-tight">今日やること</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <LinkButton href="/workflows/new" variant="secondary">＋ 業務を登録</LinkButton>
-          <LinkButton href="/workflows">＋ 新しい業務を開始</LinkButton>
-        </div>
-      </header>
+    <div className="mx-auto max-w-[1180px] px-6 pb-8">
+      {/* 自分ひとりで使うものなので、自分の名前は出さない */}
+      <TopBar
+        title="今日やること"
+        description={now.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <LinkButton href="/workflows/new" variant="secondary">＋ 業務を登録</LinkButton>
+            <LinkButton href="/workflows">＋ 新しい業務を開始</LinkButton>
+          </div>
+        }
+      />
 
       {/* 最上部：今やるべき唯一のこと */}
       <Link href={nextHref} className="mb-5 block">

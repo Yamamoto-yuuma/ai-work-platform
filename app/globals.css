@@ -235,9 +235,95 @@ body {
     background: var(--color-surface);
     box-shadow: var(--shadow-card);
   }
-  .rows > * + * { border-top: 1px solid var(--color-line-soft); }
+  /* 仕切るのは行と行のあいだだけ。見出し行は自分で下線を持つ */
+  .rows > .row + .row { border-top: 1px solid var(--color-line-soft); }
   .row { position: relative; transition: background-color .12s ease; }
   .row:hover { background: color-mix(in srgb, var(--color-surface-2) 62%, var(--color-surface)); }
+
+  /*
+    ── 表としての一覧 ────────────────────────────────────
+    行の中身を、折り返す文章ではなく「列」にする。
+    同じ種類の値が縦に揃っていると、目が横に読まずに縦に走るので、
+    件数が増えるほど速く読める。表計算の画面が速いのと同じ理屈。
+
+    見出し行と各行は同じ列幅を共有する。幅は画面ごとに決まるので、
+    ここでは並べ方だけを持ち、実際の列幅は各画面から渡す。
+  */
+  .cells {
+    display: grid;
+    align-items: center;
+    gap: 0.75rem;
+    /*
+      行の高さは、中に入る一番背の高いもの（触れたときに出る操作）で決まる。
+      余白を詰めて、1画面に入る件数を増やす。
+    */
+    padding: 0.375rem 1rem;
+    min-height: 38px;
+  }
+  .row-head {
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-surface-2);
+    padding-top: 0.4375rem;
+    padding-bottom: 0.4375rem;
+    min-height: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--color-ink-3);
+  }
+  /* 表の中の値。数字と日付は右に寄せず、桁だけ揃える */
+  .cell-num { font-variant-numeric: tabular-nums; }
+  /* 入りきらない文字は、折り返さずに切る。折り返すと行の高さが揃わない */
+  .cell-clip { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /*
+    ── 丸いチェック ──────────────────────────────────────
+    一覧のその場で終わらせられるようにする。
+    ふだんは細い輪だけ。触れると輪郭が濃くなり、
+    済んだものは緑の面に変わる。
+  */
+  .check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 9999px;
+    border: 1.5px solid var(--color-line);
+    background: var(--color-surface);
+    color: transparent;
+    transition: border-color .12s ease, background-color .12s ease, color .12s ease;
+  }
+  .check:hover { border-color: var(--color-ok); color: var(--color-ok); }
+  .check-on {
+    border-color: var(--color-ok);
+    background: var(--color-ok);
+    color: #fff;
+  }
+  .check:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+  /*
+    ── 右から出る詳細 ────────────────────────────────────
+    一覧から離れずに中身を見られるようにする。
+    画面を移ると、どこを見ていたかを毎回思い出すことになる。
+  */
+  .drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(440px, 100vw);
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-pop);
+    animation: drawer-in .16s ease-out;
+  }
+  @keyframes drawer-in { from { transform: translateX(12px); opacity: .6; } to { transform: none; opacity: 1; } }
+  .drawer-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(20, 24, 29, 0.14);
+  }
 
   /* STEPレールの縦線 */
   .rail-line::before {

@@ -9,16 +9,32 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows } from "@/ui/use-navigator";
-import { Badge, Card, Empty, PageHeader, Row, RowList } from "@/ui/primitives";
+import { Badge, Card, Cells, Empty, Row, RowHead, RowList, Tabs, TopBar } from "@/ui/primitives";
+import { Drawer } from "@/ui/drawer";
 
 const KIND_LABEL = { manual: "マニュアル", faq: "FAQ", policy: "社内ルール", material: "資料" } as const;
 const SOURCE_LABEL = { internal: "社内", gdrive: "Google Drive", notion: "Notion" } as const;
+
+const KINDS = [
+  { key: "all", label: "すべて" },
+  { key: "manual", label: KIND_LABEL.manual },
+  { key: "faq", label: KIND_LABEL.faq },
+  { key: "policy", label: KIND_LABEL.policy },
+  { key: "material", label: KIND_LABEL.material },
+] as const;
+
+type KindKey = (typeof KINDS)[number]["key"];
+
+/* 見出し行と各行で同じ列幅を使う。ここがずれると表に見えなくなる */
+const TEMPLATE = "minmax(0,1fr) 100px 108px 88px";
 
 export default function KnowledgePage() {
   const { knowledge } = useStore();
   const workflows = useWorkflows();
   const [q, setQ] = useState("");
-  const [kind, setKind] = useState<string>("all");
+  const [kind, setKind] = useState<KindKey>("all");
+  // 一覧から離れずに中身を読むための右パネル
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const filtered = knowledge.filter((k) => {
     if (kind !== "all" && k.kind !== kind) return false;
@@ -27,43 +43,40 @@ export default function KnowledgePage() {
     return k.title.toLowerCase().includes(t) || k.body.toLowerCase().includes(t) || k.tags.some((x) => x.includes(t));
   });
 
+  const opened = openId ? knowledge.find((k) => k.id === openId) ?? null : null;
+  const openedLinks = opened ? workflows.filter((w) => opened.linkedWorkflowKeys.includes(w.key)) : [];
+
   return (
-    <div className="mx-auto max-w-[900px] px-6 py-6">
-      <PageHeader
+    <div className="mx-auto max-w-[1000px] px-6 pb-8">
+      <TopBar
         title="ナレッジ"
         description="マニュアル・FAQ・社内ルール・資料です。通常は業務のSTEPから必要なものが自動的に提示されるため、この画面は補助的な位置づけです。"
-      />
+      >
+        {/* 1件も無いときは、絞り込みも検索も出さない。絞る対象が無い */}
+        {knowledge.length > 0 && (
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <Tabs items={KINDS} value={kind} onChange={setKind} />
+            <input
+              value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder="キーワードで検索"
+              aria-label="キーワードで検索"
+              className="field field-sm mb-2 w-auto min-w-[180px]"
+            />
+          </div>
+        )}
+      </TopBar>
 
       {/*
         「探さなくても出てくる」のは、紐付いたナレッジがある場合の話。
         1件も無いうちにこれを出すと、もう用意されているように読めてしまう。
       */}
       {knowledge.length > 0 && (
-        <Card className="mb-5 bg-brand-soft p-4">
+        <Card className="mb-4 bg-brand-soft p-3.5">
           <p className="text-[12.5px] leading-relaxed text-brand-ink">
             <strong className="font-bold">探さなくても出てきます。</strong>
             各ナレッジは業務のSTEPに紐付いており、該当のSTEPを開くとコンテキストパネルに自動的に表示されます。
           </p>
         </Card>
-      )}
-
-      {/* 1件も無いときは、検索欄も種別の絞り込みも出さない。絞る対象が無い */}
-      {knowledge.length > 0 && (
-      <div className="mb-4 flex flex-wrap gap-2">
-        <input
-          value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="キーワードで検索"
-          className="field min-w-[200px] flex-1"
-        />
-        <select
-          value={kind} onChange={(e) => setKind(e.target.value)}
-          className="field w-auto"
-        >
-          <option value="all">すべての種別</option>
-          {Object.entries(KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-
       )}
 
       {knowledge.length === 0 ? (
@@ -78,38 +91,47 @@ export default function KnowledgePage() {
         <Empty>該当するナレッジはありません</Empty>
       ) : (
         <RowList>
+          <RowHead template={TEMPLATE}>
+            <span>タイトル</span>
+            <span>種別</span>
+            <span>出所</span>
+            <span>更新</span>
+          </RowHead>
           {filtered.map((k) => {
             const linked = workflows.filter((w) => k.linkedWorkflowKeys.includes(w.key));
             return (
-              /*
-                1件ずつをカードにせず、ひと続きの面を線で切った行にする。
-                本文は縮めない。ここは読むための画面で、詳細を開く先が無い。
-              */
               <Row key={k.id}>
-                <div className="px-4 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h3 className="text-[13.5px] font-semibold leading-snug">{k.title}</h3>
-                    <div className="flex shrink-0 gap-1.5">
-                      <Badge tone="neutral">{KIND_LABEL[k.kind]}</Badge>
-                      <Badge tone={k.source === "internal" ? "neutral" : "brand"}>{SOURCE_LABEL[k.source]}</Badge>
-                    </div>
-                  </div>
-                  <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink-2">{k.body}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-3">
-                    <span>更新 {new Date(k.updatedAt).toLocaleDateString("ja-JP")}</span>
+                <Cells template={TEMPLATE}>
+                  {/*
+                    本文はここには出さない。表は縦に読むためのもので、
+                    長い文章が挟まると行の高さが揃わず、表でなくなる。
+                    中身は行を押すと右から出る。
+                  */}
+                  <span className="cell-clip flex items-center gap-1.5">
+                    {/*
+                      タイトルそのものを押せるようにし、当たり判定だけ行全体に
+                      広げる（::before）。文字のない当たり判定を上に重ねると、
+                      読み上げに「何を開くのか分からないボタン」として出てしまう。
+                    */}
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(k.id)}
+                      className="cell-clip text-left text-[13px] font-medium before:absolute before:inset-0"
+                    >
+                      {k.title}
+                    </button>
                     {linked.length > 0 && (
-                      <span>
-                        提示される業務：
-                        {linked.map((w, i) => (
-                          <span key={w.key}>
-                            {i > 0 && "、"}
-                            <Link href={`/workflows/${w.key}`} className="text-brand hover:underline">{w.name}</Link>
-                          </span>
-                        ))}
-                      </span>
+                      <span className="shrink-0 text-[11px] text-ink-3">・{linked.length}業務</span>
                     )}
-                  </div>
-                </div>
+                  </span>
+                  <span className="relative z-10"><Badge tone="neutral">{KIND_LABEL[k.kind]}</Badge></span>
+                  <span className="relative z-10">
+                    <Badge tone={k.source === "internal" ? "neutral" : "brand"}>{SOURCE_LABEL[k.source]}</Badge>
+                  </span>
+                  <span className="cell-clip cell-num text-[12px] text-ink-3">
+                    {new Date(k.updatedAt).toLocaleDateString("ja-JP", { year: "2-digit", month: "numeric", day: "numeric" })}
+                  </span>
+                </Cells>
               </Row>
             );
           })}
@@ -119,6 +141,38 @@ export default function KnowledgePage() {
       <p className="mt-5 text-center text-[12px] text-ink-3">
         Google Drive / Notion からの取り込みは Phase 7 で接続します。現在は社内データのみを表示しています。
       </p>
+
+      {opened && (
+        <Drawer
+          open
+          onClose={() => setOpenId(null)}
+          title={opened.title}
+          subtitle={`${KIND_LABEL[opened.kind]}／${SOURCE_LABEL[opened.source]}・更新 ${new Date(opened.updatedAt).toLocaleDateString("ja-JP")}`}
+        >
+          <p className="whitespace-pre-wrap text-[12.5px] leading-[1.9] text-ink">{opened.body}</p>
+
+          {opened.tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {opened.tags.map((t) => <Badge key={t} tone="neutral">{t}</Badge>)}
+            </div>
+          )}
+
+          {openedLinks.length > 0 && (
+            <div className="mt-5 border-t border-line-soft pt-3.5">
+              <p className="mb-2 text-[11.5px] text-ink-3">このナレッジが出てくる業務</p>
+              <ul className="flex flex-col gap-1">
+                {openedLinks.map((w) => (
+                  <li key={w.key}>
+                    <Link href={`/workflows/${w.key}`} className="text-[12.5px] text-brand hover:underline">
+                      {w.name} →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Drawer>
+      )}
     </div>
   );
 }

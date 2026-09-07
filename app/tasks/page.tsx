@@ -6,10 +6,15 @@ import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNow } from "@/ui/use-navigator";
 import Link from "next/link";
-import { Badge, Button, Card, Empty, PageHeader, Row, RowList } from "@/ui/primitives";
+import {
+  Badge, Button, Card, Cells, Check, Empty, Row, RowHead, RowList, Tabs, TopBar,
+} from "@/ui/primitives";
+import { Drawer } from "@/ui/drawer";
 import { TaskForm } from "@/ui/task-form";
+import { DeadlineCascadePanel } from "@/ui/deadline-cascade";
+import { proposeDependentDeadlines, shiftDirection, type DeadlineProposal } from "@/core/schedule/cascade";
 import { DeleteTaskButton } from "@/ui/delete-task";
-import { newTaskFromDraft } from "@/core/model/task-draft";
+import { newTaskFromDraft, patchFromDraft } from "@/core/model/task-draft";
 import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
@@ -37,6 +42,14 @@ function TasksInner() {
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [creating, setCreating] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  // 一覧から離れずに中身を見るための右パネル。開いているタスクのid
+  const [openId, setOpenId] = useState<string | null>(null);
+  // パネルの中で直したいときがある。開き直させない
+  const [editing, setEditing] = useState(false);
+  // 期限が動いたときの後続への影響。確定するまで反映しない（仕様 §11-3）
+  const [cascade, setCascade] = useState<{
+    sourceTitle: string; direction: "later" | "earlier"; proposals: DeadlineProposal[];
+  } | null>(null);
   const now = useNow();
 
   const open = state.tasks.filter((t) => t.confirmationState !== "rejected");
@@ -73,81 +86,146 @@ function TasksInner() {
       }, {}))
     : [["", visible] as [string, Task[]]];
 
+  /*
+    担当の列は、他人が担当しているものが1件でもあるときだけ出す。
+    自分ひとりで使っているあいだは、全部の行に自分の名前が並ぶだけの
+    列になってしまう。列を1本減らすと、残りの列が広く使える。
+  */
+  const showAssignee = visible.some((t) => t.assigneeId !== state.currentUserId);
+
+  /*
+    見出し行と各行が同じ列幅を使う。
+    ここを1か所にしておかないと、行ごとに縦がずれて表に見えなくなる。
+    最後の列は、触れたときだけ出る削除の置き場所。ふだんは空けておく。
+  */
+  const TEMPLATE = showAssignee
+    ? "20px minmax(0,1fr) 92px 72px 92px 104px 58px"
+    : "20px minmax(0,1fr) 92px 72px 92px 58px";
+
+  /** その場で終わらせる。完了と未着手のあいだだけを行き来する */
+  function toggleDone(t: Task) {
+    dispatch({
+      type: "updateTask", taskId: t.id,
+      patch: { status: t.status === "done" ? "todo" : "done" },
+    });
+  }
+
   function TaskRow({ t }: { t: Task }) {
     const u = urgencyOf(t.dueAt, now);
     const blockedBy = blockingPredecessors(t, state.tasks);
     const shownStatus = effectiveStatus(t, state.tasks);
     const assignee = users.find((x) => x.id === t.assigneeId);
-    const isMine = t.assigneeId === state.currentUserId;
     // 優先度は登録時のまま固定しない。期限が近づけば上がる
     const nowPriority = escalatedPriority(t.priority, t.dueAt, now);
     const priorityLabel = TASK_PRIORITIES.find((x) => x.value === nowPriority)?.label ?? nowPriority;
     const raised = nowPriority !== t.priority;
+    const done = t.status === "done";
 
     return (
-      /*
-        1件ずつをカードにせず、ひと続きの面を線で切った行にする。
-        件数が増えても増えるのは線1本だけで、上から順に読み下せる。
-        状態のあるものだけ、地を淡く染める。
-      */
       <Row tone={t.id === createdId ? "ok" : t.confirmationState === "proposed" ? "signal" : "plain"}>
-        <Link href={`/tasks/${t.id}`} className="block px-4 py-2.5">
-          <span className="flex items-start gap-3">
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-center gap-1.5">
-                <span className={`text-[13px] ${t.status === "done" ? "text-ink-3 line-through" : "font-medium"}`}>{t.title}</span>
-                {t.confirmationState === "proposed" && <Badge tone="signal">提案中</Badge>}
-                {t.source === "derived" && <Badge tone="ai">{TASK_SOURCE_LABEL.derived}</Badge>}
-                {t.source === "manual" && <Badge>{TASK_SOURCE_LABEL.manual}</Badge>}
-                {t.source === "flow" && <Badge tone="brand">{TASK_SOURCE_LABEL.flow}</Badge>}
-
-                {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
-              </span>
-              {t.description && <span className="mt-0.5 block truncate text-[11.5px] text-ink-3">{t.description}</span>}
-
-              {/* ステータス・優先度・担当者。主役はタスク名なので視覚的に弱める */}
-              <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-3">
-                <span className={`flex items-center gap-1.5 ${shownStatus === "blocked" ? "font-medium text-danger" : ""}`}>
-                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
-                  {TASK_STATUS_LABEL[shownStatus]}
-                </span>
-                <span className={raised ? "font-medium text-danger" : undefined}>
-                  優先度 {priorityLabel}{raised && "（期限が近いため引き上げ）"}
-                </span>
-                {/* 自分が担当なら出さない。他人のときだけ知る必要がある */}
-                {!isMine && (
-                  <span>担当 {assignee?.name ?? "未割当"}</span>
-                )}
-              </span>
-
-              {blockedBy.length > 0 && (
-                <span className="mt-1 block text-[11.5px] text-danger">
-                  待機中：{blockedBy.map((x) => x.title).join(" / ")}
-                </span>
-              )}
-            </span>
-
-            {t.dueAt && (
-              <Badge tone={u === "overdue" ? "danger" : u === "today" ? "signal" : "neutral"}>
-                {remainingLabel(new Date(t.dueAt), now)}
-              </Badge>
-            )}
+        <Cells template={TEMPLATE}>
+          <span className="relative z-10">
+            <Check
+              done={done}
+              label={`${t.title} を完了にする`}
+              disabled={blockedBy.length > 0 && !done}
+              reason={blockedBy.length > 0 && !done
+                ? `先に「${blockedBy.map((x) => x.title).join("」「")}」が終わる必要があります`
+                : undefined}
+              onToggle={() => toggleDone(t)}
+            />
           </span>
-        </Link>
-        {/*
-          間違えて作ったタスクを片付ける入口。リンクの内側には置けないので、
-          行の右下に重ねる。ふだんは薄く、行に触れたときだけはっきりさせる。
-        */}
-        <span className="absolute bottom-1 right-1.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-          <DeleteTaskButton task={t} />
-        </span>
+
+          <span className="cell-clip flex items-center gap-1.5">
+            {/*
+              名前そのものをリンクにして、当たり判定だけを行全体に広げる
+              （::before）。行の上に文字のない透明なリンクを重ねると、
+              読み上げにも検索にも「行き先の分からないリンク」に見えてしまう。
+
+              押すと右から中身が出る。Ctrl や ⌘ を押しながらなら、
+              今までどおり別タブで詳細ページが開く。
+            */}
+            <Link
+              href={`/tasks/${t.id}`}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                e.preventDefault();
+                setOpenId(t.id);
+              }}
+              className={`cell-clip text-[13px] before:absolute before:inset-0 ${
+                done ? "text-ink-3 line-through" : "font-medium"
+              }`}
+            >
+              {t.title}
+            </Link>
+            {t.confirmationState === "proposed" && <Badge tone="signal">提案中</Badge>}
+            {t.source === "derived" && <Badge tone="ai">{TASK_SOURCE_LABEL.derived}</Badge>}
+            {t.source === "manual" && <Badge>{TASK_SOURCE_LABEL.manual}</Badge>}
+            {t.source === "flow" && <Badge tone="brand">{TASK_SOURCE_LABEL.flow}</Badge>}
+            {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
+          </span>
+
+          {/* 期限は日付そのものより「あとどれだけか」を出す。急ぎだけ色を差す */}
+          <span className={`cell-clip cell-num text-[12px] ${
+            u === "overdue" ? "font-medium text-danger" : u === "today" ? "text-signal" : "text-ink-3"
+          }`}>
+            {t.dueAt ? remainingLabel(new Date(t.dueAt), now) : "—"}
+          </span>
+
+          {/*
+            引き上げられた優先度は、理由を書き足すと列に収まらない。
+            矢印1つで「上がっている」ことだけを示し、理由は指を置けば読める。
+          */}
+          <span
+            className={`cell-clip text-[12px] ${raised ? "font-medium text-danger" : "text-ink-2"}`}
+            title={raised ? "期限が近いため引き上げています" : undefined}
+          >
+            {priorityLabel}
+            {raised && <span aria-label="期限が近いため引き上げ"> ↑</span>}
+          </span>
+
+          {/*
+            何を待っているかは列にしない。列を増やすと、待っている行の
+            ためだけに全部の行が狭くなる。状態の欄に添えて、指を置けば読める。
+            全文は行を開けば出る。
+          */}
+          <span
+            className={`cell-clip flex items-center gap-1.5 text-[12px] ${
+              shownStatus === "blocked" ? "font-medium text-danger" : "text-ink-2"
+            }`}
+            title={blockedBy.length > 0 ? `待機中：${blockedBy.map((x) => x.title).join(" / ")}` : undefined}
+          >
+            <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
+            {TASK_STATUS_LABEL[shownStatus]}
+          </span>
+
+          {showAssignee && (
+            <span className="cell-clip text-[12px] text-ink-3">
+              {/* 自分が担当の行は空けておく。自分の名前を読ませる意味がない */}
+              {t.assigneeId === state.currentUserId ? "" : assignee?.name ?? "未割当"}
+            </span>
+          )}
+
+          {/* 間違えて作ったものを片付ける入口。ふだんは出さない */}
+          <span className="relative z-10 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+            <DeleteTaskButton task={t} />
+          </span>
+        </Cells>
       </Row>
     );
   }
 
+  const opened = openId ? state.tasks.find((t) => t.id === openId) ?? null : null;
+
+  function closeDrawer() {
+    setOpenId(null);
+    setEditing(false);
+    setCascade(null);
+  }
+
   return (
-    <div className="mx-auto max-w-[1000px] px-6 py-6">
-      <PageHeader
+    <div className="mx-auto max-w-[1100px] px-6 pb-8">
+      <TopBar
         title="タスク"
         description="業務フローと紐付いたタスクです。一般的なTodoではなく、タスクから業務を開始できます。"
         action={
@@ -155,7 +233,35 @@ function TasksInner() {
             <Button onClick={() => { setCreating(true); setCreatedId(null); }}>＋ タスクを追加</Button>
           )
         }
-      />
+      >
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <Tabs
+            items={VIEWS.map((v) => ({
+              ...v,
+              count: v.key === "proposed" ? proposed.length : undefined,
+            }))}
+            value={view}
+            onChange={setView}
+          />
+          <label className="mb-2 flex shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-ink-3">
+            担当者
+            <select
+              value={assigneeFilter}
+              onChange={(e) => setAssigneeFilter(e.target.value)}
+              aria-label="担当者で絞り込む"
+              className="field field-sm w-auto"
+            >
+              <option value="all">すべての担当者</option>
+              <option value={state.currentUserId}>自分（{mineCount}件）</option>
+              {users
+                .filter((u) => u.id !== state.currentUserId)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+            </select>
+          </label>
+        </div>
+      </TopBar>
 
       {creating && (
         <TaskForm
@@ -194,42 +300,6 @@ function TasksInner() {
         </Card>
       )}
 
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        {VIEWS.map((v) => (
-          <button
-            key={v.key} onClick={() => setView(v.key)}
-            className={`rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-[background-color,border-color,box-shadow] duration-150 ${
-              view === v.key
-                ? "border-brand bg-brand text-white shadow-card"
-                : "border-line-soft bg-surface text-ink-2 shadow-card hover:border-brand/40 hover:bg-surface-2 hover:shadow-lift"
-            }`}
-          >
-            {v.label}
-            {v.key === "proposed" && proposed.length > 0 && (
-              <span className={`ml-1.5 rounded-full px-1.5 text-[10px] ${view === v.key ? "bg-white/25" : "bg-signal text-white"}`}>{proposed.length}</span>
-            )}
-          </button>
-        ))}
-
-        <label className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-ink-3">
-          担当者
-          <select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
-            aria-label="担当者で絞り込む"
-            className="field field-sm w-auto"
-          >
-            <option value="all">すべての担当者</option>
-            <option value={state.currentUserId}>自分（{mineCount}件）</option>
-            {users
-              .filter((u) => u.id !== state.currentUserId)
-              .map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-          </select>
-        </label>
-      </div>
-
       {view === "proposed" && proposed.length > 0 && (
         <div className="mb-4 flex gap-2">
           <Button onClick={() => dispatch({ type: "confirmTasks", taskIds: proposed.map((t) => t.id) })}>
@@ -255,13 +325,209 @@ function TasksInner() {
               </h2>
             )}
             <RowList>
+              {/* 見出し行。同じ種類の値が縦に揃っていることを目で分かるようにする */}
+              <RowHead template={TEMPLATE}>
+                <span />
+                <span>タスク名</span>
+                <span>期限</span>
+                <span>優先度</span>
+                <span>状態</span>
+                {showAssignee && <span>担当</span>}
+                <span />
+              </RowHead>
               {list.map((t) => <TaskRow key={t.id} t={t} />)}
             </RowList>
           </section>
         ))
       )}
+
+      <TaskDrawer task={opened} onClose={closeDrawer} onToggleDone={toggleDone} />
     </div>
   );
+
+  /** 一覧から離れずに中身を見る。深掘りは詳細ページに任せる */
+  function TaskDrawer({
+    task, onClose, onToggleDone,
+  }: {
+    task: Task | null; onClose: () => void; onToggleDone: (t: Task) => void;
+  }) {
+    if (!task) return null;
+    const blockedBy = blockingPredecessors(task, state.tasks);
+    const shownStatus = effectiveStatus(task, state.tasks);
+    const assignee = users.find((x) => x.id === task.assigneeId);
+    const nowPriority = escalatedPriority(task.priority, task.dueAt, now);
+    const priorityLabel = TASK_PRIORITIES.find((x) => x.value === nowPriority)?.label ?? nowPriority;
+    const run = task.runId ? state.runs.find((r) => r.id === task.runId) : undefined;
+    const def = run ? workflows.find((w) => w.key === run.workflowKey) : undefined;
+    const change = task.originEventId
+      ? state.changeEvents.find((c) => c.id === task.originEventId)
+      : undefined;
+    const u = urgencyOf(task.dueAt, now);
+
+    const Line = ({ k, children }: { k: string; children: React.ReactNode }) => (
+      <div className="flex gap-3 py-1.5">
+        <dt className="w-20 shrink-0 text-[11.5px] text-ink-3">{k}</dt>
+        <dd className="min-w-0 flex-1 text-[12.5px]">{children}</dd>
+      </div>
+    );
+
+    return (
+      <Drawer
+        open
+        onClose={onClose}
+        title={task.title}
+        subtitle={def && run ? `${def.name}／${run.subject.label}` : TASK_SOURCE_LABEL[task.source]}
+        footer={
+          editing ? undefined : (
+            <>
+              <Button
+                variant={task.status === "done" ? "secondary" : "primary"}
+                disabled={blockedBy.length > 0 && task.status !== "done"}
+                onClick={() => onToggleDone(task)}
+              >
+                {task.status === "done" ? "未着手に戻す" : "完了にする"}
+              </Button>
+              {/* 直すためだけに画面を移らせない（提案中でも文言は直せる。仕様 §10-6） */}
+              <Button variant="secondary" onClick={() => setEditing(true)}>編集</Button>
+              <Link href={`/tasks/${task.id}`} className="text-[12.5px] text-brand hover:underline">
+                詳細ページを開く →
+              </Link>
+              <span className="ml-auto">
+                <DeleteTaskButton task={task} onDeleted={onClose} />
+              </span>
+            </>
+          )
+        }
+      >
+        {editing ? (
+          <TaskForm
+            mode={{ kind: "edit", task }}
+            users={users}
+            onSubmit={(draft) => {
+              const patch = patchFromDraft(draft, task);
+              const previousDueAt = task.dueAt;
+              dispatch({ type: "updateTask", taskId: task.id, patch });
+              setEditing(false);
+
+              // 期限が動いた場合だけ、後続への影響を提案として出す（詳細画面と同じ経路）
+              const updated = { ...task, ...patch };
+              const proposals = proposeDependentDeadlines({
+                changedTask: updated, previousDueAt, allTasks: state.tasks,
+              });
+              const direction = previousDueAt && updated.dueAt
+                ? shiftDirection(previousDueAt, updated.dueAt)
+                : "none";
+              setCascade(
+                proposals.length > 0 && direction !== "none"
+                  ? { sourceTitle: updated.title, direction, proposals }
+                  : null,
+              );
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+        <>
+        {cascade && (
+          <div className="mb-4">
+            <DeadlineCascadePanel
+              sourceTitle={cascade.sourceTitle}
+              direction={cascade.direction}
+              proposals={cascade.proposals}
+              onApply={(accepted) => {
+                for (const pr of accepted) {
+                  dispatch({ type: "updateTask", taskId: pr.taskId, patch: { dueAt: pr.proposedDueAt } });
+                }
+                setCascade(null);
+              }}
+              onDismiss={() => setCascade(null)}
+            />
+          </div>
+        )}
+
+        {task.confirmationState === "proposed" && (
+          <div className="mb-4 rounded-lg bg-signal-soft p-3.5">
+            <p className="text-[12.5px] font-bold text-signal">このタスクは提案中です</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-ink-2">
+              変更によって自動生成されたタスクです。内容を確認して確定してください。
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <Button size="sm" onClick={() => dispatch({ type: "confirmTasks", taskIds: [task.id] })}>確定する</Button>
+              <Button size="sm" variant="danger" onClick={() => dispatch({ type: "rejectTasks", taskIds: [task.id] })}>却下する</Button>
+            </div>
+          </div>
+        )}
+
+        <dl className="divide-y divide-line-soft">
+          {/* 詳細画面と同じ言葉を使う。画面ごとに呼び名が変わると照らし合わせられない */}
+          <Line k="確定">
+            {task.confirmationState === "proposed" ? "提案中（未確定）" : "確定済み"}
+          </Line>
+          <Line k="状態">
+            <span className="flex items-center gap-1.5">
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
+              {TASK_STATUS_LABEL[shownStatus]}
+            </span>
+          </Line>
+          <Line k="期限">
+            <span className={u === "overdue" ? "font-medium text-danger" : u === "today" ? "text-signal" : ""}>
+              {task.dueAt
+                ? `${new Date(task.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}（${remainingLabel(new Date(task.dueAt), now)}）`
+                : "未設定"}
+            </span>
+          </Line>
+          <Line k="優先度">{priorityLabel}</Line>
+          {task.assigneeId !== state.currentUserId && (
+            <Line k="担当">{assignee?.name ?? "未割当"}</Line>
+          )}
+          {task.description && (
+            <Line k="説明">
+              <span className="block whitespace-pre-wrap leading-relaxed text-ink-2">{task.description}</span>
+            </Line>
+          )}
+          {blockedBy.length > 0 && (
+            <Line k="待機中">
+              <span className="text-danger">
+                {blockedBy.map((x) => x.title).join(" / ")} が終わるまで着手できません
+              </span>
+            </Line>
+          )}
+          {run && (
+            <Line k="業務">
+              <Link href={`/navigator/${run.id}`} className="text-brand hover:underline">
+                ナビゲーターを開く →
+              </Link>
+            </Line>
+          )}
+        </dl>
+
+        {/*
+          派生タスクは「なぜ出てきたのか」が分からないと確定の判断ができない。
+          一覧から開いたときも、詳細ページと同じところへたどれるようにする。
+        */}
+        {change && (
+          <div className="mt-4 border-t border-line-soft pt-3.5">
+            <p className="mb-2 text-[11.5px] text-ink-3">このタスクが発生した理由</p>
+            <Link
+              href={`/map/impact/${change.id}`}
+              className="block rounded-lg bg-surface-2 px-3.5 py-3 transition-colors hover:bg-brand-soft"
+            >
+              <span className="block text-[12.5px] font-medium">{change.entityLabel}</span>
+              <span className="mt-1 block text-[12px] text-ink-2">
+                {change.fieldLabel}：
+                {new Date(String(change.before)).toLocaleDateString("ja-JP")}
+                {" → "}
+                {new Date(String(change.after)).toLocaleDateString("ja-JP")}
+              </span>
+              {change.reason && <span className="mt-1 block text-[11.5px] text-ink-3">{change.reason}</span>}
+              <span className="mt-2 block text-[11.5px] text-brand">インパクトマップで影響範囲を見る →</span>
+            </Link>
+          </div>
+        )}
+        </>
+        )}
+      </Drawer>
+    );
+  }
 }
 
 export default function TasksPage() {
