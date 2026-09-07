@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNextAction, useNow, useStartableToday, useWorkflows } from "@/ui/use-navigator";
-import { Badge, Button, Card, LinkButton, Row, RowList, SectionTitle, TopBar, Empty } from "@/ui/primitives";
+import { Badge, Button, Card, LinkButton, Panel, Row, RowList, TopBar } from "@/ui/primitives";
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
@@ -93,10 +93,13 @@ export default function HomePage() {
       <Link href={nextHref} className="mb-5 block">
         {/*
           今日いちばん先に触るもの。
-          面は白のままにして、急ぎかどうかは見出しと文字の色だけで示す。
-          この大きさで面を塗ると、画面のほとんどが色になってしまう。
+          面は白のままにするが、左に太い線を1本入れて、他の塊と見分けが
+          つくようにする。面を塗ると、画面のほとんどが色になってしまう。
+          線の色は急ぎかどうかで変える。ここだけは色で示してよい。
         */}
-        <div className="rounded-xl bg-surface p-6 shadow-card transition-shadow duration-150 hover:shadow-lift">
+        <div className={`rounded-xl border border-line-soft border-l-[3px] bg-surface p-6 shadow-card transition-shadow duration-150 hover:shadow-lift ${
+          next.urgency === "overdue" ? "border-l-danger" : "border-l-brand"
+        }`}>
           <div className="mb-2 flex items-center gap-2">
             <span className={`text-[11px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
               最優先
@@ -133,9 +136,8 @@ export default function HomePage() {
         <div className="flex flex-col gap-6">
           {/* 要確認：待ちの確認日が来たもの。作業ではなく判断 */}
           {dueChecks.length > 0 && (
-            <section>
-              <SectionTitle>要確認（{dueChecks.length}）</SectionTitle>
-              <RowList>
+            <Panel title="要確認" count={dueChecks.length}>
+              <RowList flat>
                 {dueChecks.map(({ run, reason }) => {
                   const st = checkStatusOf(run.waitingUntil, now);
                   return (
@@ -161,14 +163,13 @@ export default function HomePage() {
                   );
                 })}
               </RowList>
-            </section>
+            </Panel>
           )}
 
           {/* 開始待ち：開始条件が来ているもの。開始するかは自分が決める */}
           {startable.length > 0 && (
-            <section>
-              <SectionTitle>開始待ち（{startable.length}）</SectionTitle>
-              <RowList>
+            <Panel title="開始待ち" count={startable.length}>
+              <RowList flat>
                 {startable.map((def) => (
                   <Row key={def.key} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                     <span className="min-w-0 flex-1">
@@ -187,27 +188,30 @@ export default function HomePage() {
                   </Row>
                 ))}
               </RowList>
-            </section>
+            </Panel>
           )}
 
           {/* 続けて着手できるもの */}
-          <section>
-            <SectionTitle action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}>
-              次の候補
-            </SectionTitle>
+          <Panel
+            title="次の候補"
+            action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}
+          >
+            {/* 囲いの中なので、空のときも入れ子の箱を作らない */}
             {upNext.length === 0 ? (
               publishedCount === 0 ? (
-                <Card className="border-dashed p-5 text-center">
+                <div className="px-4 py-8 text-center">
                   <p className="text-[13px] font-bold">業務が未登録です</p>
                   <div className="mt-3 flex justify-center">
                     <LinkButton href="/workflows/new" size="sm">＋ 業務を登録</LinkButton>
                   </div>
-                </Card>
+                </div>
               ) : (
-                <Empty>他に着手できる作業はありません</Empty>
+                <p className="px-4 py-8 text-center text-[12.5px] text-ink-3">
+                  他に着手できる作業はありません
+                </p>
               )
             ) : (
-              <RowList>
+              <RowList flat>
                 {upNext.map((a, i) => (
                   <Row key={i}>
                     <Link
@@ -228,7 +232,7 @@ export default function HomePage() {
                 ))}
               </RowList>
             )}
-          </section>
+          </Panel>
 
         </div>
 
@@ -245,9 +249,8 @@ export default function HomePage() {
           )}
 
           {waiting.length > 0 && (
-            <Card className="p-4">
-              <p className="text-[12px] font-bold text-ink-3">待ち中（{waiting.length}）</p>
-              <ul className="mt-2 flex flex-col gap-1.5">
+            <Panel title="待ち中" count={waiting.length}>
+              <ul className="flex flex-col gap-1.5 p-3">
                 {/*
                   ここは状態確認なので、待ち中は必ず全件出す。
                   行動候補に出ているかどうかで消さない（消えると待ちを見失う）
@@ -271,7 +274,7 @@ export default function HomePage() {
                   );
                 })}
               </ul>
-            </Card>
+            </Panel>
           )}
 
           {/*
@@ -280,12 +283,11 @@ export default function HomePage() {
             カードではなく淡い行で並べる。
           */}
           {activeRuns.length > 0 && (
-            <Card className="p-4">
-              <div className="mb-2 flex items-baseline justify-between">
-                <p className="text-[12px] font-bold text-ink-3">進行中の業務（{activeRuns.length}）</p>
-                <Link href="/workflows" className="text-[11.5px] text-brand hover:underline">すべての業務</Link>
-              </div>
-              <ul className="flex flex-col gap-1.5">
+            <Panel
+              title="進行中の業務" count={activeRuns.length}
+              action={<Link href="/workflows" className="text-[11.5px] text-brand hover:underline">すべての業務</Link>}
+            >
+              <ul className="flex flex-col gap-1.5 p-3">
                 {activeRuns.map((run) => {
                   const def = workflows.find((w) => w.key === run.workflowKey);
                   const p = def
@@ -310,7 +312,7 @@ export default function HomePage() {
                   );
                 })}
               </ul>
-            </Card>
+            </Panel>
           )}
 
         </div>

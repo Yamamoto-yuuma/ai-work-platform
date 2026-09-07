@@ -230,8 +230,22 @@ body {
   .rows {
     overflow: hidden;
     border-radius: var(--radius-xl);
+    /*
+      淡い囲いを入れる。
+      紙面（ほぼ白）に白い面を置くと、影だけでは境が見えない。
+      線は「あるかないか」の濃さに留め、網目に見せない。
+    */
+    border: 1px solid var(--color-line-soft);
     background: var(--color-surface);
     box-shadow: var(--shadow-card);
+  }
+  /* 囲いの中に入れるとき。器の線と二重にしない */
+  .rows-flat {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
   /* 仕切るのは行と行のあいだだけ。見出し行は自分で下線を持つ */
   .rows > .row + .row { border-top: 1px solid var(--color-line-soft); }

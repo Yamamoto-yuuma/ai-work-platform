@@ -31,7 +31,7 @@ export function Card({
   */
   const base = tone === "sunken"
     ? "border border-line-soft bg-surface-2"
-    : "bg-surface shadow-card";
+    : "border border-line-soft bg-surface shadow-card";
   return (
     <div
       className={`rounded-xl ${base} ${
@@ -50,8 +50,46 @@ export function Card({
  * ひと続きの白い面を細い線で切って、上から順に読めるようにする。
  * 実際の見た目は globals.css の .rows / .row にある。
  */
-export function RowList({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <ul className={`rows ${className}`}>{children}</ul>;
+export function RowList({
+  children, flat = false, className = "",
+}: {
+  children: ReactNode;
+  /** すでに囲いの中にあるとき。線と角丸を二重にしない */
+  flat?: boolean;
+  className?: string;
+}) {
+  return <ul className={`rows ${flat ? "rows-flat" : ""} ${className}`}>{children}</ul>;
+}
+
+/**
+ * 見出しの付いた囲い。
+ *
+ * 紙面に白い面を並べるだけでは、どこからどこまでが一かたまりか分からない。
+ * 見出しを面の中に入れて線で仕切ると、目が塊を1つずつ拾える。
+ */
+export function Panel({
+  title, count, action, children, className = "",
+}: {
+  title: string;
+  /** 件数。見出しの一部として、控えめに添える */
+  count?: number;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`overflow-hidden rounded-xl border border-line-soft bg-surface shadow-card ${className}`}>
+      {/* 見出しの帯は、本文の白と見分けがつく程度に沈める */}
+      <div className="flex items-center justify-between gap-3 border-b border-line-soft bg-surface-2 px-4 py-2">
+        <h2 className="text-[12.5px] font-bold">
+          {title}
+          {count !== undefined && <span className="ml-1.5 font-medium text-ink-3">{count}</span>}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
 }
 
 /** 行の地の色。ふだんは白のまま。状態があるときだけ淡い面にする */
