@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows } from "@/ui/use-navigator";
-import { Badge, Card, Cells, Empty, Row, RowHead, RowList, Tabs, TopBar } from "@/ui/primitives";
+import { Badge, Cells, Empty, Row, RowHead, RowList, Tabs, TopBar } from "@/ui/primitives";
 import { Drawer } from "@/ui/drawer";
 
 const KIND_LABEL = { manual: "マニュアル", faq: "FAQ", policy: "社内ルール", material: "資料" } as const;
@@ -59,7 +59,6 @@ function KnowledgeInner() {
     <div className="mx-auto max-w-[1000px] px-6 pb-8">
       <TopBar
         title="ナレッジ"
-        description="マニュアル・FAQ・社内ルール・資料です。通常は業務のSTEPから必要なものが自動的に提示されるため、この画面は補助的な位置づけです。"
       >
         {/* 1件も無いときは、絞り込みも検索も出さない。絞る対象が無い */}
         {knowledge.length > 0 && (
@@ -80,12 +79,9 @@ function KnowledgeInner() {
         1件も無いうちにこれを出すと、もう用意されているように読めてしまう。
       */}
       {knowledge.length > 0 && (
-        <Card className="mb-4 bg-brand-soft p-3.5">
-          <p className="text-[12.5px] leading-relaxed text-brand-ink">
-            <strong className="font-bold">探さなくても出てきます。</strong>
-            各ナレッジは業務のSTEPに紐付いており、該当のSTEPを開くとコンテキストパネルに自動的に表示されます。
-          </p>
-        </Card>
+        <p className="mb-4 text-[12px] text-ink-3">
+          各ナレッジは業務のSTEPに紐付いており、該当のSTEPで自動的に表示されます。
+        </p>
       )}
 
       {knowledge.length === 0 ? (

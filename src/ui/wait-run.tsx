@@ -248,7 +248,7 @@ export function WaitRunPanel({
             <p className="w-full text-[12.5px] leading-relaxed text-ink">
               <strong className="font-bold">{formatJaDate(until)}</strong> まで
               「<strong className="font-bold">{waitingFor.trim()}</strong>」を待ちます。
-              確認日になると、HOMEの「今日確認する」に出ます。
+              確認日になると、HOMEの「要確認」に出ます。
             </p>
             <Button onClick={apply}>待ちを確定</Button>
             <Button variant="secondary" onClick={() => setConfirming(false)}>やめる</Button>

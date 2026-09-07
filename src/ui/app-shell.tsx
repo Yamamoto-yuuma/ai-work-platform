@@ -12,14 +12,15 @@ import { rankActions } from "@/core/context/next-action";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoogleAutoSync } from "./google-auto-sync";
 import { GlobalSearch } from "./global-search";
+import { NAV_ICON, SettingsIcon } from "./icons";
 
 const NAV = [
-  { href: "/", label: "HOME", icon: "⌂" },
-  { href: "/workflows", label: "業務", icon: "▷" },
-  { href: "/tasks", label: "タスク", icon: "☑" },
-  { href: "/map", label: "マップ", icon: "⁂" },
-  { href: "/knowledge", label: "ナレッジ", icon: "▤" },
-  { href: "/settings", label: "管理", icon: "⚙" },
+  { href: "/", label: "ホーム" },
+  { href: "/workflows", label: "業務" },
+  { href: "/tasks", label: "タスク" },
+  { href: "/map", label: "マップ" },
+  { href: "/knowledge", label: "ナレッジ" },
+  { href: "/settings", label: "管理" },
 ];
 
 /** 左レーンの開閉。作業に関係しない見た目の状態なので、業務データには入れない */
@@ -147,7 +148,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
                 }`}
               >
-                <span className="w-4 shrink-0 text-center text-[15px] leading-none">{item.icon}</span>
+                <span className="flex w-4 shrink-0 items-center justify-center">
+                  {(() => { const Icon = NAV_ICON[item.href]; return Icon ? <Icon /> : null; })()}
+                </span>
                 <span className={labelCls}>{item.label}</span>
                 {item.href === "/tasks" && proposedCount > 0 && (
                   <span className={`ml-auto rounded-full bg-signal px-1.5 py-0.5 text-[10px] font-bold text-white ${labelCls}`}>
@@ -199,7 +202,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               誰が使っているかを知らせる場所ではない。
               使う人を切り替えたときだけ、メニューの中で確認できればよい。
             */}
-            <span aria-hidden="true" className="w-4 shrink-0 text-center text-[14px] leading-none">⚙</span>
+            <span className="flex w-4 shrink-0 items-center justify-center"><SettingsIcon /></span>
             {!collapsed && <span className="text-[12.5px]">設定</span>}
           </button>
         </div>

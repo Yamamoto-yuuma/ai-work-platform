@@ -29,7 +29,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-[960px] px-6 py-6">
-      <PageHeader title="管理" description="ユーザー・権限・外部連携・業務部品の設定です。" />
+      <PageHeader title="管理" />
 
       {/* デモ用の業務日 — 一時ルールの自動適用・自動失効を確認するためのもの */}
       <section className="mb-7">

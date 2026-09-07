@@ -173,7 +173,7 @@ function ScheduleRow({
 
 const TRIGGER_CHOICES: { kind: StartTriggerKind; label: string; hint: string }[] = [
   { kind: "manual", label: "自分で開始する", hint: "業務一覧から手で始めます" },
-  { kind: "date", label: "日付が来たら", hint: "指定した日に「今日開始する業務」に出ます" },
+  { kind: "date", label: "日付が来たら", hint: "指定した日に「開始待ち」に出ます" },
   { kind: "event", label: "出来事が起きたら", hint: "きっかけを記録します。開始は自分で判断します" },
   { kind: "after-workflow", label: "他の業務が終わったら", hint: "先行業務の完了後に出ます" },
   { kind: "task", label: "タスクが発生したら", hint: "きっかけを記録します。開始は自分で判断します" },
@@ -630,7 +630,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
             <div>
               <h3 className="text-[13.5px] font-bold">いつ始める業務か</h3>
               <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
-                条件が来たらHOMEの「今日開始する業務」に出ます。勝手には始まりません。
+                条件が来たらHOMEの「開始待ち」に出ます。勝手には始まりません。
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">

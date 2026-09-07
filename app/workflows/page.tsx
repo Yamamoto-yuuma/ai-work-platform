@@ -47,7 +47,6 @@ export default function WorkflowsPage() {
     <div className="mx-auto max-w-[1180px] px-6 pb-8">
       <TopBar
         title="業務"
-        description="自分の業務を登録すると、STEPに沿って進められるようになります。業務はすべてデータとして定義されています。"
         action={<LinkButton href="/workflows/new">＋ 業務を登録</LinkButton>}
       >
         {published.length + stopped.length > 0 && (
@@ -59,7 +58,7 @@ export default function WorkflowsPage() {
       {myActiveRuns.length > 0 && (
         <section className="mb-7">
           {/* HOME と同じ語彙にする（仕様 §26-5）。待ち中もここに含まれる */}
-          <h2 className="mb-2 text-[12.5px] font-bold">抱えている業務（{myActiveRuns.length}）</h2>
+          <h2 className="mb-2 text-[12.5px] font-bold">進行中の業務（{myActiveRuns.length}）</h2>
           <RowList>
             <RowHead template={RUN_TEMPLATE}>
               <span>対象</span>
@@ -98,9 +97,9 @@ export default function WorkflowsPage() {
 
       {published.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-[14px] font-bold">まだ業務が登録されていません</p>
+          <p className="text-[14px] font-bold">業務が未登録です</p>
           <p className="mx-auto mt-1.5 max-w-[420px] text-[12.5px] leading-relaxed text-ink-2">
-            最初の1つを登録してみてください。名前とやることを並べるだけで始められます。
+            名前とSTEPの並びだけで登録できます。
           </p>
           <div className="mt-4 flex justify-center">
             <LinkButton href="/workflows/new">＋ 業務を登録</LinkButton>

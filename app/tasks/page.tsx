@@ -276,7 +276,6 @@ function TasksInner() {
     <div className="mx-auto max-w-[1100px] px-6 pb-8">
       <TopBar
         title="タスク"
-        description="業務フローと紐付いたタスクです。一般的なTodoではなく、タスクから業務を開始できます。"
         action={
           !creating && (
             <Button onClick={() => { setCreating(true); setCreatedId(null); }}>＋ タスクを追加</Button>

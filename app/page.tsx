@@ -49,14 +49,14 @@ export default function HomePage() {
   const keyOf = (a: { kind: string; runId?: string; taskId?: string; stepKey?: string }) =>
     a.taskId ?? (a.runId ? `${a.runId}:${a.stepKey ?? a.kind}` : a.kind);
 
-  // ① いま着手すること（1件）
+  // ① 最優先（1件）
   const first = ranked[0];
-  // ② 続けて着手できること。確認は③に集約するのでここには出さない
+  // ② 次の候補。確認は③に集約するのでここには出さない
   const upNext = ranked
     .slice(1)
     .filter((a) => a.kind !== "check")
     .slice(0, 3);
-  // ③ 今日確認する。①に出ているものは重ねない
+  // ③ 要確認。①に出ているものは重ねない
   const shownKeys = new Set([first, ...upNext].filter(Boolean).map((a) => keyOf(a!)));
   const dueChecks = waiting
     .filter((w) => w.dueForCheck)
@@ -79,7 +79,7 @@ export default function HomePage() {
     <div className="mx-auto max-w-[1180px] px-6 pb-8">
       {/* 自分ひとりで使うものなので、自分の名前は出さない */}
       <TopBar
-        title="今日やること"
+        title="本日の作業"
         description={now.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -99,7 +99,7 @@ export default function HomePage() {
         <div className="rounded-xl bg-surface p-6 shadow-card transition-shadow duration-150 hover:shadow-lift">
           <div className="mb-2 flex items-center gap-2">
             <span className={`text-[11px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
-              いま着手すること
+              最優先
             </span>
             {next.urgency === "overdue" && <Badge tone="danger">期限超過</Badge>}
             {next.urgency === "today" && <Badge tone="signal">今日まで</Badge>}
@@ -131,10 +131,10 @@ export default function HomePage() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6">
-          {/* 今日確認する：待ちの確認日が来たもの。作業ではなく判断 */}
+          {/* 要確認：待ちの確認日が来たもの。作業ではなく判断 */}
           {dueChecks.length > 0 && (
             <section>
-              <SectionTitle>今日確認する（{dueChecks.length}）</SectionTitle>
+              <SectionTitle>要確認（{dueChecks.length}）</SectionTitle>
               <RowList>
                 {dueChecks.map(({ run, reason }) => {
                   const st = checkStatusOf(run.waitingUntil, now);
@@ -164,10 +164,10 @@ export default function HomePage() {
             </section>
           )}
 
-          {/* 今日開始する業務：開始条件が来ているもの。開始するかは自分が決める */}
+          {/* 開始待ち：開始条件が来ているもの。開始するかは自分が決める */}
           {startable.length > 0 && (
             <section>
-              <SectionTitle>今日開始する業務（{startable.length}）</SectionTitle>
+              <SectionTitle>開始待ち（{startable.length}）</SectionTitle>
               <RowList>
                 {startable.map((def) => (
                   <Row key={def.key} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
@@ -193,15 +193,12 @@ export default function HomePage() {
           {/* 続けて着手できるもの */}
           <section>
             <SectionTitle action={<Link href="/tasks" className="text-[12px] text-brand hover:underline">すべてのタスク</Link>}>
-              続けて着手できること
+              次の候補
             </SectionTitle>
             {upNext.length === 0 ? (
               publishedCount === 0 ? (
                 <Card className="border-dashed p-5 text-center">
-                  <p className="text-[13px] font-bold">まだ業務が登録されていません</p>
-                  <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
-                    自分の業務を登録すると、ここに「次にやること」が並びます。
-                  </p>
+                  <p className="text-[13px] font-bold">業務が未登録です</p>
                   <div className="mt-3 flex justify-center">
                     <LinkButton href="/workflows/new" size="sm">＋ 業務を登録</LinkButton>
                   </div>
@@ -278,14 +275,14 @@ export default function HomePage() {
           )}
 
           {/*
-            抱えている業務。ここは「今やること」ではなく状態確認。
-            着手候補（左カラム）と見た目を明確に分けるため、
+            進行中の業務。ここは「今やること」ではなく状態確認。
+            候補（左カラム）と見た目を明確に分けるため、
             カードではなく淡い行で並べる。
           */}
           {activeRuns.length > 0 && (
             <Card className="p-4">
               <div className="mb-2 flex items-baseline justify-between">
-                <p className="text-[12px] font-bold text-ink-3">抱えている業務（{activeRuns.length}）</p>
+                <p className="text-[12px] font-bold text-ink-3">進行中の業務（{activeRuns.length}）</p>
                 <Link href="/workflows" className="text-[11.5px] text-brand hover:underline">すべての業務</Link>
               </div>
               <ul className="flex flex-col gap-1.5">
@@ -306,7 +303,7 @@ export default function HomePage() {
                           <span className="ml-auto shrink-0 tabular-nums">STEP {p.index}/{p.total}</span>
                         </span>
                         {inCandidates && (
-                          <span className="mt-0.5 block text-[10.5px] text-brand">今日の着手候補に出ています</span>
+                          <span className="mt-0.5 block text-[10.5px] text-brand">本日の候補に表示中</span>
                         )}
                       </Link>
                     </li>

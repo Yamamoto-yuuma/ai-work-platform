@@ -50,7 +50,7 @@ function overdueDays(dueAt: string, now: Date): number {
 
 function overduePhrase(dueAt: string, now: Date): string {
   const over = overdueDays(dueAt, now);
-  return over <= 0 ? "期限を過ぎてる" : `期限を${over}日過ぎてる`;
+  return over <= 0 ? "期限を超過しています" : `期限を${over}日超過しています`;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,15 +73,15 @@ export function catForWaiting(run: WorkRun, now: Date): CatMessage | null {
     return say(
       `wait:${run.id}:over:${over}`,
       over <= 0
-        ? `確認日を過ぎてる。${what ? `${what}は` : "状況は"}まだ動いてない。`
-        : `${over}日過ぎてる。${what ? `${what}は` : "状況は"}まだ動いてない。`,
+        ? `確認予定日を超過しています。${what ? `${what}の状況` : "状況"}は未確認です。`
+        : `確認予定日を${over}日超過しています。${what ? `${what}の状況` : "状況"}は未確認です。`,
     );
   }
   if (urgency === "today") {
     return say(
       `wait:${run.id}:today`,
-      "今日が確認日だ。",
-      what ? `${what}が来ているか見られる。` : "",
+      "本日が確認予定日です。",
+      what ? `${what}の状況を確認できます。` : "",
     );
   }
   return null;
@@ -137,7 +137,7 @@ function matches(condition: ConditionExpr | undefined, scope: Record<string, unk
 export function catForBranch(taken: TakenBranch, stepTitle: string): CatMessage {
   return say(
     `branch:${taken.fromTitle}:${taken.label}:${stepTitle}`,
-    `「${taken.label}」だったから、こっちのルートに入った。`,
+    `分岐「${taken.label}」を通過しました。`,
   );
 }
 
@@ -181,10 +181,10 @@ export function catForStep(input: StepSceneInput): CatMessage | null {
   if (missingToComplete.length > 0) {
     const first = missingToComplete[0].label;
     return missingToComplete.length === 1
-      ? say(`step:${run.id}:${step.key}:need:1:${first}`, `「${first}」がまだ残ってる。`)
+      ? say(`step:${run.id}:${step.key}:need:1:${first}`, `「${first}」が未完了です。`)
       : say(
           `step:${run.id}:${step.key}:need:${missingToComplete.length}`,
-          `あと${missingToComplete.length}件残ってる。「${first}」もそのひとつだ。`,
+          `未完了が${missingToComplete.length}件あります（「${first}」ほか）。`,
         );
   }
 
@@ -199,7 +199,7 @@ export function catForStep(input: StepSceneInput): CatMessage | null {
 }
 
 // ---------------------------------------------------------------------------
-// HOME（いま着手すること）
+// HOME（最優先）
 // ---------------------------------------------------------------------------
 
 export interface HomeSceneInput {
@@ -217,16 +217,16 @@ export function catForHome(input: HomeSceneInput): CatMessage | null {
   // 待ちの確認日が来ているとき
   if (next.kind === "check") {
     if (next.dueAt && urgencyOf(next.dueAt, now) === "overdue") {
-      return say(`home:check:over:${next.runId}`, `${overduePhrase(next.dueAt, now)}。まだ待ち中だ。`);
+      return say(`home:check:over:${next.runId}`, `${overduePhrase(next.dueAt, now)}。待ち中のままです。`);
     }
-    return say(`home:check:today:${next.runId}`, "今日が確認日だ。上に来てる理由はこれだ。");
+    return say(`home:check:today:${next.runId}`, "本日が確認予定日です。");
   }
 
   // 期限を過ぎているとき
   if (next.dueAt && urgencyOf(next.dueAt, now) === "overdue") {
     return say(
       `home:over:${next.runId ?? next.taskId}`,
-      `${overduePhrase(next.dueAt, now)}。上に来てる理由はこれだ。`,
+      `${overduePhrase(next.dueAt, now)}。`,
     );
   }
 
@@ -244,7 +244,7 @@ export function catForHome(input: HomeSceneInput): CatMessage | null {
  */
 export function catForRegistered(input: { key: string; unsetCount: number }): CatMessage | null {
   if (input.unsetCount === 0) return null;
-  return say(`registered:${input.key}`, "細かい設定は後から足せる。名前と順番だけでも動く。");
+  return say(`registered:${input.key}`, "詳細は後から設定できます。名前と順番だけでも動きます。");
 }
 
 // ---------------------------------------------------------------------------
@@ -255,6 +255,6 @@ export function catForRegistered(input: { key: string; unsetCount: number }): Ca
 export function catForCompletion(input: { openTaskCount: number; runId: string }): CatMessage {
   const { openTaskCount, runId } = input;
   return openTaskCount > 0
-    ? say(`done:${runId}:${openTaskCount}`, "終わったな。", `この業務から残ってる仕事が${openTaskCount}件ある。`)
-    : say(`done:${runId}:0`, "終わったな。");
+    ? say(`done:${runId}:${openTaskCount}`, "業務が完了しました。", `この業務に紐づく未完了のタスクが${openTaskCount}件あります。`)
+    : say(`done:${runId}:0`, "業務が完了しました。");
 }

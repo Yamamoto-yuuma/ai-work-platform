@@ -165,7 +165,7 @@ export function useNextAction() {
 }
 
 /**
- * 今日開始する業務（仕様 §28-2）。
+ * 開始待ち（仕様 §28-2）。
  * 開始条件が来ているだけで、勝手に開始はしない。HOME に出して自分が決める。
  */
 export function useStartableToday() {
