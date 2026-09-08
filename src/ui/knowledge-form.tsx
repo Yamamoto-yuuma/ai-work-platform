@@ -16,6 +16,7 @@ import {
   type KnowledgeDraft, type KnowledgeDraftError,
 } from "@/core/model/knowledge-draft";
 import { Button } from "./primitives";
+import { KnowledgeLocation } from "./knowledge-location";
 
 export type KnowledgeFormMode =
   | { kind: "create" }
@@ -88,8 +89,17 @@ export function KnowledgeForm({
         <input
           className="field" value={draft.location} aria-label="置き場所"
           onChange={(e) => set("location", e.target.value)}
-          placeholder="https://… や \\\\共有\\テンプレ\\… など"
+          placeholder="Gemini Notebook・Google ドキュメント・共有フォルダのパスなど"
         />
+        {/*
+          入れた先が何になるかを、保存する前に見せる。
+          貼ってから一覧で確かめに行く往復をなくす。
+        */}
+        {draft.location.trim().length > 0 && (
+          <div className="mt-2">
+            <KnowledgeLocation location={draft.location} size="sm" />
+          </div>
+        )}
       </Field>
 
       <Field

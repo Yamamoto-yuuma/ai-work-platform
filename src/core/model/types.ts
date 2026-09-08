@@ -558,7 +558,11 @@ export interface KnowledgeItem {
   title: string;
   body: string;
   kind: "manual" | "faq" | "policy" | "material";
-  source: "internal" | "gdrive" | "notion";
+  /*
+    どこにあるものか。置き場所の URL から決まる（knowledge-link.ts）。
+    人に選ばせない。URL を貼れば分かることを、もう一度聞かない。
+  */
+  source: "internal" | "gdrive" | "notion" | "notebooklm";
   tags: string[];
   linkedStepKeys: string[];
   linkedWorkflowKeys: string[];

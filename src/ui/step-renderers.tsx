@@ -508,7 +508,7 @@ function KnowledgeViewRenderer({ step }: StepRendererProps) {
           {k.body && (
             <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">{k.body}</p>
           )}
-          <KnowledgeLocation location={k.location} />
+          <div className="mt-2.5"><KnowledgeLocation location={k.location} size="sm" /></div>
         </div>
       ))}
     </div>

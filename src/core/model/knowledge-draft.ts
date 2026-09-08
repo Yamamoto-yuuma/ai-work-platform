@@ -5,6 +5,7 @@
  * 自分で残せるようにするためのもの。タスクの入力（task-draft.ts）と
  * 同じ作りにしてある。framework 非依存の純粋関数で、画面は結果を出すだけ。
  */
+import { sourceFromLocation } from "./knowledge-link";
 import type { KnowledgeItem } from "./types";
 
 export const KNOWLEDGE_KINDS: { value: KnowledgeItem["kind"]; label: string }[] = [
@@ -104,6 +105,8 @@ export function patchFromKnowledgeDraft(draft: KnowledgeDraft): Partial<Knowledg
     title: draft.title.trim(),
     body: draft.body.trim(),
     kind: draft.kind,
+    // 出所は置き場所から決まる。同じことを人にもう一度聞かない
+    source: sourceFromLocation(location),
     ...(location.length > 0 ? { location } : { location: undefined }),
     tags: parseTags(draft.tags),
     linkedWorkflowKeys: [...draft.linkedWorkflowKeys],
@@ -118,8 +121,12 @@ export function newKnowledgeFromDraft(draft: KnowledgeDraft, id: string, now: Da
     title: draft.title.trim(),
     body: draft.body.trim(),
     kind: draft.kind,
-    // 自分で書いたものは社内扱い。外部連携から来たものと区別する
-    source: "internal",
+    /*
+      どこにあるものかは置き場所で決まる。
+      Gemini Notebook の URL を貼れば Gemini Notebook のものとして出る。
+      何も無ければ、ここに書いたもの＝社内扱い。
+    */
+    source: sourceFromLocation(location),
     ...(location.length > 0 ? { location } : {}),
     tags: parseTags(draft.tags),
     // STEP 単位の紐付けは、業務の定義側で持つ。ここでは業務までにする

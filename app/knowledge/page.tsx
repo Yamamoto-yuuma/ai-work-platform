@@ -14,13 +14,16 @@ import { Badge, Button, Card, Cells, Empty, Row, RowHead, RowList, Tabs, TopBar 
 import { Drawer } from "@/ui/drawer";
 import { KnowledgeForm } from "@/ui/knowledge-form";
 import { DeleteKnowledgeButton } from "@/ui/delete-knowledge";
-import {
-  isOpenable, newKnowledgeFromDraft, patchFromKnowledgeDraft,
-} from "@/core/model/knowledge-draft";
+import { newKnowledgeFromDraft, patchFromKnowledgeDraft } from "@/core/model/knowledge-draft";
+import { KnowledgeLocation } from "@/ui/knowledge-location";
+import { serviceLabel, type LocationService } from "@/core/model/knowledge-link";
+import { LOCATION_MARK } from "@/ui/icons";
 import { newKnowledgeId } from "@/lib/id";
 
 const KIND_LABEL = { manual: "マニュアル", faq: "FAQ", policy: "社内ルール", material: "資料" } as const;
-const SOURCE_LABEL = { internal: "社内", gdrive: "Google Drive", notion: "Notion" } as const;
+const SOURCE_LABEL = {
+  internal: "社内", gdrive: "Google ドライブ", notion: "Notion", notebooklm: "Gemini Notebook",
+} as const;
 
 const KINDS = [
   { key: "all", label: "すべて" },
@@ -114,19 +117,15 @@ function KnowledgeInner() {
         「探さなくても出てくる」のは、紐付いたナレッジがある場合の話。
         1件も無いうちにこれを出すと、もう用意されているように読めてしまう。
       */}
-      {knowledge.length > 0 && (
-        <p className="mb-4 text-[12px] text-ink-3">
-          各ナレッジは業務のSTEPに紐付いており、該当のSTEPで自動的に表示されます。
-        </p>
-      )}
+      {knowledge.length > 0 && !creating && <KnowledgeGuide />}
 
       {knowledge.length === 0 ? (
         <Empty>
           まだナレッジは登録されていません。
           <br />
-          社内資料・業務マニュアル・サービス資料・過去のやり取りなど、
+          業務のSTEPで手元にあってほしいものを、ここに貯めていきます。
           <br />
-          業務のSTEPで手元にあってほしいものをここに貯めていきます。
+          中身を書ききらなくても、置き場所のURLだけ残せば用は足ります。
         </Empty>
       ) : filtered.length === 0 ? (
         <Empty>該当するナレッジはありません</Empty>
@@ -191,9 +190,6 @@ function KnowledgeInner() {
         </RowList>
       )}
 
-      <p className="mt-5 text-center text-[12px] text-ink-3">
-        Google Drive / Notion からの取り込みは Phase 7 で接続します。現在は社内データのみを表示しています。
-      </p>
 
       {opened && (
         <Drawer
@@ -223,23 +219,8 @@ function KnowledgeInner() {
                 本文を読み下してから在り処に辿り着くのでは遅い。
               */}
               {opened.location && (
-                <div className="mb-4 rounded-lg border border-line-soft bg-surface-2 px-3.5 py-2.5">
-                  <p className="mb-1 text-[11px] text-ink-3">置き場所</p>
-                  {isOpenable(opened.location) ? (
-                    /*
-                      外部の置き場所だけ別タブで開く。ここで画面ごと移ると、
-                      進めていた業務から出てしまう。
-                    */
-                    <a
-                      href={opened.location} target="_blank" rel="noreferrer"
-                      className="break-all text-[12.5px] text-brand hover:underline"
-                    >
-                      {opened.location} ↗
-                    </a>
-                  ) : (
-                    /* 共有フォルダなどは押しても開けない。写せる形にとどめる */
-                    <p className="select-all break-all text-[12.5px] text-ink">{opened.location}</p>
-                  )}
+                <div className="mb-4">
+                  <KnowledgeLocation location={opened.location} />
                 </div>
               )}
 
@@ -276,6 +257,57 @@ function KnowledgeInner() {
           )}
         </Drawer>
       )}
+    </div>
+  );
+}
+
+/*
+  置き場所の使い方の案内。
+  「テンプレはどこか」を残すのがこの画面の主な用なので、
+  何を貼れば何になるのかを、貼る前に読めるところに置く。
+
+  対応表そのものを見せる。文章で「主要なサービスに対応しています」と
+  書くより、印と名前が並んでいるほうが早いし、嘘をつけない。
+*/
+function KnowledgeGuide() {
+  const samples: { service: LocationService; example: string }[] = [
+    { service: "notebooklm", example: "notebooklm.google.com/notebook/…" },
+    { service: "gdocs", example: "docs.google.com/document/…" },
+    { service: "gdrive", example: "drive.google.com/…" },
+    { service: "notion", example: "notion.so/…" },
+  ];
+
+  return (
+    <div className="mb-4 rounded-xl border border-line-soft bg-surface p-4 shadow-card">
+      {/*
+        JSX は改行を空白1つに畳む。英文では要る空白だが、
+        日本語では文の途中に穴が空いて見える。改行しない。
+      */}
+      <p className="text-[12.5px] leading-relaxed text-ink-2">
+        ナレッジは業務のSTEPに紐付けておくと、該当のSTEPで自動的に出てきます。
+        <br />
+        <span className="font-medium text-ink">置き場所</span>
+        にURLを入れておくと、何のリンクかが分かる形で並び、その場から開けます。
+      </p>
+
+      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+        {samples.map(({ service, example }) => {
+          const Mark = LOCATION_MARK[service];
+          return (
+            <li key={service} className="flex items-center gap-2 text-[11.5px]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-line-soft bg-surface-2 text-ink-3">
+                <Mark />
+              </span>
+              <span className="shrink-0 font-medium text-ink-2">{serviceLabel(service)}</span>
+              <span className="min-w-0 truncate text-ink-3">{example}</span>
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="mt-3 border-t border-line-soft pt-2.5 text-[11.5px] leading-relaxed text-ink-3">
+        共有フォルダのパスや棚の場所など、ブラウザで開けないものも書けます。その場合はリンクにせず、写せる文字として出します。
+      </p>
     </div>
   );
 }
