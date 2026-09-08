@@ -144,18 +144,25 @@ export function TaskForm({
               : <p className="mt-1 text-[11.5px] text-ink-3">未設定（期限なし）</p>}
           </Field>
 
-          <Field label="担当者" required error={errorOf("assigneeId")}>
-            <select
-              value={draft.assigneeId}
-              onChange={(e) => set("assigneeId", e.target.value)}
-              className={`${INPUT} ${border("assigneeId")}`}
-              aria-label="担当者"
-            >
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>{u.name}（{u.team}）</option>
-              ))}
-            </select>
-          </Field>
+          {/*
+            担当者。人が自分ひとりなら選ぶ余地が無いので出さない。
+            選択肢が1つだけの欄は、決めることが無いのに考えさせる。
+            値は下書きの既定（自分）のまま持っていく。
+          */}
+          {users.length > 1 && (
+            <Field label="担当者" required error={errorOf("assigneeId")}>
+              <select
+                value={draft.assigneeId}
+                onChange={(e) => set("assigneeId", e.target.value)}
+                className={`${INPUT} ${border("assigneeId")}`}
+                aria-label="担当者"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}（{u.team}）</option>
+                ))}
+              </select>
+            </Field>
+          )}
 
           <Field label="優先度" required error={errorOf("priority")}>
             <select

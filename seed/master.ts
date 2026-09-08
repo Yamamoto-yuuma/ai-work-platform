@@ -3,10 +3,13 @@ import type {
   Company, Customer, EmailTemplate, KnowledgeItem, User,
 } from "../src/core/model/types";
 
+/*
+  個人で使うものなので、人は自分ひとりだけ持つ。
+  他の人を並べると、担当の選択肢や絞り込みに「自分でない誰か」が出てきて、
+  誰かに割り振る道具のように見えてしまう。この道具の役目はそこではない。
+*/
 export const users: User[] = [
   { id: "user-me", name: "山本 有真", roles: ["executor", "designer"], team: "sales" },
-  { id: "user-manager", name: "佐藤 部長", roles: ["designer", "admin"], team: "sales" },
-  { id: "user-marketing", name: "田中 花子", roles: ["executor"], team: "marketing" },
 ];
 
 export const customers: Customer[] = [

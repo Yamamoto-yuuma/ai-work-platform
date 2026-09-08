@@ -307,6 +307,11 @@ function TasksInner() {
             value={view}
             onChange={(v) => { setView(v); setJustDone(null); }}
           />
+          {/*
+            人が自分ひとりなら、絞り込む先が「すべて」と「自分」で同じになる。
+            選んでも何も変わらないものを置かない。
+          */}
+          {users.length > 1 && (
           <label className="mb-2 flex shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-ink-3">
             担当者
             <select
@@ -324,6 +329,7 @@ function TasksInner() {
                 ))}
             </select>
           </label>
+          )}
         </div>
       </TopBar>
 

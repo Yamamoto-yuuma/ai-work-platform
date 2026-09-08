@@ -161,7 +161,7 @@ export const changeEvents: ChangeEvent[] = [
     before: shift(33, 23),
     after: shift(48, 23),
     reason: "出展イベントの日程変更に伴い、キャンペーン期間を延長",
-    actor: "user-manager",
+    actor: "user-me",
     occurredAt: shift(0, 9),
   },
 ];

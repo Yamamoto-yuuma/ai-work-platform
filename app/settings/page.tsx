@@ -86,13 +86,27 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {/* ユーザー切替。左下のユーザーメニューからここへ直接来られるようにする */}
+      {/*
+        ユーザー切替。左下のユーザーメニューからここへ直接来られるようにする。
+        ただし人が自分ひとりなら、切り替える先が無い。
+        常に選ばれている選択肢を1つ置いても、選ぶ操作にはならない。
+      */}
       <section id="users" className="mb-7 scroll-mt-6">
         <h2 className="mb-3 text-[13px] font-bold">ユーザー</h2>
         <Card className="p-5">
           <p className="mb-3 text-[12px] text-ink-3">
-            認証は Phase 7 で接続します。現在はモックユーザーを切り替えて権限の違いを確認できます。
+            {users.length > 1
+              ? "認証は Phase 7 で接続します。現在はモックユーザーを切り替えて権限の違いを確認できます。"
+              : "認証は Phase 7 で接続します。"}
           </p>
+          {users.length === 1 ? (
+            <div className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2 px-3.5 py-2.5">
+              <span className="flex-1 text-[13px] font-medium">{users[0].name}</span>
+              <span className="flex gap-1">
+                {users[0].roles.map((r) => <Badge key={r} tone="neutral">{ROLE_LABEL[r]}</Badge>)}
+              </span>
+            </div>
+          ) : (
           <div className="flex flex-col gap-2">
             {users.map((u) => (
               <label
@@ -114,6 +128,7 @@ export default function SettingsPage() {
               </label>
             ))}
           </div>
+          )}
         </Card>
       </section>
 

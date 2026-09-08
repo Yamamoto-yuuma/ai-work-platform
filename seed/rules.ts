@@ -32,7 +32,7 @@ export const businessRules: BusinessRule[] = [
         text: "9月限定ルールが適用されています（〜2026/09/30）。予算・導入時期・AI導入経験の確認が必須です。",
       },
     ],
-    createdBy: "user-manager",
+    createdBy: "user-me",
     createdAt: "2026-08-25T10:00:00+09:00",
   },
   {
@@ -81,7 +81,7 @@ export const businessRules: BusinessRule[] = [
       },
       { type: "attachKnowledge", knowledgeIds: ["kb-legal-expression"] },
     ],
-    createdBy: "user-manager",
+    createdBy: "user-me",
     createdAt: "2026-07-28T10:00:00+09:00",
   },
   {
@@ -105,7 +105,7 @@ export const businessRules: BusinessRule[] = [
         items: [{ key: "campaign-code", label: "キャンペーンコードを確認", required: true }],
       },
     ],
-    createdBy: "user-manager",
+    createdBy: "user-me",
     createdAt: "2026-07-20T10:00:00+09:00",
   },
 ];

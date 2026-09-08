@@ -36,7 +36,7 @@ function readCollapsed(): boolean {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { state, workflows } = useStore();
+  const { state, workflows, users } = useStore();
 
   // localStorage は描画後に読む（サーバとクライアントで表示を揃えるため）
   const [collapsed, setCollapsed] = useState(false);
@@ -178,12 +178,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 管理・設定
               </Link>
-              <Link
-                href="/settings#users"
-                className="block border-t border-line-soft px-3.5 py-2.5 text-[12.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
-              >
-                使う人を切り替える
-              </Link>
+              {/* 切り替える先が無いときは出さない。押しても何も起きない道を作らない */}
+              {users.length > 1 && (
+                <Link
+                  href="/settings#users"
+                  className="block border-t border-line-soft px-3.5 py-2.5 text-[12.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+                >
+                  使う人を切り替える
+                </Link>
+              )}
             </div>
           )}
 
