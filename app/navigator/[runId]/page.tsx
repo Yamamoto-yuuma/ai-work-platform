@@ -16,12 +16,12 @@ import { ContextPanel } from "@/ui/context-panel";
 import { Badge, Button, Card, LinkButton } from "@/ui/primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { generateStepTasks } from "@/core/task/from-step";
-import { generateFollowUpTasks } from "@/core/task/follow-up";
+import { generateFollowUpTasks, generateRunFollowUpTasks } from "@/core/task/follow-up";
 import { RunCompletion } from "@/ui/run-completion";
 import { ChangeRequestPanel } from "@/ui/change-request";
 import { CancelRunPanel, CanceledRunNotice } from "@/ui/cancel-run";
 import { WaitRunPanel, WaitingRunNotice } from "@/ui/wait-run";
-import type { StepRunStatus } from "@/core/model/types";
+import type { StepFollowUp, StepRunStatus } from "@/core/model/types";
 import { runLabel, subjectOf } from "@/core/model/run-label";
 import { catForStep } from "@/core/cat/message";
 import { CatSays } from "@/ui/cat";
@@ -130,7 +130,15 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
       こちらも ID は決定的なので、やり直しても積み上がらない。
     */
     const followUps = generateFollowUpTasks({ step: stepView.step, run, now });
-    const born = [...generated, ...followUps];
+    /*
+      業務そのものを終えたときの「見ておくこと」。
+      分岐でどの道を通っても最後に必ずここを通るので、
+      最後のSTEPに書かせるより落ちにくい。
+    */
+    const runFollowUps = willBeDone
+      ? generateRunFollowUpTasks({ workflow: def, run, now })
+      : [];
+    const born = [...generated, ...followUps, ...runFollowUps];
     if (born.length > 0) dispatch({ type: "addTasks", tasks: born });
 
     setSelected(finalActivate[0] ?? null);
@@ -294,9 +302,17 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   {(stepView.step.followUps ?? []).length > 0 && (
                     <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
                       完了すると確認タスクが作られます：
-                      {(stepView.step.followUps ?? [])
-                        .map((f) => `${f.label}（${f.afterDays === 0 ? "当日" : `${f.afterDays}${f.businessDaysOnly ? "営業日" : "日"}後`}）`)
-                        .join("／")}
+                      {followUpSummary(stepView.step.followUps ?? [])}
+                    </p>
+                  )}
+                  {/*
+                    業務そのものを終えたときの分。最後の完了STEPに立ったときに出す。
+                    ここで出しておけば、業務を閉じる前に何が残るか分かる。
+                  */}
+                  {stepView.step.componentType === "complete" && (def.followUps ?? []).length > 0 && (
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
+                      この業務を完了すると確認タスクが作られます：
+                      {followUpSummary(def.followUps ?? [])}
                     </p>
                   )}
                   {stepView.context.stepDeadline && (
@@ -461,4 +477,11 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
       </div>
     </div>
   );
+}
+
+/* 「見ておくこと」の予告文。何が出てくるかを、完了する前に見せる */
+function followUpSummary(items: StepFollowUp[]): string {
+  return items
+    .map((f) => `${f.label}（${f.afterDays === 0 ? "当日" : `${f.afterDays}${f.businessDaysOnly ? "営業日" : "日"}後`}）`)
+    .join("／");
 }

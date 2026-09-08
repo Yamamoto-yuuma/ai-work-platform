@@ -296,6 +296,13 @@ export interface WorkflowDefinition {
   quota?: WorkQuota;
   /** 注意事項・判断基準など、後から足せる詳細 */
   notes?: WorkflowNotes;
+  /*
+    この業務を終えたあとに見ておくこと。
+    STEPごとの followUps と同じ仕組みだが、こちらは業務が完了した
+    時点で切り出す。分岐でどの道を通っても最後に必ず通るので、
+    「この業務をやったら、あとでこれを見る」を確実に残せる。
+  */
+  followUps?: StepFollowUp[];
   /** どこから来た定義か。user = 自分で登録した */
   origin?: "seed" | "user";
   /** 複製元の業務。テンプレートとして使った履歴 */

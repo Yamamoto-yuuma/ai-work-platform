@@ -18,7 +18,7 @@ import {
   DESCRIPTION_MAX, NAME_MAX, REGISTERABLE_COMPONENTS, START_REPEAT_CHOICES, WORK_KINDS,
   describeUnset, emptyStartSchedule, emptyStepDraft, nextFieldKey, nextStepKey,
   validateWorkflowDraft,
-  type DraftError, type FlowDraft, type StartScheduleDraft, type StepDraft, type WorkflowDraft,
+  type DraftError, type FlowDraft, type FollowUpDraft, type StartScheduleDraft, type StepDraft, type WorkflowDraft,
 } from "@/core/workflow/draft";
 import type { StartTriggerKind, TaskPriority, WorkflowNotes } from "@/core/model/types";
 
@@ -482,10 +482,42 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   </li>
                 );
               })}
+              {/*
+                最後の「完了」は自動で付くのでSTEPとしては編集させないが、
+                「この業務を終えたあとに見ておくこと」はここに置く。
+                業務の終わりに紐付くものを探すなら、まずここを見るはず。
+              */}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setDetailKey(RUN_DETAIL_KEY)}
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors ${
+                    detailKey === RUN_DETAIL_KEY ? "bg-brand-soft text-brand-ink" : "hover:bg-surface-2"
+                  }`}
+                >
+                  <span className="tabular-nums text-ink-3">{draft.steps.length + 1}</span>
+                  <span className="min-w-0 flex-1 truncate text-ink-2">完了</span>
+                </button>
+              </li>
             </ul>
           </Card>
 
-          {detail ? (
+          {detailKey === RUN_DETAIL_KEY ? (
+            <Card className="flex flex-col gap-4 p-5">
+              <div>
+                <h3 className="text-[13px] font-semibold">完了</h3>
+                <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
+                  最後に自動で付くSTEPです。中身は編集できません。
+                </p>
+              </div>
+              <FollowUpEditor
+                label="この業務を終えたあとに見ておくこと"
+                empty="まだありません。ここに書いたものは、この業務が完了した時点で確認タスクとして切り出され、指定した日数後に一覧へ出ます。分岐でどの道を通っても作られます。"
+                items={draft.followUps}
+                onChange={(followUps) => setDraft((d) => ({ ...d, followUps }))}
+              />
+            </Card>
+          ) : detail ? (
             <StepDetailEditor
               step={detail}
               knowledge={knowledge.map((k) => ({ id: k.id, title: k.title }))}
@@ -908,6 +940,77 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
   );
 }
 
+
+/*
+  「あとで見ておくこと」の編集。
+  STEPの終わりにも、業務の終わりにも同じものを使う。
+  置き場所が変わっても書き方が変わらないようにするため、ここに寄せる。
+*/
+function FollowUpEditor({
+  label, empty, items, onChange,
+}: {
+  label: string;
+  empty: string;
+  items: FollowUpDraft[];
+  onChange: (next: FollowUpDraft[]) => void;
+}) {
+  const patch = (i: number, next: Partial<FollowUpDraft>) =>
+    onChange(items.map((x, j) => (j === i ? { ...x, ...next } : x)));
+
+  return (
+    <Field label={label} hint="任意">
+      {items.length === 0 ? (
+        <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">{empty}</p>
+      ) : (
+        <ul className="mb-2 flex flex-col gap-2">
+          {items.map((f, i) => (
+            <li key={i} className="flex flex-wrap items-center gap-2">
+              <input
+                className="field flex-1 min-w-[200px]"
+                value={f.label}
+                aria-label={`見ておくこと ${i + 1}`}
+                placeholder="例：エラーが出ていないか確認する"
+                onChange={(e) => patch(i, { label: e.target.value })}
+              />
+              <span className="flex items-center gap-1.5 text-[12px] text-ink-2">
+                <input
+                  type="number" min={0} max={365} inputMode="numeric"
+                  className="field field-sm w-[68px]"
+                  value={f.afterDays}
+                  aria-label={`何日後 ${i + 1}`}
+                  onChange={(e) => patch(i, { afterDays: e.target.value })}
+                />
+                日後
+              </span>
+              <label className="flex items-center gap-1.5 text-[12px] text-ink-2">
+                <input
+                  type="checkbox" checked={f.businessDaysOnly}
+                  aria-label={`営業日で数える ${i + 1}`}
+                  onChange={(e) => patch(i, { businessDaysOnly: e.target.checked })}
+                  className="h-3.5 w-3.5 accent-[var(--color-brand)]"
+                />
+                営業日
+              </label>
+              <Button variant="ghost" size="sm" onClick={() => onChange(items.filter((_, j) => j !== i))}>
+                削除
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button
+        variant="secondary" size="sm"
+        onClick={() => onChange([...items, { label: "", afterDays: "1", businessDaysOnly: false }])}
+      >
+        ＋ 見ておくことを追加
+      </Button>
+    </Field>
+  );
+}
+
+/* 左のSTEP一覧で「完了」を選んでいる状態。STEPキーとぶつからない名前にする */
+const RUN_DETAIL_KEY = "@run";
+
 // ---------------------------------------------------------------------------
 // STEPの中身
 // ---------------------------------------------------------------------------
@@ -958,67 +1061,12 @@ function StepDetailEditor({
         STEPにはしない。STEPにすると毎回そこで手が止まる。
         完了した時点でタスクに切り出し、指定した日数後に一覧へ出す。
       */}
-      <Field label="このSTEPを終えたあとに見ておくこと" hint="任意">
-        {step.followUps.length === 0 ? (
-          <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">
-            まだありません。ここに書いたものは、このSTEPを終えた時点で
-            確認タスクとして切り出され、指定した日数後に一覧へ出ます。
-          </p>
-        ) : (
-          <ul className="mb-2 flex flex-col gap-2">
-            {step.followUps.map((f, i) => (
-              <li key={i} className="flex flex-wrap items-center gap-2">
-                <input
-                  className="field flex-1 min-w-[200px]"
-                  value={f.label}
-                  aria-label={`見ておくこと ${i + 1}`}
-                  placeholder="例：エラーが出ていないか確認する"
-                  onChange={(e) => onChange({
-                    followUps: step.followUps.map((x, j) => j === i ? { ...x, label: e.target.value } : x),
-                  })}
-                />
-                <span className="flex items-center gap-1.5 text-[12px] text-ink-2">
-                  <input
-                    type="number" min={0} max={365} inputMode="numeric"
-                    className="field field-sm w-[68px]"
-                    value={f.afterDays}
-                    aria-label={`何日後 ${i + 1}`}
-                    onChange={(e) => onChange({
-                      followUps: step.followUps.map((x, j) => j === i ? { ...x, afterDays: e.target.value } : x),
-                    })}
-                  />
-                  日後
-                </span>
-                <label className="flex items-center gap-1.5 text-[12px] text-ink-2">
-                  <input
-                    type="checkbox" checked={f.businessDaysOnly}
-                    aria-label={`営業日で数える ${i + 1}`}
-                    onChange={(e) => onChange({
-                      followUps: step.followUps.map((x, j) => j === i ? { ...x, businessDaysOnly: e.target.checked } : x),
-                    })}
-                    className="h-3.5 w-3.5 accent-[var(--color-brand)]"
-                  />
-                  営業日
-                </label>
-                <Button
-                  variant="ghost" size="sm"
-                  onClick={() => onChange({ followUps: step.followUps.filter((_, j) => j !== i) })}
-                >
-                  削除
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <Button
-          variant="secondary" size="sm"
-          onClick={() => onChange({
-            followUps: [...step.followUps, { label: "", afterDays: "1", businessDaysOnly: false }],
-          })}
-        >
-          ＋ 見ておくことを追加
-        </Button>
-      </Field>
+      <FollowUpEditor
+        label="このSTEPを終えたあとに見ておくこと"
+        empty="まだありません。ここに書いたものは、このSTEPを終えた時点で確認タスクとして切り出され、指定した日数後に一覧へ出ます。"
+        items={step.followUps}
+        onChange={(followUps) => onChange({ followUps })}
+      />
 
       <Field label="STEPの種類" required>
         {step.locked ? (

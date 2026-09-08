@@ -191,6 +191,12 @@ export interface WorkflowDraft {
   startSchedules: StartScheduleDraft[];
   quota: QuotaDraft;
   steps: StepDraft[];
+  /**
+   * この業務を終えたあとに見ておくこと。
+   * STEPごとのものと違い、業務が完了した時点で切り出す。
+   * 分岐でどの道を通っても最後に必ず通る。
+   */
+  followUps: FollowUpDraft[];
   /** STEPキー → 進み方 */
   flow: Record<string, FlowDraft>;
   notes: WorkflowNotes;
@@ -259,6 +265,7 @@ export function emptyWorkflowDraft(): WorkflowDraft {
     startSchedules: [],
     quota: { enabled: false, metric: "count", period: "month", target: "", direction: "atLeast" },
     steps: [],
+    followUps: [],
     flow: {},
     notes: {},
     flowLocked: false,
@@ -566,8 +573,8 @@ function toQuota(q: QuotaDraft): WorkQuota | undefined {
  * 名前の無い行は落とす。日数が読めないものは当日扱いにする
  * （読めない値で先の日付を作ると、いつ出るか分からなくなる）。
  */
-function followUpsOf(s: StepDraft): StepFollowUp[] {
-  return s.followUps
+function followUpsOf(items: FollowUpDraft[]): StepFollowUp[] {
+  return items
     .filter((f) => f.label.trim().length > 0)
     .map((f) => {
       const days = Number(f.afterDays);
@@ -810,7 +817,7 @@ export function compileWorkflow(input: CompileInput): WorkflowDefinition {
       ...(deadlineRule ? { deadlineRule } : {}),
       ...(s.knowledgeRefs.length > 0 ? { knowledgeRefs: s.knowledgeRefs } : {}),
       ...(s.preconditions.trim() ? { preconditions: s.preconditions.trim() } : {}),
-      ...(followUpsOf(s).length > 0 ? { followUps: followUpsOf(s) } : {}),
+      ...(followUpsOf(s.followUps).length > 0 ? { followUps: followUpsOf(s.followUps) } : {}),
       ruleTags: [key],
     };
   });
@@ -867,6 +874,9 @@ export function compileWorkflow(input: CompileInput): WorkflowDefinition {
     defaultPriority: draft.defaultPriority,
     ...(toQuota(draft.quota) ? { quota: toQuota(draft.quota) } : {}),
     notes: draft.notes,
+    ...(followUpsOf(draft.followUps).length > 0
+      ? { followUps: followUpsOf(draft.followUps) }
+      : {}),
     origin: "user",
     ...(input.copiedFromKey ? { copiedFromKey: input.copiedFromKey } : {}),
     createdAt: input.createdAt ?? iso,
@@ -1031,6 +1041,11 @@ export function draftFromWorkflow(def: WorkflowDefinition): WorkflowDraft {
       direction: def.quota?.direction ?? "atLeast",
     },
     steps,
+    followUps: (def.followUps ?? []).map((f) => ({
+      label: f.label,
+      afterDays: String(f.afterDays),
+      businessDaysOnly: f.businessDaysOnly === true,
+    })),
     flow,
     notes: def.notes ?? {},
     flowLocked,

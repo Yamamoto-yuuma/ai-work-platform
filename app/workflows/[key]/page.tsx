@@ -19,7 +19,7 @@ import { latestOf } from "@/core/workflow/registry";
 import { WORK_KIND_LABEL, describeStart } from "@/core/workflow/start-trigger";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { runLabel } from "@/core/model/run-label";
-import type { WorkflowNotes } from "@/core/model/types";
+import type { StepFollowUp, WorkflowNotes } from "@/core/model/types";
 
 const PERIOD_LABEL = { day: "1日", week: "1週", month: "1か月", quarter: "四半期", year: "1年" } as const;
 
@@ -158,10 +158,16 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                           )}
                           {(s.followUps ?? []).length > 0 && (
                             <p className="mt-1 text-[11.5px] text-ink-3">
-                              完了後に確認：
-                              {(s.followUps ?? [])
-                                .map((f) => `${f.label}（${f.afterDays === 0 ? "当日" : `${f.afterDays}${f.businessDaysOnly ? "営業日" : "日"}後`}）`)
-                                .join("／")}
+                              完了後に確認：{followUpSummary(s.followUps ?? [])}
+                            </p>
+                          )}
+                          {/*
+                            業務そのものの「見ておくこと」は、最後の完了STEPに出す。
+                            業務の終わりに何が出てくるかを探すなら、ここを見るはず。
+                          */}
+                          {s.componentType === "complete" && (def.followUps ?? []).length > 0 && (
+                            <p className="mt-1 text-[11.5px] text-ink-3">
+                              完了後に確認：{followUpSummary(def.followUps ?? [])}
                             </p>
                           )}
                           {s.preconditions && (
@@ -376,4 +382,11 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
       </div>
     </div>
   );
+}
+
+/* 「見ておくこと」の予告文。完了して初めて出てくると、身に覚えのないものに見える */
+function followUpSummary(items: StepFollowUp[]): string {
+  return items
+    .map((f) => `${f.label}（${f.afterDays === 0 ? "当日" : `${f.afterDays}${f.businessDaysOnly ? "営業日" : "日"}後`}）`)
+    .join("／");
 }
