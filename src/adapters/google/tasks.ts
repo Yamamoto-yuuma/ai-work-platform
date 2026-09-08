@@ -140,7 +140,15 @@ export async function fetchTasks(listId: string): Promise<GoogleTask[]> {
   let pageToken: string | undefined;
   // 際限なく回さない。1リスト2000件で十分すぎる
   for (let i = 0; i < 20; i++) {
-    const q = new URLSearchParams({ maxResults: "100", showCompleted: "true", showHidden: "false" });
+    /*
+      showHidden を落とすと、完了したタスクが返ってこない。
+
+      Google ToDo の画面でチェックを付けたタスクは completed になると同時に
+      hidden も立つ。showHidden=false だと一覧から丸ごと消えるので、
+      こちらからは「Google側で消えた」ようにしか見えず、
+      完了が伝わらないまま未着手として残ってしまう。
+    */
+    const q = new URLSearchParams({ maxResults: "100", showCompleted: "true", showHidden: "true" });
     if (pageToken) q.set("pageToken", pageToken);
     const data = await get<{ items?: GoogleTask[]; nextPageToken?: string }>(
       `/lists/${encodeURIComponent(listId)}/tasks?${q.toString()}`,

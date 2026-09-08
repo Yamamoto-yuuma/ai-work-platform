@@ -98,8 +98,13 @@ export function planImport(input: {
   const seen = new Set<string>();
 
   for (const g of incoming) {
-    // 向こうで消えたもの・隠されたものは、取り込む対象にしない
-    if (g.deleted || g.hidden) continue;
+    /*
+      向こうで消されたものは取り込まない。
+      hidden は飛ばさない。Google ToDo でチェックを付けたタスクは
+      completed と同時に hidden が立つので、ここで飛ばすと
+      「完了した」という一番知りたいことが伝わらなくなる。
+    */
+    if (g.deleted) continue;
     const title = (g.title ?? "").trim();
     // 名前の無いタスクは向こうの入力途中。取り込むと空行が並ぶ
     if (!title) continue;
@@ -115,11 +120,18 @@ export function planImport(input: {
     };
 
     if (!found) {
+      /*
+        向こうで既に完了しているものは作らない。
+        初めて繋いだとき、過去に片付けた分まで「完了」に流れ込む。
+        こちらが追いかけているものの完了を映すのが役目で、
+        向こうの履歴を持ってくるのが役目ではない。
+      */
+      if (g.status === "completed") continue;
       created.push({
         id: newId(),
         title,
         description: g.notes?.trim() || undefined,
-        status: g.status === "completed" ? "done" : "todo",
+        status: "todo",
         priority: "normal",
         assigneeId,
         dueAt: dueFromGoogle(g.due),
