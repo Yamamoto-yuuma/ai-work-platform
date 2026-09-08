@@ -16,6 +16,7 @@ import { KnowledgeForm } from "@/ui/knowledge-form";
 import { DeleteKnowledgeButton } from "@/ui/delete-knowledge";
 import { newKnowledgeFromDraft, patchFromKnowledgeDraft } from "@/core/model/knowledge-draft";
 import { KnowledgeLocation } from "@/ui/knowledge-location";
+import { NotebookLauncher } from "@/ui/notebook-launcher";
 import { serviceLabel, type LocationService } from "@/core/model/knowledge-link";
 import { LOCATION_MARK } from "@/ui/icons";
 import { newKnowledgeId } from "@/lib/id";
@@ -63,6 +64,12 @@ function KnowledgeInner() {
     const t = q.toLowerCase();
     return k.title.toLowerCase().includes(t) || k.body.toLowerCase().includes(t) || k.tags.some((x) => x.includes(t));
   });
+
+  /*
+    置き場所が Gemini Notebook のもの。絞り込みタブや検索には従わせない。
+    「開きに行く」入口なので、いま何で絞っていても同じ場所に同じものが要る。
+  */
+  const notebooks = knowledge.filter((k) => k.source === "notebooklm" && k.location);
 
   const opened = openId ? knowledge.find((k) => k.id === openId) ?? null : null;
   const openedLinks = opened ? workflows.filter((w) => opened.linkedWorkflowKeys.includes(w.key)) : [];
@@ -117,6 +124,12 @@ function KnowledgeInner() {
         「探さなくても出てくる」のは、紐付いたナレッジがある場合の話。
         1件も無いうちにこれを出すと、もう用意されているように読めてしまう。
       */}
+      {/*
+        ノートブックへの入口。中身は向こうにあるので、開きに行く一手が
+        いちばん多い。表の1行にせず、押すと決まっている場所に大きく置く。
+      */}
+      {!creating && <NotebookLauncher items={notebooks} onOpenDetail={setOpenId} />}
+
       {knowledge.length > 0 && !creating && <KnowledgeGuide />}
 
       {knowledge.length === 0 ? (
