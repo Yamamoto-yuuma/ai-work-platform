@@ -90,12 +90,21 @@
   --color-ai-soft: #efedf6;
 
   /*
-    本文書体。落ち着いた現代的なゴシックにする。
-    Zen Kaku Gothic New を fonts.css で同梱しているので、OS を問わず必ず効く。
+    本文書体。
+
+    英数字は Inter、かなと漢字は IBM Plex Sans JP。
+    この順に並べるのが要点で、Inter は英数字しか持たないので、
+    日本語は自然と次の IBM Plex Sans JP が拾う。
+
+    この画面は日付・件数・URL が多い。そこだけ字面の締まった書体に
+    すると、全体が引き締まって見える。日本語側も角の立った書体にして、
+    丸みのある書体が出す柔らかさを外す。
+
+    どちらも fonts.css で同梱しているので、OS を問わず必ず効く。
     以降は、万一読み込めなかったときのための並び。
   */
   --font-sans:
-    "Zen Kaku Gothic New",
+    Inter, "IBM Plex Sans JP",
     "Hiragino Sans", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
 }
 
