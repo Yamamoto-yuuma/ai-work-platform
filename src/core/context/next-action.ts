@@ -180,6 +180,12 @@ export function rankActions(input: NextActionInput): RankedAction[] {
   for (const task of tasks) {
     if (task.confirmationState !== "confirmed") continue;
     if (task.assigneeId !== userId) continue;
+    /*
+      細目は親の中でだけ扱う。ここに並べると、定例業務を1つ始めただけで
+      HOMEが細目で埋まり、「次に何をやるか」を言わなくなる。
+      親が候補として出るので、辿り着けなくなることはない。
+    */
+    if (task.parentTaskId) continue;
     if (task.status === "done" || task.status === "canceled") continue;
     // ブロック判定は core/task/dependency に一元化している（画面間で判定を揃えるため）
     if (isBlocked(task, tasks)) continue;

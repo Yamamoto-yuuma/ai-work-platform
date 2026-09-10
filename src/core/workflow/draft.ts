@@ -83,8 +83,12 @@ export interface StepDraft {
   fields: FieldDraft[];
   /** checklist */
   items: { key: string; label: string }[];
-  /** task-create */
-  templates: { title: string; offsetDays: string }[];
+  /**
+   * task-create。
+   * subtasks はこのタスクに毎回ぶら下がる細目。名前だけ持つ
+   * （期限や見積は親に従う。細目ごとに決めることを増やすと書かれなくなる）。
+   */
+  templates: { title: string; offsetDays: string; subtasks: string[] }[];
   /** knowledge-view */
   knowledgeRefs: string[];
   /** 業務開始からの営業日数。空文字はSTEP期限なし */
@@ -609,11 +613,14 @@ function stepConfig(s: StepDraft): Record<string, unknown> {
       return {
         templates: s.templates.map((t) => {
           const offset = Number(t.offsetDays);
+          // 名前の無い細目は保存しない。空行が並ぶだけになる
+          const subtasks = (t.subtasks ?? []).map((x) => x.trim()).filter((x) => x.length > 0);
           return {
             title: t.title.trim(),
             ...(Number.isFinite(offset) && t.offsetDays.trim() !== ""
               ? { offsetDays: offset, businessDaysOnly: true }
               : {}),
+            ...(subtasks.length > 0 ? { subtasks } : {}),
           };
         }),
       };
@@ -889,7 +896,7 @@ export function compileWorkflow(input: CompileInput): WorkflowDefinition {
 
 type CfgField = { key: string; label?: string; required?: boolean; options?: { value: unknown; label: string }[] };
 type CfgItem = { key: string; label?: string };
-type CfgTemplate = { title: string; offsetDays?: number };
+type CfgTemplate = { title: string; offsetDays?: number; subtasks?: string[] };
 
 /**
  * 分岐の合流先を読み戻す。
@@ -988,6 +995,7 @@ export function draftFromWorkflow(def: WorkflowDefinition): WorkflowDraft {
       templates: (cfg.templates ?? []).map((t) => ({
         title: t.title,
         offsetDays: t.offsetDays === undefined ? "" : String(t.offsetDays),
+        subtasks: [...(t.subtasks ?? [])],
       })),
       knowledgeRefs: s.knowledgeRefs ?? [],
       deadlineDays:

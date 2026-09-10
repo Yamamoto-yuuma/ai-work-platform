@@ -1,7 +1,7 @@
 "use client";
 
 /** タスク一覧（仕様 §9-5）。提案中のタスクは確定済みと明確に区別する */
-import { Suspense, useEffect, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNow } from "@/ui/use-navigator";
@@ -23,6 +23,7 @@ import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/mo
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
 import { sortDoneTasks, sortOpenTasks } from "@/core/task/order";
+import { blockedBySubtasks, subtaskProgress, subtasksOf, topLevel } from "@/core/task/subtask";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { escalatedPriority } from "@/core/priority/escalate";
 import type { Task } from "@/core/model/types";
@@ -53,6 +54,8 @@ function TasksInner() {
   const [creating, setCreating] = useState(false);
   // まとめて入れる。依頼が立て込むとき、1件ずつ開くのが手間になる
   const [bulk, setBulk] = useState(false);
+  // 細目を開いている親。開閉は見た目の状態なので、業務データには入れない
+  const [openedSubs, setOpenedSubs] = useState<Set<string>>(new Set());
   const [createdId, setCreatedId] = useState<string | null>(null);
   // 完了にすると行が一覧から消える。消えたことと戻し方をその場に出す
   const [justDone, setJustDone] = useState<
@@ -84,7 +87,12 @@ function TasksInner() {
   }, [wanted]);
   const now = useNow();
 
-  const open = state.tasks.filter((t) => t.confirmationState !== "rejected");
+  /*
+    細目（parentTaskId を持つもの）は、この一覧には並べない。
+    親の行を開くとその下に出る。並べてしまうと、定例業務を1つ
+    始めただけで一覧が細目で埋まり、抱えている量が分からなくなる。
+  */
+  const open = topLevel(state.tasks.filter((t) => t.confirmationState !== "rejected"));
   const proposed = open.filter((t) => t.confirmationState === "proposed");
 
   const filtered = open.filter((t) => {
@@ -179,9 +187,16 @@ function TasksInner() {
       : null);
   }
 
-  function TaskRow({ t }: { t: Task }) {
+  function TaskRow({ t, child }: { t: Task; child?: boolean }) {
     const u = urgencyOf(t.dueAt, now);
-    const blockedBy = blockingPredecessors(t, state.tasks);
+    /*
+      細目が残っているうちは、親を完了にできない。
+      親だけ先に閉じられると、細目が宙に浮いて誰も見なくなる。
+      先行タスクで止めるのと同じ扱いにして、理由も同じ場所に出す。
+    */
+    const heldBySubs = blockedBySubtasks(t, state.tasks);
+    const blockedBy = [...blockingPredecessors(t, state.tasks), ...heldBySubs];
+    const progress = subtaskProgress(t, state.tasks);
     const shownStatus = effectiveStatus(t, state.tasks);
     const assignee = users.find((x) => x.id === t.assigneeId);
     // 優先度は登録時のまま固定しない。期限が近づけば上がる
@@ -199,13 +214,38 @@ function TasksInner() {
               label={`${t.title} を完了にする`}
               disabled={blockedBy.length > 0 && !done}
               reason={blockedBy.length > 0 && !done
-                ? `先に「${blockedBy.map((x) => x.title).join("」「")}」が終わる必要があります`
+                ? (heldBySubs.length > 0 && blockingPredecessors(t, state.tasks).length === 0
+                    ? `先に細目（${heldBySubs.map((x) => x.title).join("／")}）を終える必要があります`
+                    : `先に「${blockedBy.map((x) => x.title).join("」「")}」が終わる必要があります`)
                 : undefined}
               onToggle={() => toggleDone(t)}
             />
           </span>
 
           <span className="cell-clip flex items-center gap-1.5">
+            {/* 細目は親の下に、少し下げて並べる。どこにぶら下がっているか見えるように */}
+            {child && <span className="shrink-0 pl-2 text-[12px] leading-none text-ink-3" aria-hidden>└</span>}
+
+            {/*
+              付いてくる細目の開閉。押すとその場で下に出る。
+              別画面に移さない。開いて閉じるだけのことで場所を変えない。
+            */}
+            {progress && (
+              <button
+                type="button"
+                onClick={() => setOpenedSubs((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+                  return next;
+                })}
+                aria-expanded={openedSubs.has(t.id)}
+                aria-label={`${t.title} の細目を${openedSubs.has(t.id) ? "閉じる" : "開く"}`}
+                className="relative z-10 shrink-0 rounded px-1 text-[11px] leading-none text-ink-3 transition-colors hover:text-brand"
+              >
+                {openedSubs.has(t.id) ? "▾" : "▸"}
+              </button>
+            )}
+
             {/*
               名前そのものをリンクにして、当たり判定だけを行全体に広げる
               （::before）。行の上に文字のない透明なリンクを重ねると、
@@ -232,6 +272,12 @@ function TasksInner() {
             {t.source === "manual" && <Badge>{TASK_SOURCE_LABEL.manual}</Badge>}
             {t.source === "flow" && <Badge tone="brand">{TASK_SOURCE_LABEL.flow}</Badge>}
             {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
+            {/* 細目の進み具合。列は増やさず、名前の後ろに添える */}
+            {progress && (
+              <span className="shrink-0 cell-num text-[11px] text-ink-3">
+                細目 {progress.done}/{progress.total}
+              </span>
+            )}
             {/* 見積は列にしない。名前の後ろに添えて、行の高さも列幅も増やさない */}
             {t.estimatedMinutes !== undefined && (
               <span className="shrink-0 text-[11px] text-ink-3">
@@ -511,7 +557,15 @@ function TasksInner() {
                 {showAssignee && <span>担当</span>}
                 <span />
               </RowHead>
-              {list.map((t) => <TaskRow key={t.id} t={t} />)}
+              {list.map((t) => {
+                const subs = openedSubs.has(t.id) ? subtasksOf(t, state.tasks) : [];
+                return (
+                  <Fragment key={t.id}>
+                    <TaskRow t={t} />
+                    {subs.map((c) => <TaskRow key={c.id} t={c} child />)}
+                  </Fragment>
+                );
+              })}
             </RowList>
           </section>
         ))
@@ -678,6 +732,30 @@ function TasksInner() {
               <span className="block whitespace-pre-wrap leading-relaxed text-ink-2">{task.description}</span>
             </Line>
           )}
+          {/*
+            付いてくる細目。ここでも完了にできるようにする。
+            開くたびに一覧へ戻らせない。
+          */}
+          {subtasksOf(task, state.tasks).length > 0 && (
+            <Line k="細目">
+              <ul className="flex flex-col gap-1">
+                {subtasksOf(task, state.tasks).map((c) => {
+                  const finished = c.status === "done" || c.status === "canceled";
+                  return (
+                    <li key={c.id} className="flex items-center gap-2">
+                      <Check
+                        done={c.status === "done"}
+                        label={`${c.title} を完了にする`}
+                        onToggle={() => toggleDone(c)}
+                      />
+                      <span className={finished ? "text-ink-3 line-through" : ""}>{c.title}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Line>
+          )}
+
           {/*
             繋いである先行を全部出す。「待機中」は妨げているものだけなので、
             済んだ先行が見えず、何に繋いだのか分からなくなる。

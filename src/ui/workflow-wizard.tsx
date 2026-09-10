@@ -1211,32 +1211,76 @@ function StepDetailEditor({
       {!step.locked && step.componentType === "task-create" && (
         <Field label="このSTEPを終えたら作るタスク" required>
           <ul className="flex flex-col gap-1.5">
-            {step.templates.map((t, i) => (
-              <li key={i} className="flex flex-wrap items-center gap-2">
-                <input
-                  className={`${INPUT} min-w-[180px] flex-1`} value={t.title}
-                  onChange={(e) => onChange({
-                    templates: step.templates.map((x, k) => (k === i ? { ...x, title: e.target.value } : x)),
-                  })}
-                  placeholder="タスク名"
-                />
-                <span className="text-[12px] text-ink-3">完了から</span>
-                <input
-                  className={`${SMALL_INPUT} w-16`} value={t.offsetDays} inputMode="numeric"
-                  onChange={(e) => onChange({
-                    templates: step.templates.map((x, k) => (k === i ? { ...x, offsetDays: e.target.value } : x)),
-                  })}
-                />
-                <span className="text-[12px] text-ink-3">営業日後</span>
-                <Button variant="ghost" size="sm" onClick={() => onChange({ templates: step.templates.filter((_, k) => k !== i) })}>
-                  削除
-                </Button>
-              </li>
-            ))}
+            {step.templates.map((t, i) => {
+              const patchTpl = (next: Partial<(typeof step.templates)[number]>) =>
+                onChange({ templates: step.templates.map((x, k) => (k === i ? { ...x, ...next } : x)) });
+              return (
+                <li key={i} className="rounded-lg border border-line-soft p-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      className={`${INPUT} min-w-[180px] flex-1`} value={t.title}
+                      onChange={(e) => patchTpl({ title: e.target.value })}
+                      placeholder="タスク名"
+                    />
+                    <span className="text-[12px] text-ink-3">完了から</span>
+                    <input
+                      className={`${SMALL_INPUT} w-16`} value={t.offsetDays} inputMode="numeric"
+                      aria-label={`${t.title || `タスク ${i + 1}`} の期限（営業日）`}
+                      onChange={(e) => patchTpl({ offsetDays: e.target.value })}
+                    />
+                    <span className="text-[12px] text-ink-3">営業日後</span>
+                    <Button variant="ghost" size="sm" onClick={() => onChange({ templates: step.templates.filter((_, k) => k !== i) })}>
+                      削除
+                    </Button>
+                  </div>
+
+                  {/*
+                    このタスクに毎回ぶら下がる細目。
+                    名前だけ持つ。期限や見積は親に従う。細目ごとに決めることを
+                    増やすと、定義するのが億劫になって結局書かれない。
+                  */}
+                  <div className="mt-2 border-t border-line-soft pt-2 pl-3">
+                    {(t.subtasks ?? []).length === 0 ? (
+                      <p className="mb-1.5 text-[11.5px] text-ink-3">
+                        細かい手順があれば、このタスクの中にぶら下げられます。
+                      </p>
+                    ) : (
+                      <ul className="mb-1.5 flex flex-col gap-1.5">
+                        {(t.subtasks ?? []).map((sub, j) => (
+                          <li key={j} className="flex items-center gap-2">
+                            <span className="shrink-0 text-[12px] text-ink-3">└</span>
+                            <input
+                              className={INPUT} value={sub}
+                              aria-label={`細目 ${i + 1}-${j + 1}`}
+                              placeholder="やること"
+                              onChange={(e) => patchTpl({
+                                subtasks: (t.subtasks ?? []).map((x, k) => (k === j ? e.target.value : x)),
+                              })}
+                            />
+                            <Button
+                              variant="ghost" size="sm"
+                              onClick={() => patchTpl({ subtasks: (t.subtasks ?? []).filter((_, k) => k !== j) })}
+                            >
+                              削除
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <Button
+                      variant="secondary" size="sm"
+                      onClick={() => patchTpl({ subtasks: [...(t.subtasks ?? []), ""] })}
+                    >
+                      ＋ 細目を追加
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
           <Button
             variant="secondary" size="sm" className="mt-2"
-            onClick={() => onChange({ templates: [...step.templates, { title: "", offsetDays: "" }] })}
+            onClick={() => onChange({ templates: [...step.templates, { title: "", offsetDays: "", subtasks: [] }] })}
           >
             ＋ タスクを追加
           </Button>

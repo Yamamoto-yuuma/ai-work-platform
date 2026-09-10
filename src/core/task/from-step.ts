@@ -25,6 +25,14 @@ export interface StepTaskTemplate {
   /** 同じ STEP で作るタスク同士の依存を張るための参照名 */
   ref?: string;
   dependsOnRefs?: string[];
+  /*
+    このタスクに付いてくる細目。定例の業務で、毎回やることが決まっている
+    ぶら下がりを、業務の定義側に置いておくためのもの。
+
+    名前だけ持つ。期限や見積は親に従う。細目ごとに日付を持たせると、
+    定義するときに決めることが増えて、結局書かれなくなる。
+  */
+  subtasks?: string[];
 }
 
 /** チェックが外されたテンプレートは作らない（外し方は TaskCreateRenderer と揃える） */
@@ -34,6 +42,11 @@ export function isTemplateSelected(stepRun: StepRun, index: number): boolean {
 
 export function stepTaskId(runId: string, stepKey: string, index: number): string {
   return `task-${runId}-${stepKey}-${index}`;
+}
+
+/** 細目の ID。親と同じく決まった形にして、やり直しても二重にしない */
+export function stepSubtaskId(runId: string, stepKey: string, index: number, sub: number): string {
+  return `${stepTaskId(runId, stepKey, index)}-sub-${sub}`;
 }
 
 export function readTemplates(step: StepDefinition): StepTaskTemplate[] {
@@ -93,6 +106,42 @@ export function generateStepTasks(input: {
       dependsOn: [],
       createdAt,
     });
+  });
+
+  /*
+    細目を作る。親と同じ期限・同じ担当で、親にぶら下げる。
+
+    一覧のトップレベルには出さない（parentTaskId を持つものは、
+    親の中だけで扱う）。出すと、定例業務を1つ始めただけで
+    一覧が細目で埋まり、抱えている量が分からなくなる。
+  */
+  templates.forEach((tpl, i) => {
+    if (!isTemplateSelected(stepRun, i)) return;
+    const parentId = stepTaskId(run.id, step.key, i);
+    const parent = tasks.find((t) => t.id === parentId);
+    if (!parent) return;
+
+    (tpl.subtasks ?? [])
+      .map((label, j) => ({ label: label.trim(), j }))
+      // 名前の無い細目は作らない。一覧に空行が並ぶだけになる
+      .filter(({ label }) => label.length > 0)
+      .forEach(({ label, j }) => {
+        tasks.push({
+          id: stepSubtaskId(run.id, step.key, i, j),
+          title: label,
+          status: "todo",
+          priority: parent.priority,
+          assigneeId: run.assigneeId,
+          dueAt: parent.dueAt,
+          runId: run.id,
+          stepKey: step.key,
+          parentTaskId: parentId,
+          source: "flow",
+          confirmationState: "confirmed",
+          dependsOn: [],
+          createdAt,
+        });
+      });
   });
 
   // ref による依存を ID に解決する（タイトル文字列では張らない）
