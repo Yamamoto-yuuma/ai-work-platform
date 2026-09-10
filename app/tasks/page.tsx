@@ -11,12 +11,14 @@ import {
 } from "@/ui/primitives";
 import { Drawer } from "@/ui/drawer";
 import { TaskForm } from "@/ui/task-form";
+import { BulkTaskForm } from "@/ui/bulk-task-form";
 import { DeadlineCascadePanel } from "@/ui/deadline-cascade";
 import { proposeDependentDeadlines, shiftDirection, type DeadlineProposal } from "@/core/schedule/cascade";
 import { DeleteTaskButton } from "@/ui/delete-task";
 import { newTaskFromDraft, patchFromDraft, describeTaskRepeat, formatMinutes } from "@/core/model/task-draft";
 import { completeTaskEffects, reopenTaskEffects } from "@/core/task/repeat";
 import { newTaskId } from "@/lib/id";
+import type { ParsedTaskLine } from "@/core/task/bulk";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
@@ -49,6 +51,8 @@ function TasksInner() {
   const [view, setView] = useState<ViewKey>((search.get("view") as ViewKey) ?? "today");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [creating, setCreating] = useState(false);
+  // まとめて入れる。依頼が立て込むとき、1件ずつ開くのが手間になる
+  const [bulk, setBulk] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   // 完了にすると行が一覧から消える。消えたことと戻し方をその場に出す
   const [justDone, setJustDone] = useState<
@@ -318,8 +322,17 @@ function TasksInner() {
       <TopBar
         title="タスク"
         action={
-          !creating && (
-            <Button onClick={() => { setCreating(true); setCreatedId(null); }}>＋ タスクを追加</Button>
+          !creating && !bulk && (
+            <span className="flex items-center gap-2">
+              {/*
+                まとめて入れる方を先に置く。依頼が立て込むときは
+                こちらの方が回数が多く、1件ずつは書き足りないときに使う。
+              */}
+              <Button variant="secondary" onClick={() => { setBulk(true); setCreatedId(null); }}>
+                まとめて追加
+              </Button>
+              <Button onClick={() => { setCreating(true); setCreatedId(null); }}>＋ タスクを追加</Button>
+            </span>
           )
         }
       >
@@ -357,6 +370,38 @@ function TasksInner() {
           )}
         </div>
       </TopBar>
+
+      {/*
+        まとめて追加。読み取った結果から、そのままタスクを作る。
+        由来は手動と同じ扱いにする（人が書いたものなので、承認は挟まない）。
+      */}
+      {bulk && (
+        <BulkTaskForm
+          now={now}
+          onCancel={() => setBulk(false)}
+          onSubmit={(lines: ParsedTaskLine[]) => {
+            const createdAt = new Date().toISOString();
+            const tasks = lines.map((l) => ({
+              id: newTaskId(),
+              title: l.title,
+              status: "todo" as const,
+              priority: l.priority ?? ("normal" as const),
+              assigneeId: state.currentUserId,
+              dueAt: l.dueAt,
+              estimatedMinutes: l.estimatedMinutes,
+              source: "manual" as const,
+              confirmationState: "confirmed" as const,
+              dependsOn: [],
+              createdAt,
+            }));
+            dispatch({ type: "addTasks", tasks });
+            setBulk(false);
+            // 入ったことが分かるよう、全部並ぶビューへ移す
+            setView("all");
+            setCreatedId(tasks[tasks.length - 1]?.id ?? null);
+          }}
+        />
+      )}
 
       {creating && (
         <TaskForm
