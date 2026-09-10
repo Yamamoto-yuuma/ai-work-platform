@@ -212,7 +212,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <div className="min-w-0 flex-1">
+      {/*
+        作業する側。左レーンとの間に、常にわずかな隙間を置く。
+        レーンを畳むと画面が詰まり、見出しの帯がレーンに接して
+        「レーンに食い込んでいる」ように見えるため。
+      */}
+      <div className="min-w-0 flex-1 md:pl-3">
         {state.simulatedDate && (
           <div className="flex flex-wrap items-center justify-center gap-2 bg-signal px-4 py-1.5 text-center text-[12px] text-white">
             <span className="font-medium">
