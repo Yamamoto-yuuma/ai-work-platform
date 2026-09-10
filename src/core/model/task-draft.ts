@@ -46,6 +46,21 @@ export interface TaskDraft {
   repeatWeekdays: number[];
   /** 毎月（日付）のときだけ使う。入力中は文字列で持つ */
   repeatMonthDay: string;
+  /** 見積時間（分）。入力中を扱えるよう文字列で持つ。空文字は未設定 */
+  estimatedMinutes: string;
+  /** 先にこれが終わっていないと着手できない、というタスクのid */
+  dependsOn: string[];
+}
+
+/** 見積時間の上限。1日ぶんを超えるなら、それはタスクではなく業務 */
+export const ESTIMATE_MAX_MINUTES = 24 * 60;
+
+/** 分を読める形にする。90 →「1時間30分」 */
+export function formatMinutes(minutes: number): string {
+  if (minutes < 60) return `${minutes}分`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}時間` : `${h}時間${m}分`;
 }
 
 export interface TaskDraftError {
@@ -122,6 +137,8 @@ export function draftFromTask(task: Task): TaskDraft {
     dueAt: toDateInputValue(task.dueAt),
     assigneeId: task.assigneeId,
     priority: task.priority,
+    estimatedMinutes: task.estimatedMinutes === undefined ? "" : String(task.estimatedMinutes),
+    dependsOn: [...task.dependsOn],
     ...repeatToDraft(task.repeat),
   };
 }
@@ -159,6 +176,23 @@ export function validateTaskDraft(draft: TaskDraft, users: User[]): TaskDraftErr
   }
 
   /*
+    見積時間。空欄は「決めていない」であって、誤りではない。
+    書かせるための必須にはしない。
+  */
+  const est = draft.estimatedMinutes.trim();
+  if (est.length > 0) {
+    const n = Number(est);
+    if (!Number.isFinite(n) || n <= 0) {
+      errors.push({ field: "estimatedMinutes", message: "見積時間は1分以上の数字で入力してください" });
+    } else if (n > ESTIMATE_MAX_MINUTES) {
+      errors.push({
+        field: "estimatedMinutes",
+        message: `見積時間は${formatMinutes(ESTIMATE_MAX_MINUTES)}以内で入力してください。それを超えるなら、タスクではなく業務として登録してください`,
+      });
+    }
+  }
+
+  /*
     繰り返しは、次の1件がいつ来るか決まらなければ成立しない。
     曜日を1つも選んでいない「毎週」を通すと、完了しても次が現れず、
     繰り返しているつもりの仕事が黙って途切れる。
@@ -192,8 +226,19 @@ export function patchFromDraft(draft: TaskDraft, task: Task): Partial<Task> {
     dueAt: fromDateInputValue(draft.dueAt, task.dueAt),
     assigneeId: draft.assigneeId,
     priority: draft.priority,
+    estimatedMinutes: estimateFromDraft(draft),
+    dependsOn: [...draft.dependsOn],
     repeat: repeatFromDraft(draft),
   };
+}
+
+/** 見積時間を保存する形にする。読めない値は未設定として扱う */
+export function estimateFromDraft(draft: TaskDraft): number | undefined {
+  const raw = draft.estimatedMinutes.trim();
+  if (raw.length === 0) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return Math.min(Math.floor(n), ESTIMATE_MAX_MINUTES);
 }
 
 /** 入力に変更があるか（保存ボタンの活性判定に使う） */
@@ -205,6 +250,8 @@ export function isDirty(draft: TaskDraft, task: Task): boolean {
     base.dueAt !== draft.dueAt ||
     base.assigneeId !== draft.assigneeId ||
     base.priority !== draft.priority ||
+    base.estimatedMinutes !== draft.estimatedMinutes ||
+    base.dependsOn.join(",") !== draft.dependsOn.join(",") ||
     base.repeatKind !== draft.repeatKind ||
     base.repeatMonthDay !== draft.repeatMonthDay ||
     base.repeatWeekdays.join(",") !== draft.repeatWeekdays.join(",")
@@ -216,6 +263,7 @@ export function emptyTaskDraft(assigneeId: string): TaskDraft {
   return {
     title: "", description: "", dueAt: "", assigneeId, priority: "normal",
     repeatKind: "none", repeatWeekdays: [], repeatMonthDay: "1",
+    estimatedMinutes: "", dependsOn: [],
   };
 }
 
@@ -235,10 +283,11 @@ export function newTaskFromDraft(draft: TaskDraft, id: string): Task {
     priority: draft.priority,
     assigneeId: draft.assigneeId,
     dueAt: fromDateInputValue(draft.dueAt),
+    estimatedMinutes: estimateFromDraft(draft),
     repeat: repeatFromDraft(draft),
     source: "manual",
     confirmationState: "confirmed",
-    dependsOn: [],
+    dependsOn: [...draft.dependsOn],
     createdAt: new Date().toISOString(),
   };
 }

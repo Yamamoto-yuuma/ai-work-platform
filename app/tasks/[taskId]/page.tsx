@@ -11,7 +11,7 @@ import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
 import { TaskForm } from "@/ui/task-form";
-import { TASK_PRIORITIES, patchFromDraft, describeTaskRepeat } from "@/core/model/task-draft";
+import { TASK_PRIORITIES, patchFromDraft, describeTaskRepeat, formatMinutes } from "@/core/model/task-draft";
 import { completeTaskEffects } from "@/core/task/repeat";
 import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT } from "@/core/model/task-labels";
@@ -105,6 +105,17 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         ) : (
           <Badge>期限なし</Badge>
         )}
+        {task.estimatedMinutes !== undefined && (
+          <Badge>見積 {formatMinutes(task.estimatedMinutes)}</Badge>
+        )}
+        {/* いつ終えたか。一覧の「完了」と同じことを、ここでも言えるようにする */}
+        {task.completedAt && (
+          <Badge tone="neutral">
+            完了 {new Date(task.completedAt).toLocaleString("ja-JP", {
+              month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
+            })}
+          </Badge>
+        )}
       </div>
 
       {saved && !editing && (
@@ -139,6 +150,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         <TaskForm
           mode={{ kind: "edit", task }}
           users={users}
+          allTasks={state.tasks}
           onSubmit={(draft) => {
             const patch = patchFromDraft(draft, task);
             const previousDueAt = task.dueAt;

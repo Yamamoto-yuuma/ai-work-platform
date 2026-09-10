@@ -64,3 +64,25 @@ export function transitiveDependents(task: Task, all: Task[]): Task[] {
   }
   return out;
 }
+
+/**
+ * 先行として選べるタスク。
+ *
+ * 自分自身と、自分に（間接でも）依存しているものを外す。
+ * これを許すと循環になり、どちらも永久に着手できないタスクの組が
+ * できてしまう。入力の時点で選べないようにする方が、
+ * 保存してからエラーで断るより分かりやすい。
+ *
+ * 終わったもの・中止したものは外す。先行が済んでいれば
+ * 待つ理由が無いので、繋いでも何も起きない。
+ *
+ * task を渡さないときは新規作成。まだ誰も依存していないので、
+ * 抱えているものはすべて選べる。
+ */
+export function selectableDependencies(all: Task[], task?: Task): Task[] {
+  const open = all.filter((t) => t.status !== "done" && t.status !== "canceled");
+  if (!task) return open;
+
+  const banned = new Set<string>([task.id, ...transitiveDependents(task, all).map((t) => t.id)]);
+  return open.filter((t) => !banned.has(t.id));
+}

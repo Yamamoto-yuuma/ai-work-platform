@@ -14,12 +14,13 @@ import { TaskForm } from "@/ui/task-form";
 import { DeadlineCascadePanel } from "@/ui/deadline-cascade";
 import { proposeDependentDeadlines, shiftDirection, type DeadlineProposal } from "@/core/schedule/cascade";
 import { DeleteTaskButton } from "@/ui/delete-task";
-import { newTaskFromDraft, patchFromDraft, describeTaskRepeat } from "@/core/model/task-draft";
+import { newTaskFromDraft, patchFromDraft, describeTaskRepeat, formatMinutes } from "@/core/model/task-draft";
 import { completeTaskEffects, reopenTaskEffects } from "@/core/task/repeat";
 import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT, TASK_SOURCE_LABEL } from "@/core/model/task-labels";
 import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
+import { sortDoneTasks, sortOpenTasks } from "@/core/task/order";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { escalatedPriority } from "@/core/priority/escalate";
 import type { Task } from "@/core/model/types";
@@ -104,9 +105,18 @@ function TasksInner() {
   });
 
   // 担当者フィルタはビューの上に重ねて効かせる
-  const visible = assigneeFilter === "all"
+  const picked = assigneeFilter === "all"
     ? filtered
     : filtered.filter((t) => t.assigneeId === assigneeFilter);
+
+  /*
+    並べる。登録した順に出していると、抱えている量が増えるほど
+    一覧が「持っているものの置き場」になり、次に何をやるかを言わなくなる。
+
+    終わったものだけは別の並び。見返すのはたいてい直近なので、
+    新しく終えたものを上にする。
+  */
+  const visible = view === "done" ? sortDoneTasks(picked) : sortOpenTasks(picked, now);
 
   const mineCount = open.filter(
     (t) => t.assigneeId === state.currentUserId && t.status !== "done" && t.status !== "canceled",
@@ -218,6 +228,12 @@ function TasksInner() {
             {t.source === "manual" && <Badge>{TASK_SOURCE_LABEL.manual}</Badge>}
             {t.source === "flow" && <Badge tone="brand">{TASK_SOURCE_LABEL.flow}</Badge>}
             {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
+            {/* 見積は列にしない。名前の後ろに添えて、行の高さも列幅も増やさない */}
+            {t.estimatedMinutes !== undefined && (
+              <span className="shrink-0 text-[11px] text-ink-3">
+                ・{formatMinutes(t.estimatedMinutes)}
+              </span>
+            )}
             {/* 繰り返しは印だけ。周期そのものは列を1本増やすほどの情報ではない */}
             {t.repeat && (
               <span
@@ -230,11 +246,20 @@ function TasksInner() {
             )}
           </span>
 
-          {/* 期限は日付そのものより「あとどれだけか」を出す。急ぎだけ色を差す */}
+          {/*
+            期限は日付そのものより「あとどれだけか」を出す。急ぎだけ色を差す。
+            終わったものは、いつ終えたかを出す。「あと何日」は意味を失う。
+          */}
           <span className={`cell-clip cell-num text-[12px] ${
-            u === "overdue" ? "font-medium text-danger" : u === "today" ? "text-signal" : "text-ink-3"
+            done ? "text-ink-3"
+            : u === "overdue" ? "font-medium text-danger"
+            : u === "today" ? "text-signal" : "text-ink-3"
           }`}>
-            {t.dueAt ? remainingLabel(new Date(t.dueAt), now) : "—"}
+            {done
+              ? (t.completedAt
+                  ? new Date(t.completedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })
+                  : "—")
+              : t.dueAt ? remainingLabel(new Date(t.dueAt), now) : "—"}
           </span>
 
           {/*
@@ -337,6 +362,7 @@ function TasksInner() {
         <TaskForm
           mode={{ kind: "create", defaultAssigneeId: state.currentUserId }}
           users={users}
+          allTasks={state.tasks}
           onSubmit={(draft) => {
             const task = newTaskFromDraft(draft, newTaskId());
             dispatch({ type: "addTasks", tasks: [task] });
@@ -434,7 +460,7 @@ function TasksInner() {
               <RowHead template={TEMPLATE}>
                 <span />
                 <span>タスク名</span>
-                <span>期限</span>
+                <span>{view === "done" ? "完了" : "期限"}</span>
                 <span>優先度</span>
                 <span>状態</span>
                 {showAssignee && <span>担当</span>}
@@ -508,6 +534,7 @@ function TasksInner() {
           <TaskForm
             mode={{ kind: "edit", task }}
             users={users}
+            allTasks={state.tasks}
             onSubmit={(draft) => {
               const patch = patchFromDraft(draft, task);
               const previousDueAt = task.dueAt;
@@ -581,6 +608,17 @@ function TasksInner() {
             </span>
           </Line>
           <Line k="優先度">{priorityLabel}</Line>
+          {task.estimatedMinutes !== undefined && (
+            <Line k="見積">{formatMinutes(task.estimatedMinutes)}</Line>
+          )}
+          {task.completedAt && (
+            <Line k="完了">
+              {new Date(task.completedAt).toLocaleString("ja-JP", {
+                year: "numeric", month: "numeric", day: "numeric",
+                hour: "2-digit", minute: "2-digit",
+              })}
+            </Line>
+          )}
           {task.repeat && (
             <Line k="繰り返し">
               {describeTaskRepeat(task.repeat)}
@@ -595,11 +633,35 @@ function TasksInner() {
               <span className="block whitespace-pre-wrap leading-relaxed text-ink-2">{task.description}</span>
             </Line>
           )}
-          {blockedBy.length > 0 && (
-            <Line k="待機中">
-              <span className="text-danger">
-                {blockedBy.map((x) => x.title).join(" / ")} が終わるまで着手できません
-              </span>
+          {/*
+            繋いである先行を全部出す。「待機中」は妨げているものだけなので、
+            済んだ先行が見えず、何に繋いだのか分からなくなる。
+            済んだものは見た目で区別する。
+          */}
+          {task.dependsOn.length > 0 && (
+            <Line k="先行">
+              <ul className="flex flex-col gap-0.5">
+                {task.dependsOn.map((id) => {
+                  const p = state.tasks.find((x) => x.id === id);
+                  if (!p) return null;
+                  const finished = p.status === "done" || p.status === "canceled";
+                  return (
+                    <li key={id} className={finished ? "text-ink-3 line-through" : ""}>
+                      <button
+                        type="button" onClick={() => setOpenId(p.id)}
+                        className="text-left hover:text-brand hover:underline"
+                      >
+                        {p.title}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {blockedBy.length > 0 && (
+                <span className="mt-1 block text-[11.5px] text-danger">
+                  終わるまで着手できません
+                </span>
+              )}
             </Line>
           )}
           {run && (

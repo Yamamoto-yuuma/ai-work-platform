@@ -341,11 +341,31 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
 
-    case "updateTask":
+    case "updateTask": {
+      /*
+        完了した時刻をここで押す。
+        完了にする経路は一覧のチェック・詳細・取り込み・繰り返しと
+        複数あり、それぞれで付けると必ずどれかが抜ける。
+        状態が変わったことは、この1か所からしか起きない。
+      */
+      const stamp = new Date().toISOString();
       return {
         ...state,
-        tasks: state.tasks.map((t) => (t.id === action.taskId ? { ...t, ...action.patch } : t)),
+        tasks: state.tasks.map((t) => {
+          if (t.id !== action.taskId) return t;
+          const next = { ...t, ...action.patch };
+          if (next.status === "done" && t.status !== "done") {
+            // 呼ぶ側が時刻を指定していればそちらを優先する（取り込みなど）
+            return { ...next, completedAt: next.completedAt ?? stamp };
+          }
+          // 完了から戻したら消す。残すと「終わったこと」の数が合わなくなる
+          if (next.status !== "done" && t.status === "done") {
+            return { ...next, completedAt: undefined };
+          }
+          return next;
+        }),
       };
+    }
 
     case "deleteTask":
       // 消えるのはタスクだけ。業務の進捗も、そのタスクを作ったSTEPの記録も動かさない

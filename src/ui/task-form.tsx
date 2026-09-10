@@ -9,12 +9,14 @@
 import { useState } from "react";
 import type { Task, User } from "@/core/model/types";
 import {
-  TASK_PRIORITIES, TASK_REPEAT_CHOICES, TITLE_MAX, DESCRIPTION_MAX,
+  ESTIMATE_MAX_MINUTES, TASK_PRIORITIES, TASK_REPEAT_CHOICES, TITLE_MAX, DESCRIPTION_MAX,
+  estimateFromDraft, formatMinutes,
   describeTaskRepeat, draftFromTask, emptyTaskDraft, isDirty,
   repeatFromDraft, validateTaskDraft,
   type TaskDraft, type TaskDraftError,
 } from "@/core/model/task-draft";
 import { Button, Card } from "./primitives";
+import { selectableDependencies } from "@/core/task/dependency";
 
 /** 入力欄の表示形式はブラウザ任せなので、日本語表記を必ず添える */
 function formatJaDate(value: string): string {
@@ -56,10 +58,12 @@ export type TaskFormMode =
   | { kind: "create"; defaultAssigneeId: string };
 
 export function TaskForm({
-  mode, users, onSubmit, onCancel,
+  mode, users, allTasks, onSubmit, onCancel,
 }: {
   mode: TaskFormMode;
   users: User[];
+  /** 先行タスクの選択肢を出すために使う */
+  allTasks: Task[];
   /** 検証を通った入力値だけが渡ってくる */
   onSubmit: (draft: TaskDraft) => void;
   onCancel: () => void;
@@ -95,7 +99,7 @@ export function TaskForm({
         <h2 className="text-[14px] font-bold">{isEdit ? "タスクを編集" : "タスクを追加"}</h2>
         <span className="text-[11.5px] text-ink-3">
           {isEdit
-            ? "由来・依存関係・業務との紐付けは変更されません"
+            ? "由来・業務との紐付けは変更されません"
             : "手動で作成したタスクとして登録されます"}
         </span>
       </div>
@@ -176,7 +180,42 @@ export function TaskForm({
               ))}
             </select>
           </Field>
+
+          {/*
+            見積時間。
+            空欄は「決めていない」であって誤りではないので、必須にしない。
+            分で入れてもらい、読める形に直したものをその場に出す
+            （90 と打って「1時間30分」と分かる方が、間違いに気づける）。
+          */}
+          <Field
+            label="見積時間" error={errorOf("estimatedMinutes")}
+            hint={estimateHint(draft)}
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min={1} max={ESTIMATE_MAX_MINUTES} inputMode="numeric"
+                value={draft.estimatedMinutes}
+                onChange={(e) => set("estimatedMinutes", e.target.value)}
+                className={`${INPUT} ${border("estimatedMinutes")}`}
+                aria-label="見積時間"
+                placeholder="30"
+              />
+              <span className="shrink-0 text-[12.5px] text-ink-2">分</span>
+            </div>
+          </Field>
         </div>
+
+        {/*
+          先にこれが終わっていないと着手できない、というタスク。
+          繋ぐと、先行が終わるまで「ブロック中」として出る。
+          自分に依存しているものは選べない（循環になり、どちらも
+          永久に着手できなくなる）。選択肢の側で外してある。
+        */}
+        <DependencyField
+          draft={draft}
+          candidates={selectableDependencies(allTasks, mode.kind === "edit" ? mode.task : undefined)}
+          onChange={(ids) => set("dependsOn", ids)}
+        />
 
         {/*
           繰り返し。
@@ -264,5 +303,94 @@ export function TaskForm({
         {isEdit && !dirty && <span className="text-[12px] text-ink-3">変更はありません</span>}
       </div>
     </Card>
+  );
+}
+
+/** 見積の目安。分で打った値を、読める形にして添える */
+function estimateHint(draft: TaskDraft): string | undefined {
+  const minutes = estimateFromDraft(draft);
+  if (minutes === undefined) return undefined;
+  return `＝ ${formatMinutes(minutes)}`;
+}
+
+/**
+ * 先行タスクを選ぶところ。
+ *
+ * 候補が多いと選べないので、絞り込みを付けて、既に選んだものは
+ * 常に上に残す（絞り込んだ拍子に、選んだものが視界から消えると
+ * 外したのか残っているのか分からなくなる）。
+ */
+function DependencyField({
+  draft, candidates, onChange,
+}: {
+  draft: TaskDraft;
+  candidates: Task[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [q, setQ] = useState("");
+
+  if (candidates.length === 0) {
+    return (
+      <Field label="先に終わっているべきタスク">
+        <p className="text-[12.5px] text-ink-3">
+          繋げる相手がいません。抱えているタスクが他にありません。
+        </p>
+      </Field>
+    );
+  }
+
+  const chosen = candidates.filter((t) => draft.dependsOn.includes(t.id));
+  const rest = candidates
+    .filter((t) => !draft.dependsOn.includes(t.id))
+    .filter((t) => q.trim().length === 0 || t.title.toLowerCase().includes(q.trim().toLowerCase()));
+
+  const toggle = (id: string) =>
+    onChange(draft.dependsOn.includes(id)
+      ? draft.dependsOn.filter((x) => x !== id)
+      : [...draft.dependsOn, id]);
+
+  const line = (t: Task, on: boolean) => (
+    <label
+      key={t.id}
+      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] hover:bg-surface-2"
+    >
+      <input
+        type="checkbox" checked={on} onChange={() => toggle(t.id)}
+        className="h-3.5 w-3.5 shrink-0 accent-[var(--color-brand)]"
+      />
+      <span className="min-w-0 flex-1 truncate">{t.title}</span>
+    </label>
+  );
+
+  return (
+    <Field
+      label="先に終わっているべきタスク"
+      hint={draft.dependsOn.length > 0 ? `${draft.dependsOn.length}件` : "任意"}
+    >
+      <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">
+        繋いだタスクが終わるまで、このタスクは「ブロック中」として出ます。
+      </p>
+
+      {chosen.length > 0 && (
+        <div className="mb-1.5 rounded-lg border border-line-soft bg-surface-2 p-1">
+          {chosen.map((t) => line(t, true))}
+        </div>
+      )}
+
+      {candidates.length > 6 && (
+        <input
+          value={q} onChange={(e) => setQ(e.target.value)}
+          className={`${INPUT} mb-1.5`}
+          aria-label="先行タスクを絞り込む"
+          placeholder="タスク名で絞り込む"
+        />
+      )}
+
+      <div className="max-h-[168px] overflow-y-auto rounded-lg border border-line-soft p-1">
+        {rest.length === 0
+          ? <p className="px-2 py-1.5 text-[12px] text-ink-3">該当するタスクはありません</p>
+          : rest.map((t) => line(t, false))}
+      </div>
+    </Field>
   );
 }
