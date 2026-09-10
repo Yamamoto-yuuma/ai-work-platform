@@ -24,6 +24,17 @@ var INCLUDE_ALL_DAY_EVENTS = false;
  */
 var DEFAULT_HOLIDAY_CALENDAR_ID = 'ja.japanese#holiday@group.v.calendar.google.com';
 
+/**
+ * 祝日カレンダーに入っているが、休業日として扱わない予定の種別。
+ *
+ * Google の「日本の祝日」カレンダーは祝日と行事の両方を含んでおり、
+ * 予定の説明の 1 行目が種別になっている。
+ *   「祝日」→ 元日・成人の日・振替休日・国民の休日 など（＝休業日）
+ *   「祭日」→ 節分・七夕・母の日・銀行休業日 など（＝通常の営業日）
+ * ここに挙げた種別だけを営業日として扱い、それ以外は安全側に倒して休業日とする。
+ */
+var HOLIDAY_CALENDAR_NON_HOLIDAY_LABELS = ['祭日', '行事', 'Observance', 'Season'];
+
 /** 次営業日を探すときに先読みする最大日数（無限ループ防止）。 */
 var MAX_BUSINESS_DAY_LOOKAHEAD = 14;
 
@@ -84,16 +95,22 @@ function getTargetCalendarId_() {
   return getProperty_(PROP_TARGET_CALENDAR_ID);
 }
 
+/** 日本時間の UTC からのオフセット（分）。Date.getTimezoneOffset() は符号が逆で -540 になる。 */
+var JST_TIMEZONE_OFFSET_MINUTES = -540;
+
 /**
- * GAS プロジェクトのタイムゾーンが Asia/Tokyo であることを確認する。
- * ここがずれていると日付の切り替わりと AM / PM 判定がずれるため、処理を止める。
+ * スクリプトが日本時間で動いていることを確認する。
+ *
+ * 日付の切り替わり・AM / PM 判定・カレンダーの 1 日の範囲は、
+ * すべて GAS プロジェクトのタイムゾーン設定に従う。ここがずれると日報がずれるため処理を止める。
+ * （タイムゾーン名ではなく実際の時差を見ることで、追加の OAuth 権限なしに判定する）
  */
 function assertTimeZone_() {
-  var current = Session.getScriptTimeZone();
-  if (current !== TIME_ZONE) {
+  var offset = new Date().getTimezoneOffset();
+  if (offset !== JST_TIMEZONE_OFFSET_MINUTES) {
     throw new Error(
-      'GAS プロジェクトのタイムゾーンが「' + current + '」です。' +
-        '［プロジェクトの設定］で「' + TIME_ZONE + '」に変更してください。'
+      'スクリプトが日本時間で動いていません（UTC からの時差: ' + -offset / 60 + ' 時間）。' +
+        '［プロジェクトの設定］でタイムゾーンを「' + TIME_ZONE + '」に変更してください。'
     );
   }
 }

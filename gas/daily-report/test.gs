@@ -21,6 +21,8 @@ function runAllTests() {
     ['Test 8: 二重実行でも再送信しない', test8_DuplicatePrevention_],
     ['Test 9: 「■」を二重に付けない', test9_SquareMarkNotDuplicated_],
     ['Test 10: 予定が無くても見出しは残す', test10_EmptyHalfKeepsHeading_],
+    ['Test 11: 祝日カレンダーの行事を休業日にしない', test11_ObservanceIsNotHoliday_],
+    ['Test 12: 節分・七夕は営業日（実カレンダー）', test12_ObservanceDayIsBusinessDay_],
   ];
 
   var failed = 0;
@@ -156,9 +158,36 @@ function test10_EmptyHalfKeepsHeading_() {
   assertEquals_(expected, actual, '予定が無い時間帯でも見出しを残す');
 }
 
+function test11_ObservanceIsNotHoliday_() {
+  // Google の「日本の祝日」カレンダーは、説明の 1 行目に種別が入っている。
+  var observanceDescription = '祭日\n祭日を非表示にするには、Google カレンダーの [設定] > [日本の祝日] に移動してください';
+  assertTrue_(isHolidayEvent_(makeFakeEvent_('祝日')), '「祝日」は休業日');
+  assertTrue_(!isHolidayEvent_(makeFakeEvent_(observanceDescription)), '「祭日」（節分・七夕など）は営業日');
+  assertTrue_(isHolidayEvent_(makeFakeEvent_('')), '説明が空の場合は安全側に倒して休業日');
+  assertTrue_(isHolidayEvent_(makeFakeEvent_(null)), '説明が無い場合は安全側に倒して休業日');
+}
+
+function test12_ObservanceDayIsBusinessDay_() {
+  // 2026-02-03（火）節分、2026-07-07（火）七夕。どちらも祝日ではなく通常の営業日。
+  var setsubun = parseDate('2026-02-03');
+  var tanabata = parseDate('2026-07-07');
+  assertEquals_(2, getJstDayOfWeek_(setsubun), '節分が火曜日であること');
+  assertEquals_(null, describeNonBusinessDay_(setsubun), '節分は営業日');
+  assertEquals_(null, describeNonBusinessDay_(tanabata), '七夕は営業日');
+}
+
 /* ------------------------------------------------------------------ *
  * アサーション
  * ------------------------------------------------------------------ */
+
+/** 説明だけを持つテスト用の予定。 */
+function makeFakeEvent_(description) {
+  return {
+    getDescription: function () {
+      return description;
+    },
+  };
+}
 
 /**
  * 次営業日が「起点より後の最初の営業日」であることを確認する

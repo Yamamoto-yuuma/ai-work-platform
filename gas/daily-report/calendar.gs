@@ -4,11 +4,21 @@
  * 使うのは予定のタイトルと開始時刻だけ。説明・参加者・場所は使用しない。
  */
 
+/** 1 回の実行の中で使い回す対象カレンダー。 */
+var targetCalendarCache_ = null;
+
 /**
- * 予定を取得する対象カレンダー。
+ * 予定を取得する対象カレンダー（実行中は使い回す）。
  * Script Property `TARGET_CALENDAR_ID` があればそのカレンダー、なければ実行者のデフォルトカレンダー。
  */
 function getTargetCalendar_() {
+  if (targetCalendarCache_ !== null) return targetCalendarCache_;
+  targetCalendarCache_ = resolveTargetCalendar_();
+  return targetCalendarCache_;
+}
+
+/** 設定に従って対象カレンダーを解決する。見つからない場合はエラーにする。 */
+function resolveTargetCalendar_() {
   var calendarId = getTargetCalendarId_();
 
   if (calendarId === null) {

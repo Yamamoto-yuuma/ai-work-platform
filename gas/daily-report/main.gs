@@ -32,13 +32,14 @@ function runNightReport() {
  * 同日・同種の日報が送信済みの場合も投稿しない。
  */
 function runReport_(reportType) {
-  assertTimeZone_();
-
-  var today = toJstStartOfDay_(new Date());
   var label = reportType === REPORT_TYPE_DAY ? '昼の日報' : '夜の日報';
-  var dateKey = formatDateKey_(today);
 
   try {
+    assertTimeZone_();
+
+    var today = toJstStartOfDay_(new Date());
+    var dateKey = formatDateKey_(today);
+
     var nonBusinessDayReason = describeNonBusinessDay_(today);
     if (nonBusinessDayReason !== null) {
       Logger.log(dateKey + ' は' + nonBusinessDayReason + 'のため、' + label + 'は投稿しません。');
