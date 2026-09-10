@@ -126,9 +126,9 @@ function testNightReport() {
  */
 function testDayReportForDate(dateText) {
   assertTimeZone_();
-  var date = parseDate(dateText);
+  var date = parseDate_(dateText);
   var body = generateDayReport(date);
-  Logger.log('----- 昼の日報 ' + formatJapaneseDate(date) + ' -----\n' + body);
+  Logger.log('----- 昼の日報 ' + formatJapaneseDate_(date) + ' -----\n' + body);
   return body;
 }
 
@@ -137,11 +137,11 @@ function testDayReportForDate(dateText) {
  */
 function testNightReportForDate(dateText) {
   assertTimeZone_();
-  var date = parseDate(dateText);
+  var date = parseDate_(dateText);
   var body = generateNightReport(date);
   Logger.log(
-    '----- 夜の日報 ' + formatJapaneseDate(date) +
-      '（次営業日: ' + formatJapaneseDate(getNextBusinessDay(date)) + '） -----\n' + body
+    '----- 夜の日報 ' + formatJapaneseDate_(date) +
+      '（次営業日: ' + formatJapaneseDate_(getNextBusinessDay(date)) + '） -----\n' + body
   );
   return body;
 }

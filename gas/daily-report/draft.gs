@@ -126,7 +126,7 @@ function showDraft_(reportType) {
   var reportKey = buildReportKey(draft.date, reportType);
 
   var header =
-    '----- ' + label + 'の下書き（' + formatJapaneseDate(draft.date) + '） -----\n' +
+    '----- ' + label + 'の下書き（' + formatJapaneseDate_(draft.date) + '） -----\n' +
     '生成: ' + draft.record.generatedAt + (draft.created ? '（いま作成しました）' : '') + '\n' +
     '状態: ' + draft.record.status +
     (hasAlreadySent(reportKey) ? '（本番ルームへ送信済みです）' : '（未送信）') + '\n' +

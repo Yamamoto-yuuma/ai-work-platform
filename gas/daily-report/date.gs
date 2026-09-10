@@ -5,6 +5,22 @@
 var WEEKDAY_LABELS_JA = ['日', '月', '火', '水', '木', '金', '土'];
 
 /**
+ * 日付を受け取る関数が、正しく日付を渡されたか確認する。
+ *
+ * Apps Script の実行ボタンは引数を渡せないため、部品の関数を選んで実行すると
+ * ここで止まる。原因が分かるように、代わりに実行すべき関数を案内する。
+ */
+function assertDate_(value) {
+  if (!(value instanceof Date) || isNaN(value.getTime())) {
+    throw new Error(
+      'この関数は日付を受け取る部品のため、エディタの実行ボタンからは直接実行できません。' +
+        '日報を確認するときは showDayDraft / showNightDraft、動作確認は runAllTests、' +
+        '本番ルームへ送るときは sendDayDraft / sendNightDraft を選んで実行してください。'
+    );
+  }
+}
+
+/**
  * 日本時間での年・月・日を取り出す。
  * @return {{year: number, month: number, day: number}}
  */
@@ -56,7 +72,7 @@ function addDays_(date, days) {
 /**
  * 日報に表示する日付文字列。例: 2026年9月11日(金)
  */
-function formatJapaneseDate(date) {
+function formatJapaneseDate_(date) {
   var p = getJstDateParts_(date);
   var weekday = WEEKDAY_LABELS_JA[getJstDayOfWeek_(date)];
   return p.year + '年' + p.month + '月' + p.day + '日(' + weekday + ')';
@@ -66,7 +82,7 @@ function formatJapaneseDate(date) {
  * 'yyyy-MM-dd' 形式の文字列を日本時間の 0 時の Date に変換する。
  * 日付を指定してテスト・手動生成するときに使う。
  */
-function parseDate(dateText) {
+function parseDate_(dateText) {
   var matched = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateText).trim());
   if (!matched) {
     throw new Error('日付は yyyy-MM-dd 形式で指定してください: ' + dateText);

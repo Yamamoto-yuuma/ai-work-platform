@@ -62,10 +62,11 @@ function buildDayReportBody(morningTitles, afternoonTitles) {
  * @param {Array.<string>} nextAfternoonTitles 次営業日 PM の予定タイトル
  */
 function buildNightReportBody(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles) {
+  assertDate_(date);
   var lines = [];
   lines.push('【夜用】');
   lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
-  lines.push(formatJapaneseDate(date) + 'の日報をお送りいたします。');
+  lines.push(formatJapaneseDate_(date) + 'の日報をお送りいたします。');
   lines.push('---業務報告---');
   lines.push('PM');
   appendTitleLines_(lines, todayAfternoonTitles);
@@ -82,6 +83,7 @@ function buildNightReportBody(date, todayAfternoonTitles, nextMorningTitles, nex
  * 指定日の昼の日報本文を生成する（カレンダーを参照する）。
  */
 function generateDayReport(date) {
+  assertDate_(date);
   var titles = getEventTitlesByHalf_(date);
   return buildDayReportBody(titles.morning, titles.afternoon);
 }
@@ -90,6 +92,7 @@ function generateDayReport(date) {
  * 指定日の夜の日報本文を生成する（カレンダーを参照する）。
  */
 function generateNightReport(date) {
+  assertDate_(date);
   var today = getEventTitlesByHalf_(date);
   var nextBusinessDay = getNextBusinessDay(date);
   var next = getEventTitlesByHalf_(nextBusinessDay);

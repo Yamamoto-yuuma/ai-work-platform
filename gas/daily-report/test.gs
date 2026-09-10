@@ -69,7 +69,7 @@ function test1_DayReport_() {
 
 function test2_NightReport_() {
   var actual = buildNightReportBody(
-    parseDate('2026-09-11'),
+    parseDate_('2026-09-11'),
     ['昼礼', '計上作業'],
     ['朝礼', '運営MTG'],
     ['昼礼', '架電']
@@ -96,7 +96,7 @@ function test2_NightReport_() {
 
 function test3_FridayNextBusinessDay_() {
   // 2026-09-11 は金曜日。土日を飛ばして 2026-09-14（月）が次営業日。
-  var friday = parseDate('2026-09-11');
+  var friday = parseDate_('2026-09-11');
   assertEquals_(5, getJstDayOfWeek_(friday), '起点が金曜日であること');
   assertNextBusinessDayIsValid_(friday);
   assertEquals_('20260914', formatDateKey_(getNextBusinessDay(friday)), '金曜日の次営業日');
@@ -104,8 +104,8 @@ function test3_FridayNextBusinessDay_() {
 
 function test4_BeforeHolidayNextBusinessDay_() {
   // 2026-01-01（元日・木曜）を含む週。2025-12-31（水）の次営業日は元日を飛ばす。
-  var beforeHoliday = parseDate('2025-12-31');
-  assertTrue_(isHoliday_(parseDate('2026-01-01')), '2026-01-01 が祝日として取得できること');
+  var beforeHoliday = parseDate_('2025-12-31');
+  assertTrue_(isHoliday_(parseDate_('2026-01-01')), '2026-01-01 が祝日として取得できること');
   assertNextBusinessDayIsValid_(beforeHoliday);
   assertTrue_(
     formatDateKey_(getNextBusinessDay(beforeHoliday)) !== '20260101',
@@ -114,28 +114,28 @@ function test4_BeforeHolidayNextBusinessDay_() {
 }
 
 function test5_Saturday_() {
-  var saturday = parseDate('2026-09-12');
+  var saturday = parseDate_('2026-09-12');
   assertEquals_(6, getJstDayOfWeek_(saturday), '土曜日であること');
   assertTrue_(!isBusinessDay(saturday), '土曜日は営業日ではない');
   assertEquals_('土曜日', describeNonBusinessDay_(saturday), '土曜日のスキップ理由');
 }
 
 function test6_Sunday_() {
-  var sunday = parseDate('2026-09-13');
+  var sunday = parseDate_('2026-09-13');
   assertEquals_(0, getJstDayOfWeek_(sunday), '日曜日であること');
   assertTrue_(!isBusinessDay(sunday), '日曜日は営業日ではない');
   assertEquals_('日曜日', describeNonBusinessDay_(sunday), '日曜日のスキップ理由');
 }
 
 function test7_Holiday_() {
-  var holiday = parseDate('2026-01-01'); // 元日（木曜）
+  var holiday = parseDate_('2026-01-01'); // 元日（木曜）
   assertEquals_(4, getJstDayOfWeek_(holiday), '平日（木曜）であること');
   assertTrue_(!isBusinessDay(holiday), '祝日は営業日ではない');
   assertEquals_('祝日', describeNonBusinessDay_(holiday), '祝日のスキップ理由');
 }
 
 function test8_DuplicatePrevention_() {
-  var key = buildReportKey(parseDate('2099-01-05'), REPORT_TYPE_DAY);
+  var key = buildReportKey(parseDate_('2099-01-05'), REPORT_TYPE_DAY);
   assertEquals_('20990105_day', key, '送信済み管理キーの形式');
   try {
     PropertiesService.getScriptProperties().deleteProperty(key);
@@ -173,8 +173,8 @@ function test11_ObservanceIsNotHoliday_() {
 
 function test12_ObservanceDayIsBusinessDay_() {
   // 2026-02-03（火）節分、2026-07-07（火）七夕。どちらも祝日ではなく通常の営業日。
-  var setsubun = parseDate('2026-02-03');
-  var tanabata = parseDate('2026-07-07');
+  var setsubun = parseDate_('2026-02-03');
+  var tanabata = parseDate_('2026-07-07');
   assertEquals_(2, getJstDayOfWeek_(setsubun), '節分が火曜日であること');
   assertEquals_(null, describeNonBusinessDay_(setsubun), '節分は営業日');
   assertEquals_(null, describeNonBusinessDay_(tanabata), '七夕は営業日');
@@ -221,7 +221,7 @@ function test13_AutoRunNeverSends_() {
 }
 
 function test14_DraftStore_() {
-  var date = parseDate('2099-01-05');
+  var date = parseDate_('2099-01-05');
   var key = buildDraftKey_(date, REPORT_TYPE_NIGHT);
   assertEquals_('draft_20990105_night', key, '下書きの保管キー');
   try {

@@ -15,6 +15,7 @@ var SENT_FLAG_VALUE = 'sent';
  * 送信済み管理キー。例: 20260911_day / 20260911_night
  */
 function buildReportKey(date, reportType) {
+  assertDate_(date);
   return formatDateKey_(date) + '_' + reportType;
 }
 
