@@ -54,6 +54,29 @@ function readRequest(payload: unknown): ClientRequest | string {
   return request;
 }
 
+/** 連携先から JSON が返らなかったときに、直す場所まで書いたメッセージにする */
+function describeBadResponse(status: number): string {
+  if (status === 404) {
+    return (
+      "連携先の URL が見つかりません（status 404）。DAILY_REPORT_GAS_URL を確認してください。" +
+      "Apps Script の［デプロイを管理］にあるウェブアプリの URL（末尾が /exec）である必要があります。"
+    );
+  }
+  if (status === 401 || status === 403) {
+    return (
+      `連携先にアクセスできません（status ${status}）。` +
+      "ウェブアプリのアクセス設定を「全員」にして、デプロイし直してください。"
+    );
+  }
+  if (status === 200) {
+    return (
+      "連携先から日報以外の応答が返りました。ウェブアプリのデプロイが古い可能性があります。" +
+      "Apps Script でコードを保存し、［デプロイを管理］→ 編集 → バージョン「新バージョン」で更新してください。"
+    );
+  }
+  return `連携先から想定外の応答が返りました（status ${status}）。`;
+}
+
 export async function POST(request: Request) {
   const url = process.env.DAILY_REPORT_GAS_URL;
   const secret = process.env.DAILY_REPORT_SECRET;
@@ -96,10 +119,9 @@ export async function POST(request: Request) {
     try {
       return NextResponse.json(JSON.parse(text) as unknown, { status: 200 });
     } catch {
-      return NextResponse.json(
-        { ok: false, error: `連携先から想定外の応答が返りました（status ${response.status}）。` },
-        { status: 200 },
-      );
+      // JSON が返らないときは、設定のどこがおかしいかまで書く。
+      // 番号だけ出しても、どこを直せばよいか分からない
+      return NextResponse.json({ ok: false, error: describeBadResponse(response.status) }, { status: 200 });
     }
   } catch (error) {
     return NextResponse.json(
