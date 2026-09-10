@@ -1,6 +1,9 @@
 /**
  * 下書きの保管。
  *
+ * 下書きは「日報」シートに書き出し、同じ内容を Script Properties にも控える。
+ * 送信するときはシートの本文を使うので、セル上で所感を書き足してから送れる。
+ *
  * 自動実行では日報を作って、ここに下書きとして残すところまでを行う。
  * Chatwork の本番ルームへ送るのは、手動で sendDayDraft() / sendNightDraft() を
  * 実行したときだけ（「日報を作る」と「Chatwork へ送る」を分けている）。
@@ -43,7 +46,10 @@ function saveDraft_(date, reportType, body) {
     // 壊れている下書きは、そのまま上書きする。
     Logger.log('保存済みの下書きを読めなかったため作り直します: ' + e);
   }
-  if (existing !== null && existing.body === body) return existing;
+  if (existing !== null && existing.body === body) {
+    writeDraftToSheetQuietly_(date, reportType, body, existing.generatedAt);
+    return existing;
+  }
 
   var record = {
     reportDate: Utilities.formatDate(date, TIME_ZONE, 'yyyy-MM-dd'),
@@ -53,7 +59,38 @@ function saveDraft_(date, reportType, body) {
     generatedAt: formatTimestamp_(new Date()),
   };
   writeDraft_(date, reportType, record);
+  writeDraftToSheetQuietly_(date, reportType, body, record.generatedAt);
   return record;
+}
+
+/**
+ * シートへの書き出し。
+ * シートが使えなくても下書き自体は Script Properties に残るため、警告を残して処理は続ける。
+ */
+function writeDraftToSheetQuietly_(date, reportType, body, generatedAt) {
+  try {
+    saveDraftToSheet_(date, reportType, body, generatedAt);
+  } catch (e) {
+    Logger.log('スプレッドシートへ書き出せませんでした（下書きは保存済みです）: ' + e);
+  }
+}
+
+/**
+ * 送信する本文を取り出す。
+ *
+ * シートの本文を優先する（セル上で書き足した所感を反映するため）。
+ * シートが使えない場合は Script Properties の控えを使う。
+ */
+function loadDraftBody_(date, reportType) {
+  try {
+    var fromSheet = readDraftBodyFromSheet_(date, reportType);
+    if (fromSheet !== null) return fromSheet;
+  } catch (e) {
+    Logger.log('スプレッドシートから本文を読めませんでした（控えを使います）: ' + e);
+  }
+
+  var record = loadDraft_(date, reportType);
+  return record === null ? null : record.body;
 }
 
 /** 下書きを書き込む。 */
@@ -89,11 +126,20 @@ function loadDraft_(date, reportType) {
  * 下書きを「本番ルームへ送信済み」の状態にする。
  */
 function markDraftSent_(date, reportType) {
+  var sentAt = formatTimestamp_(new Date());
+
   var record = loadDraft_(date, reportType);
-  if (record === null) return;
-  record.status = DRAFT_STATUS_SENT;
-  record.sentAt = formatTimestamp_(new Date());
-  writeDraft_(date, reportType, record);
+  if (record !== null) {
+    record.status = DRAFT_STATUS_SENT;
+    record.sentAt = sentAt;
+    writeDraft_(date, reportType, record);
+  }
+
+  try {
+    markSheetSent_(date, reportType, sentAt);
+  } catch (e) {
+    Logger.log('スプレッドシートの状態を更新できませんでした: ' + e);
+  }
 }
 
 /**
@@ -132,8 +178,11 @@ function showDraft_(reportType) {
     (hasAlreadySent_(reportKey) ? '（本番ルームへ送信済みです）' : '（未送信）') + '\n' +
     '------------------------------------------';
 
-  Logger.log(header + '\n' + draft.record.body + '\n------------------------------------------');
-  return draft.record.body;
+  var body = loadDraftBody_(draft.date, reportType);
+  if (body === null) body = draft.record.body;
+
+  Logger.log(header + '\n' + body + '\n------------------------------------------');
+  return body;
 }
 
 /**
@@ -155,15 +204,16 @@ function sendDraft_(reportType) {
       return;
     }
 
-    var draft = loadDraft_(today, reportType);
-    if (draft === null) {
+    var body = loadDraftBody_(today, reportType);
+    if (body === null) {
       throw new Error(
-        label + 'の下書きがありません。先に show' +
-          (reportType === REPORT_TYPE_DAY ? 'Day' : 'Night') + 'Draft() で下書きを作ってください。'
+        label + 'の下書きがありません。先にメニューの［' + label +
+          'を作り直す］（またはエディタで show' +
+          (reportType === REPORT_TYPE_DAY ? 'Day' : 'Night') + 'Draft）を実行してください。'
       );
     }
 
-    var messageId = sendToChatwork_(draft.body);
+    var messageId = sendToChatwork_(body);
     markAsSent_(reportKey);
     markDraftSent_(today, reportType);
     sent = true;

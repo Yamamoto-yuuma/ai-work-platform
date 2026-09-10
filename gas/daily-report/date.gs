@@ -11,7 +11,8 @@ var WEEKDAY_LABELS_JA = ['日', '月', '火', '水', '木', '金', '土'];
  * ここで止まる。原因が分かるように、代わりに実行すべき関数を案内する。
  */
 function assertDate_(value) {
-  if (!(value instanceof Date) || isNaN(value.getTime())) {
+  var isDate = Object.prototype.toString.call(value) === '[object Date]';
+  if (!isDate || isNaN(value.getTime())) {
     throw new Error(
       'この関数は日付を受け取る部品のため、エディタの実行ボタンからは直接実行できません。' +
         '日報を確認するときは showDayDraft / showNightDraft、動作確認は runAllTests、' +

@@ -27,7 +27,9 @@ function runAllTests() {
     ['Test 14: 下書きの保存・取り出し・削除', test14_DraftStore_],
     ['Test 15: 送信済みの下書きは再送信しない', test15_SentDraftIsNotResent_],
     ['Test 16: 下書き用ルームの仕組みが残っていない', test16_DraftRoomFeatureRemoved_],
-    ['Test 17: 実行メニューに出る関数が 10 個だけであること', test17_OnlyEntryPointsArePublic_],
+    ['Test 17: 実行メニューに出るのは入口の関数だけであること', test17_OnlyEntryPointsArePublic_],
+    ['Test 18: 下書きがシートに書き出される', test18_DraftIsWrittenToSheet_],
+    ['Test 19: シートで書き足した本文が送信に使われる', test19_EditedSheetBodyWins_],
   ];
 
   var failed = 0;
@@ -189,8 +191,10 @@ function test13_AutoRunNeverSends_() {
   var draftKey = buildDraftKey_(today, REPORT_TYPE_DAY);
   var props = PropertiesService.getScriptProperties();
 
+  var todayText = Utilities.formatDate(today, TIME_ZONE, 'yyyy-MM-dd');
   var savedDraft = props.getProperty(draftKey);
   var savedSent = props.getProperty(reportKey);
+  var savedRow = snapshotDraftRow_(todayText, REPORT_TYPE_DAY);
   var originalSend = sendToChatwork_;
   var callCount = 0;
 
@@ -218,6 +222,7 @@ function test13_AutoRunNeverSends_() {
     else props.setProperty(draftKey, savedDraft);
     if (savedSent === null) props.deleteProperty(reportKey);
     else props.setProperty(reportKey, savedSent);
+    restoreDraftRow_(todayText, REPORT_TYPE_DAY, savedRow);
   }
 }
 
@@ -247,6 +252,7 @@ function test14_DraftStore_() {
     assertEquals_(null, loadDraft_(date, REPORT_TYPE_NIGHT), '削除した下書きは残らない');
   } finally {
     PropertiesService.getScriptProperties().deleteProperty(key);
+    restoreDraftRow_('2099-01-05', REPORT_TYPE_NIGHT, null);
   }
 }
 
@@ -257,8 +263,10 @@ function test15_SentDraftIsNotResent_() {
   var draftKey = buildDraftKey_(today, REPORT_TYPE_NIGHT);
   var props = PropertiesService.getScriptProperties();
 
+  var todayText = Utilities.formatDate(today, TIME_ZONE, 'yyyy-MM-dd');
   var savedDraft = props.getProperty(draftKey);
   var savedSent = props.getProperty(reportKey);
+  var savedRow = snapshotDraftRow_(todayText, REPORT_TYPE_NIGHT);
   var originalSend = sendToChatwork_;
   var callCount = 0;
 
@@ -278,6 +286,7 @@ function test15_SentDraftIsNotResent_() {
     else props.setProperty(draftKey, savedDraft);
     if (savedSent === null) props.deleteProperty(reportKey);
     else props.setProperty(reportKey, savedSent);
+    restoreDraftRow_(todayText, REPORT_TYPE_NIGHT, savedRow);
   }
 }
 
@@ -302,6 +311,9 @@ function test17_OnlyEntryPointsArePublic_() {
   // 実行メニューに並んでいると、選ぶたびにエラーになる。
   // 名前の末尾が _ の関数はメニューに出ないので、入口だけを _ なしにしておく。
   var entryPoints = [
+    'onOpen',
+    'rebuildDayDraft', 'rebuildNightDraft',
+    'sendDayReportButton', 'sendNightReportButton',
     'runDayReport', 'runNightReport',
     'showDayDraft', 'showNightDraft',
     'sendDayDraft', 'sendNightDraft',
@@ -333,9 +345,86 @@ function test17_OnlyEntryPointsArePublic_() {
   }
 }
 
+function test18_DraftIsWrittenToSheet_() {
+  // 実際のシートを使うので、運用では現れない未来の日付で試して、最後に行を消す。
+  var date = parseDate_('2099-01-05');
+  var sheet = getDraftSheet_();
+  try {
+    saveDraftToSheet_(date, REPORT_TYPE_DAY, '【昼用】\nテスト用の本文', '2099-01-05T12:55:00+09:00');
+
+    var row = findDraftRow_(sheet, '2099-01-05', REPORT_TYPE_DAY);
+    assertTrue_(row > 0, 'シートに行ができること');
+    assertEquals_('2099-01-05', toReportDateText_(sheet.getRange(row, SHEET_COL_DATE).getValue()), '日付の列');
+    assertEquals_('昼', String(sheet.getRange(row, SHEET_COL_TYPE).getValue()), '種別の列');
+    assertEquals_(SHEET_STATUS_DRAFT, String(sheet.getRange(row, SHEET_COL_STATUS).getValue()), '状態の列');
+    assertEquals_('【昼用】\nテスト用の本文', String(sheet.getRange(row, SHEET_COL_BODY).getValue()), '本文の列');
+
+    markSheetSent_(date, REPORT_TYPE_DAY, '2099-01-05T13:00:00+09:00');
+    assertEquals_(SHEET_STATUS_SENT, String(sheet.getRange(row, SHEET_COL_STATUS).getValue()), '送信後の状態');
+    assertEquals_('2099-01-05T13:00:00+09:00', String(sheet.getRange(row, SHEET_COL_SENT).getValue()), '送信日時の列');
+
+    // 送信済みの行は、作り直しても書き換えない。
+    saveDraftToSheet_(date, REPORT_TYPE_DAY, '【昼用】\n書き換えようとした本文', '2099-01-05T13:30:00+09:00');
+    assertEquals_(
+      '【昼用】\nテスト用の本文',
+      String(sheet.getRange(row, SHEET_COL_BODY).getValue()),
+      '送信済みの行は書き換えない'
+    );
+  } finally {
+    var cleanup = findDraftRow_(sheet, '2099-01-05', REPORT_TYPE_DAY);
+    if (cleanup > 0) sheet.deleteRow(cleanup);
+  }
+}
+
+function test19_EditedSheetBodyWins_() {
+  // セル上で所感を書き足したら、その内容が送信されなければならない。
+  var date = parseDate_('2099-01-05');
+  var sheet = getDraftSheet_();
+  var draftKey = buildDraftKey_(date, REPORT_TYPE_NIGHT);
+  try {
+    saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n生成した本文');
+    assertEquals_('【夜用】\n生成した本文', loadDraftBody_(date, REPORT_TYPE_NIGHT), '生成直後の本文');
+
+    var row = findDraftRow_(sheet, '2099-01-05', REPORT_TYPE_NIGHT);
+    assertTrue_(row > 0, 'シートに行ができること');
+
+    var edited = '【夜用】\n生成した本文\n---所感---\n手で書き足しました';
+    sheet.getRange(row, SHEET_COL_BODY).setValue(edited);
+    assertEquals_(edited, loadDraftBody_(date, REPORT_TYPE_NIGHT), 'シートで書き足した本文が使われること');
+  } finally {
+    PropertiesService.getScriptProperties().deleteProperty(draftKey);
+    var cleanup = findDraftRow_(sheet, '2099-01-05', REPORT_TYPE_NIGHT);
+    if (cleanup > 0) sheet.deleteRow(cleanup);
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * アサーション
  * ------------------------------------------------------------------ */
+
+/** テストの前にシートの行を控える（無ければ null）。 */
+function snapshotDraftRow_(dateText, reportType) {
+  var sheet = getDraftSheet_();
+  var row = findDraftRow_(sheet, dateText, reportType);
+  if (row === 0) return null;
+  return sheet.getRange(row, 1, 1, SHEET_HEADERS.length).getValues()[0];
+}
+
+/** 控えておいた行に戻す（元が無ければ、テストで増えた行を消す）。 */
+function restoreDraftRow_(dateText, reportType, values) {
+  var sheet = getDraftSheet_();
+  var row = findDraftRow_(sheet, dateText, reportType);
+
+  if (values === null) {
+    if (row > 0) sheet.deleteRow(row);
+    return;
+  }
+  if (row === 0) {
+    sheet.insertRowAfter(1);
+    row = 2;
+  }
+  sheet.getRange(row, 1, 1, values.length).setValues([values]);
+}
 
 /** 説明だけを持つテスト用の予定。 */
 function makeFakeEvent_(description) {
