@@ -12,6 +12,26 @@ var TIME_ZONE = 'Asia/Tokyo';
 var SENDER_NAME = '山本';
 
 /**
+ * 自動投稿を行うか。
+ *
+ * false（既定）… トリガーは日報を作って「下書き」として保存するだけで、Chatwork へは送らない。
+ *                 内容を確認したうえで sendDayDraft() / sendNightDraft() を実行すると送信される。
+ * true          … トリガーの実行時にそのまま Chatwork へ投稿する。
+ *
+ * 運用に慣れて、確認なしで送ってよいと判断できるまでは false のままにしておく。
+ */
+var AUTO_SEND_ENABLED = false;
+
+/**
+ * トリガーで日報を用意する時刻。
+ * GAS の時間主導型トリガーは指定時刻の前後 15 分ほどぶれるため、秒単位の保証はない。
+ */
+var DAY_REPORT_HOUR = 13;
+var DAY_REPORT_MINUTE = 0;
+var NIGHT_REPORT_HOUR = 18;
+var NIGHT_REPORT_MINUTE = 30;
+
+/**
  * 終日イベントを日報に含めるか。
  * 初版は「時刻付きの業務予定のみ」を対象とするため false。
  * 含めたい場合はここを true にする（終日イベントは開始時刻 00:00 のため AM 扱いになる）。

@@ -23,6 +23,8 @@ function runAllTests() {
     ['Test 10: 予定が無くても見出しは残す', test10_EmptyHalfKeepsHeading_],
     ['Test 11: 祝日カレンダーの行事を休業日にしない', test11_ObservanceIsNotHoliday_],
     ['Test 12: 節分・七夕は営業日（実カレンダー）', test12_ObservanceDayIsBusinessDay_],
+    ['Test 13: 既定では自動投稿しない', test13_AutoSendIsOff_],
+    ['Test 14: 下書きの保存・取り出し・削除', test14_DraftStore_],
   ];
 
   var failed = 0;
@@ -174,6 +176,33 @@ function test12_ObservanceDayIsBusinessDay_() {
   assertEquals_(2, getJstDayOfWeek_(setsubun), '節分が火曜日であること');
   assertEquals_(null, describeNonBusinessDay_(setsubun), '節分は営業日');
   assertEquals_(null, describeNonBusinessDay_(tanabata), '七夕は営業日');
+}
+
+function test13_AutoSendIsOff_() {
+  // 確認してから送る運用のため、既定では自動投稿しない。
+  // 意図して自動投稿へ切り替えたとき以外、この設定が変わっていないことを守る。
+  assertTrue_(AUTO_SEND_ENABLED === false, '自動投稿が既定でオフであること');
+}
+
+function test14_DraftStore_() {
+  var date = parseDate('2099-01-05');
+  var key = buildDraftKey_(date, REPORT_TYPE_NIGHT);
+  assertEquals_('draft_20990105_night', key, '下書きの保管キー');
+  try {
+    PropertiesService.getScriptProperties().deleteProperty(key);
+    assertEquals_(null, loadDraft_(date, REPORT_TYPE_NIGHT), '下書きが無ければ null');
+
+    saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n本文');
+    assertEquals_('【夜用】\n本文', loadDraft_(date, REPORT_TYPE_NIGHT).body, '保存した下書きを取り出せる');
+
+    saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n上書き');
+    assertEquals_('【夜用】\n上書き', loadDraft_(date, REPORT_TYPE_NIGHT).body, '同じ日の下書きは上書きされる');
+
+    deleteDraft_(date, REPORT_TYPE_NIGHT);
+    assertEquals_(null, loadDraft_(date, REPORT_TYPE_NIGHT), '削除した下書きは残らない');
+  } finally {
+    PropertiesService.getScriptProperties().deleteProperty(key);
+  }
 }
 
 /* ------------------------------------------------------------------ *
