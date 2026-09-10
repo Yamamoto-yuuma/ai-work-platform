@@ -14,7 +14,7 @@ var SENT_FLAG_VALUE = 'sent';
 /**
  * 送信済み管理キー。例: 20260911_day / 20260911_night
  */
-function buildReportKey(date, reportType) {
+function buildReportKey_(date, reportType) {
   assertDate_(date);
   return formatDateKey_(date) + '_' + reportType;
 }
@@ -22,14 +22,14 @@ function buildReportKey(date, reportType) {
 /**
  * すでに送信済みか。
  */
-function hasAlreadySent(reportKey) {
+function hasAlreadySent_(reportKey) {
   return PropertiesService.getScriptProperties().getProperty(reportKey) === SENT_FLAG_VALUE;
 }
 
 /**
  * 送信済みとして記録する。
  */
-function markAsSent(reportKey) {
+function markAsSent_(reportKey) {
   PropertiesService.getScriptProperties().setProperty(reportKey, SENT_FLAG_VALUE);
 }
 

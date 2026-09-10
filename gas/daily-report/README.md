@@ -59,18 +59,18 @@ Chatwork 本番ルーム（122205264）
 
 | 機能 | 対応する関数 |
 |---|---|
-| カレンダーから予定を取得 | `getCalendarEvents(date)` |
-| AM / PM の分類（開始時刻基準・AM は 00:00:00–11:59:59） | `getMorningEvents(date)` / `getAfternoonEvents(date)` |
-| 昼の日報の生成 | `generateDayReport(date)` / `buildDayReportBody(am, pm)` |
-| 夜の日報の生成 | `generateNightReport(date)` / `buildNightReportBody(date, todayPm, nextAm, nextPm)` |
-| 土日祝の判定 | `isBusinessDay(date)` |
-| 次営業日の算出 | `getNextBusinessDay(date)` |
+| カレンダーから予定を取得 | `getCalendarEvents_(date)` |
+| AM / PM の分類（開始時刻基準・AM は 00:00:00–11:59:59） | `getMorningEvents_(date)` / `getAfternoonEvents_(date)` |
+| 昼の日報の生成 | `generateDayReport_(date)` / `buildDayReportBody_(am, pm)` |
+| 夜の日報の生成 | `generateNightReport_(date)` / `buildNightReportBody_(date, todayPm, nextAm, nextPm)` |
+| 土日祝の判定 | `isBusinessDay_(date)` |
+| 次営業日の算出 | `getNextBusinessDay_(date)` |
 | 下書きの保管 | `saveDraft_(date, type, body)` / `loadDraft_(date, type)` |
 | 下書きの確認（送信しない） | `showDayDraft()` / `showNightDraft()` |
 | 下書きの送信（手動のみ） | `sendDayDraft()` / `sendNightDraft()` |
-| Chatwork 本番ルームへの投稿 | `sendToChatwork(message)` |
+| Chatwork 本番ルームへの投稿 | `sendToChatwork_(message)` |
 | 自動実行トリガーの設定 | `setupTriggers()` |
-| 二重投稿の防止 | `hasAlreadySent(key)` / `markAsSent(key)` |
+| 二重投稿の防止 | `hasAlreadySent_(key)` / `markAsSent_(key)` |
 | 同時実行の防止 | `runExclusively_(task)`（`LockService.getScriptLock()`） |
 | 日報の作成と下書き保存（トリガー／手動） | `runDayReport()` / `runNightReport()` |
 | テストモード（投稿しない） | `testDayReport()` / `testNightReport()` / `runAllTests()` |
@@ -137,7 +137,7 @@ PM
 |---|---|---|
 | `CHATWORK_API_TOKEN` | 必須 | Chatwork の API トークン |
 | `CHATWORK_ROOM_ID` | 必須 | 本番の投稿先ルーム ID（`122205264`）。手動送信のときだけ使われます |
-| `HOLIDAY_CALENDAR_ID` | 任意 | 祝日カレンダー ID。未設定なら `ja.japanese#holiday@group.v.calendar.google.com`（→ §11） |
+| `HOLIDAY_CALENDAR_ID` | 任意 | 祝日カレンダー ID。未設定なら `ja.japanese#holiday@group.v.calendar.google.com`（→ §12） |
 | `TARGET_CALENDAR_ID` | 任意 | 予定を取得するカレンダー ID。未設定なら実行アカウントのデフォルトカレンダー |
 
 **API トークンはコード・README・Git に絶対に書かないでください。** 設定するのは Script Properties だけです。
@@ -237,23 +237,38 @@ PM
 - 同じ日にトリガーがもう一度動いても、内容が変わっていなければ下書きはそのままです。
   カレンダーの予定が変わっていた場合は、新しい内容で保存し直されます。
 
-## 9. テスト方法
+## 9. 実行ボタンから選べる関数
+
+Apps Script の実行ボタンは引数を渡せないため、日付などを受け取る関数を選ぶとエラーになります。
+そこで、**実行メニューに出るのは次の 10 個だけ**にしてあります（名前の末尾が `_` の関数は
+Apps Script がメニューに表示しません）。
+
+| 関数 | すること | Chatwork |
+|---|---|---|
+| `runAllTests` | 17 件のテストをまとめて実行 | 送信しない |
+| `showDayDraft` / `showNightDraft` | 下書きをログに表示（無ければその場で作る） | 送信しない |
+| `sendDayDraft` / `sendNightDraft` | 確認した下書きを本番ルームへ投稿 | **送信する** |
+| `runDayReport` / `runNightReport` | 下書きを作り直す（トリガーが実行するもの） | 送信しない |
+| `testDayReport` / `testNightReport` | 本文だけをログに表示（下書きも保存しない） | 送信しない |
+| `setupTriggers` | 12:55 / 18:25 のトリガーを作る | 送信しない |
+
+## 10. テスト方法
 
 | 関数 | 内容 |
 |---|---|
-| `runAllTests()` | 仕様のテストケース（昼・夜の本文、次営業日、土日祝、二重投稿防止など）をまとめて実行 |
+| `runAllTests()` | 17 件のテストケース（昼・夜の本文、次営業日、土日祝、二重投稿防止など）をまとめて実行 |
 | `testDayReport()` | 当日の昼の日報本文をログに出力（投稿しない） |
 | `testNightReport()` | 当日の夜の日報本文をログに出力（投稿しない） |
-| `testDayReportForDate('2026-09-11')` | 日付を指定して昼の本文を確認（投稿しない） |
-| `testNightReportForDate('2026-09-11')` | 日付を指定して夜の本文を確認（投稿しない） |
+| `testDayReportForDate_('2026-09-11')` | 日付を指定して昼の本文を確認（投稿しない） |
+| `testNightReportForDate_('2026-09-11')` | 日付を指定して夜の本文を確認（投稿しない） |
 
 日付指定の関数はエディタの実行ボタンからは引数を渡せないため、
-一時的な関数（例: `function tmp() { testNightReportForDate('2026-09-11'); }`）を作って実行してください。
+一時的な関数（例: `function tmp() { testNightReportForDate_('2026-09-11'); }`）を作って実行してください。
 
 結果は［実行数］または `Ctrl + Enter`（実行ログ）で確認できます。
 **テスト関数は Chatwork へ一切送信しません。**
 
-## 10. 運用開始の手順
+## 11. 運用開始の手順
 
 1. Script Properties に `CHATWORK_API_TOKEN` と `CHATWORK_ROOM_ID` を設定する。
 2. `testDayReport()` を実行し、承認を済ませたうえで本文を確認する（**どこにも送信されません**）。
@@ -266,7 +281,7 @@ PM
 8. `setupTriggers()` を実行してトリガーを作成する。
 9. 翌営業日の 12:55 / 18:25 頃に下書きが作られていることを確認し、内容を見てから手動で送る。
 
-## 11. 休業日の判定ルール
+## 12. 休業日の判定ルール
 
 土曜・日曜に加えて、祝日カレンダーの予定がある日を休業日として扱います。
 ただし Google の「日本の祝日」カレンダーは、**祝日と行事の両方**を含んでいます。
@@ -294,7 +309,7 @@ Script Properties へ**あらかじめ手で登録**してください（新し�
 
 こうしておくと、その日はトリガーが動いても投稿されません。
 
-## 12. 既知の制約
+## 13. 既知の制約
 
 - **トリガーの実行時刻は厳密ではありません。** GAS の時間主導型トリガーは指定時刻の前後
   15 分ほどぶれます（12:55 / 18:25 は目安です）。投稿時刻は手動送信で自分で決められるため、
@@ -313,8 +328,8 @@ Script Properties へ**あらかじめ手で登録**してください（新し�
 - **祝日カレンダーに依存します。** 祝日カレンダーへアクセスできない場合は、
   誤って祝日に投稿しないようエラーで停止します（投稿はされません）。
   祝日と行事の区別は Google 側の説明文（`祝日` / `祭日`）に依存しているため、
-  Google がこの表記を変えた場合は §11 の設定を見直す必要があります。
-- **会社独自の休み（年末年始・夏季休暇など）は判定できません。** §11 の手順で個別に止めてください。
+  Google がこの表記を変えた場合は §12 の設定を見直す必要があります。
+- **会社独自の休み（年末年始・夏季休暇など）は判定できません。** §12 の手順で個別に止めてください。
 - **送信済みフラグは日付ごとに増え続けます。** 1 日 2 件で、Script Properties の容量的には
   長期間問題ありませんが、再送信したい場合は該当キー（`20260911_day` など）を手動で削除します。
 - **投稿後にフラグ記録が失敗した場合**、同日に再実行すると二重投稿になり得ます

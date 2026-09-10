@@ -19,7 +19,7 @@ var CHATWORK_RETRY_WAIT_MS = [2000, 5000];
  *
  * @return {string} 投稿したメッセージ ID
  */
-function sendToChatwork(message) {
+function sendToChatwork_(message) {
   if (String(message === null || message === undefined ? '' : message).trim() === '') {
     throw new Error('Chatwork へ送信する本文が空です。');
   }

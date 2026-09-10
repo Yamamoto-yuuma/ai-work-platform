@@ -74,14 +74,14 @@ function runReport_(reportType) {
     }
 
     var executed = runExclusively_(function () {
-      var reportKey = buildReportKey(today, reportType);
-      if (hasAlreadySent(reportKey)) {
+      var reportKey = buildReportKey_(today, reportType);
+      if (hasAlreadySent_(reportKey)) {
         Logger.log(label + 'はすでに送信済みです（key: ' + reportKey + '）。再送信しません。');
         return;
       }
 
       var body =
-        reportType === REPORT_TYPE_DAY ? generateDayReport(today) : generateNightReport(today);
+        reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
       var record = saveDraft_(today, reportType, body);
 
       Logger.log(
@@ -111,23 +111,23 @@ function runReport_(reportType) {
  * 当日の昼の日報本文をログへ出力する（投稿はしない）。
  */
 function testDayReport() {
-  return testDayReportForDate(Utilities.formatDate(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
+  return testDayReportForDate_(Utilities.formatDate(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
 }
 
 /**
  * 当日の夜の日報本文をログへ出力する（投稿はしない）。
  */
 function testNightReport() {
-  return testNightReportForDate(Utilities.formatDate(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
+  return testNightReportForDate_(Utilities.formatDate(new Date(), TIME_ZONE, 'yyyy-MM-dd'));
 }
 
 /**
  * 日付（yyyy-MM-dd）を指定して昼の日報本文をログへ出力する（投稿はしない）。
  */
-function testDayReportForDate(dateText) {
+function testDayReportForDate_(dateText) {
   assertTimeZone_();
   var date = parseDate_(dateText);
-  var body = generateDayReport(date);
+  var body = generateDayReport_(date);
   Logger.log('----- 昼の日報 ' + formatJapaneseDate_(date) + ' -----\n' + body);
   return body;
 }
@@ -135,13 +135,13 @@ function testDayReportForDate(dateText) {
 /**
  * 日付（yyyy-MM-dd）を指定して夜の日報本文をログへ出力する（投稿はしない）。
  */
-function testNightReportForDate(dateText) {
+function testNightReportForDate_(dateText) {
   assertTimeZone_();
   var date = parseDate_(dateText);
-  var body = generateNightReport(date);
+  var body = generateNightReport_(date);
   Logger.log(
     '----- 夜の日報 ' + formatJapaneseDate_(date) +
-      '（次営業日: ' + formatJapaneseDate_(getNextBusinessDay(date)) + '） -----\n' + body
+      '（次営業日: ' + formatJapaneseDate_(getNextBusinessDay_(date)) + '） -----\n' + body
   );
   return body;
 }

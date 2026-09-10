@@ -57,7 +57,7 @@ function resolveTargetCalendar_() {
  *
  * @return {Array.<{title: string, startTime: Date}>}
  */
-function getCalendarEvents(date) {
+function getCalendarEvents_(date) {
   assertDate_(date);
   var calendar = getTargetCalendar_();
   var targetDay = toJstStartOfDay_(date);
@@ -92,17 +92,17 @@ function getCalendarEvents(date) {
 /**
  * AM（00:00:00 - 11:59:59 開始）の予定。
  */
-function getMorningEvents(date) {
+function getMorningEvents_(date) {
   assertDate_(date);
-  return filterEventsByHalf_(getCalendarEvents(date), true);
+  return filterEventsByHalf_(getCalendarEvents_(date), true);
 }
 
 /**
  * PM（12:00:00 - 23:59:59 開始）の予定。
  */
-function getAfternoonEvents(date) {
+function getAfternoonEvents_(date) {
   assertDate_(date);
-  return filterEventsByHalf_(getCalendarEvents(date), false);
+  return filterEventsByHalf_(getCalendarEvents_(date), false);
 }
 
 /**
@@ -133,7 +133,7 @@ function toEventTitles_(events) {
  * @return {{morning: Array.<string>, afternoon: Array.<string>}}
  */
 function getEventTitlesByHalf_(date) {
-  var events = getCalendarEvents(date);
+  var events = getCalendarEvents_(date);
   return {
     morning: toEventTitles_(filterEventsByHalf_(events, true)),
     afternoon: toEventTitles_(filterEventsByHalf_(events, false)),

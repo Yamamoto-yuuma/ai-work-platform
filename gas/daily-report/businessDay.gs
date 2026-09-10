@@ -103,7 +103,7 @@ function isHoliday_(date) {
 /**
  * 営業日（平日かつ祝日でない）かどうか。
  */
-function isBusinessDay(date) {
+function isBusinessDay_(date) {
   assertDate_(date);
   if (isWeekend_(date)) return false;
   return !isHoliday_(date);
@@ -112,11 +112,11 @@ function isBusinessDay(date) {
 /**
  * 次の営業日を返す。翌日ではなく、土日祝を飛ばした最初の営業日。
  */
-function getNextBusinessDay(date) {
+function getNextBusinessDay_(date) {
   assertDate_(date);
   for (var offset = 1; offset <= MAX_BUSINESS_DAY_LOOKAHEAD; offset++) {
     var candidate = addDays_(date, offset);
-    if (isBusinessDay(candidate)) return candidate;
+    if (isBusinessDay_(candidate)) return candidate;
   }
   throw new Error(
     MAX_BUSINESS_DAY_LOOKAHEAD + ' 日先まで営業日が見つかりませんでした（起点: ' + formatDateKey_(date) + '）。' +

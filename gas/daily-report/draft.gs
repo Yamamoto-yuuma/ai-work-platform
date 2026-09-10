@@ -113,7 +113,7 @@ function prepareDraft_(reportType) {
   var existing = loadDraft_(today, reportType);
   if (existing !== null) return { date: today, record: existing, created: false };
 
-  var body = reportType === REPORT_TYPE_DAY ? generateDayReport(today) : generateNightReport(today);
+  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
   return { date: today, record: saveDraft_(today, reportType, body), created: true };
 }
 
@@ -123,13 +123,13 @@ function prepareDraft_(reportType) {
 function showDraft_(reportType) {
   var label = reportType === REPORT_TYPE_DAY ? '昼の日報' : '夜の日報';
   var draft = prepareDraft_(reportType);
-  var reportKey = buildReportKey(draft.date, reportType);
+  var reportKey = buildReportKey_(draft.date, reportType);
 
   var header =
     '----- ' + label + 'の下書き（' + formatJapaneseDate_(draft.date) + '） -----\n' +
     '生成: ' + draft.record.generatedAt + (draft.created ? '（いま作成しました）' : '') + '\n' +
     '状態: ' + draft.record.status +
-    (hasAlreadySent(reportKey) ? '（本番ルームへ送信済みです）' : '（未送信）') + '\n' +
+    (hasAlreadySent_(reportKey) ? '（本番ルームへ送信済みです）' : '（未送信）') + '\n' +
     '------------------------------------------';
 
   Logger.log(header + '\n' + draft.record.body + '\n------------------------------------------');
@@ -149,8 +149,8 @@ function sendDraft_(reportType) {
 
   var sent = false;
   var executed = runExclusively_(function () {
-    var reportKey = buildReportKey(today, reportType);
-    if (hasAlreadySent(reportKey)) {
+    var reportKey = buildReportKey_(today, reportType);
+    if (hasAlreadySent_(reportKey)) {
       Logger.log(label + 'はすでに送信済みです（key: ' + reportKey + '）。再送信しません。');
       return;
     }
@@ -163,8 +163,8 @@ function sendDraft_(reportType) {
       );
     }
 
-    var messageId = sendToChatwork(draft.body);
-    markAsSent(reportKey);
+    var messageId = sendToChatwork_(draft.body);
+    markAsSent_(reportKey);
     markDraftSent_(today, reportType);
     sent = true;
     Logger.log(label + 'を本番ルームへ投稿しました（key: ' + reportKey + ' / message_id: ' + messageId + '）。');
