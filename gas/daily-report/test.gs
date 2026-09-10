@@ -23,9 +23,10 @@ function runAllTests() {
     ['Test 10: 予定が無くても見出しは残す', test10_EmptyHalfKeepsHeading_],
     ['Test 11: 祝日カレンダーの行事を休業日にしない', test11_ObservanceIsNotHoliday_],
     ['Test 12: 節分・七夕は営業日（実カレンダー）', test12_ObservanceDayIsBusinessDay_],
-    ['Test 13: 既定では自動投稿しない', test13_AutoSendIsOff_],
+    ['Test 13: 自動実行は Chatwork へ送信しない', test13_AutoRunNeverSends_],
     ['Test 14: 下書きの保存・取り出し・削除', test14_DraftStore_],
-    ['Test 15: 下書き用ルームは本番ルームと別であること', test15_DraftRoomMustBeSeparate_],
+    ['Test 15: 送信済みの下書きは再送信しない', test15_SentDraftIsNotResent_],
+    ['Test 16: 下書き用ルームの仕組みが残っていない', test16_DraftRoomFeatureRemoved_],
   ];
 
   var failed = 0;
@@ -179,10 +180,44 @@ function test12_ObservanceDayIsBusinessDay_() {
   assertEquals_(null, describeNonBusinessDay_(tanabata), '七夕は営業日');
 }
 
-function test13_AutoSendIsOff_() {
-  // 確認してから送る運用のため、既定では自動投稿しない。
-  // 意図して自動投稿へ切り替えたとき以外、この設定が変わっていないことを守る。
-  assertTrue_(AUTO_SEND_ENABLED === false, '自動投稿が既定でオフであること');
+function test13_AutoRunNeverSends_() {
+  // 自動実行（トリガー）は下書きを保存するだけで、Chatwork へは送信しない。
+  // sendToChatwork を差し替えて、呼ばれないことと下書きが残ることを確かめる。
+  var today = toJstStartOfDay_(new Date());
+  var reportKey = buildReportKey(today, REPORT_TYPE_DAY);
+  var draftKey = buildDraftKey_(today, REPORT_TYPE_DAY);
+  var props = PropertiesService.getScriptProperties();
+
+  var savedDraft = props.getProperty(draftKey);
+  var savedSent = props.getProperty(reportKey);
+  var originalSend = sendToChatwork;
+  var callCount = 0;
+
+  try {
+    props.deleteProperty(draftKey);
+    props.deleteProperty(reportKey);
+    sendToChatwork = function () {
+      callCount++;
+      throw new Error('自動実行から Chatwork へ送信しようとしました。');
+    };
+
+    runDayReport();
+
+    assertEquals_(0, callCount, '自動実行から Chatwork API が呼ばれた回数');
+    if (describeNonBusinessDay_(today) === null) {
+      var draft = loadDraft_(today, REPORT_TYPE_DAY);
+      assertTrue_(draft !== null, '自動実行で下書きが保存されること');
+      assertEquals_(DRAFT_STATUS_DRAFT, draft.status, '保存直後の状態');
+      assertEquals_('day', draft.reportType, '下書きの種別');
+      assertTrue_(!hasAlreadySent(reportKey), '自動実行では送信済みにならないこと');
+    }
+  } finally {
+    sendToChatwork = originalSend;
+    if (savedDraft === null) props.deleteProperty(draftKey);
+    else props.setProperty(draftKey, savedDraft);
+    if (savedSent === null) props.deleteProperty(reportKey);
+    else props.setProperty(reportKey, savedSent);
+  }
 }
 
 function test14_DraftStore_() {
@@ -194,10 +229,18 @@ function test14_DraftStore_() {
     assertEquals_(null, loadDraft_(date, REPORT_TYPE_NIGHT), '下書きが無ければ null');
 
     saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n本文');
-    assertEquals_('【夜用】\n本文', loadDraft_(date, REPORT_TYPE_NIGHT).body, '保存した下書きを取り出せる');
+    var record = loadDraft_(date, REPORT_TYPE_NIGHT);
+    assertEquals_('【夜用】\n本文', record.body, '保存した下書きを取り出せる');
+    assertEquals_('2099-01-05', record.reportDate, '下書きの日付');
+    assertEquals_('night', record.reportType, '下書きの種別');
+    assertEquals_(DRAFT_STATUS_DRAFT, record.status, '下書きの状態');
+    assertTrue_(typeof record.generatedAt === 'string' && record.generatedAt !== '', '生成日時が入ること');
 
     saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n上書き');
     assertEquals_('【夜用】\n上書き', loadDraft_(date, REPORT_TYPE_NIGHT).body, '同じ日の下書きは上書きされる');
+
+    markDraftSent_(date, REPORT_TYPE_NIGHT);
+    assertEquals_(DRAFT_STATUS_SENT, loadDraft_(date, REPORT_TYPE_NIGHT).status, '送信後の状態');
 
     deleteDraft_(date, REPORT_TYPE_NIGHT);
     assertEquals_(null, loadDraft_(date, REPORT_TYPE_NIGHT), '削除した下書きは残らない');
@@ -206,16 +249,51 @@ function test14_DraftStore_() {
   }
 }
 
-function test15_DraftRoomMustBeSeparate_() {
-  // 同じルームだと、確認前の日報が本番ルームへ流れてしまう。
-  var threw = false;
+function test15_SentDraftIsNotResent_() {
+  // 本番ルームへ送信済みの日は、手動送信をもう一度実行しても送らない。
+  var today = toJstStartOfDay_(new Date());
+  var reportKey = buildReportKey(today, REPORT_TYPE_NIGHT);
+  var draftKey = buildDraftKey_(today, REPORT_TYPE_NIGHT);
+  var props = PropertiesService.getScriptProperties();
+
+  var savedDraft = props.getProperty(draftKey);
+  var savedSent = props.getProperty(reportKey);
+  var originalSend = sendToChatwork;
+  var callCount = 0;
+
   try {
-    assertDraftRoomIsSeparate_('122205264', '122205264');
-  } catch (e) {
-    threw = true;
+    sendToChatwork = function () {
+      callCount++;
+      throw new Error('送信済みの日報を再送信しようとしました。');
+    };
+    saveDraft_(today, REPORT_TYPE_NIGHT, '【夜用】\n再送信の確認');
+    markAsSent(reportKey);
+
+    assertTrue_(sendNightDraft() === false, '送信済みなら送信しないこと');
+    assertEquals_(0, callCount, '再送信で Chatwork API が呼ばれた回数');
+  } finally {
+    sendToChatwork = originalSend;
+    if (savedDraft === null) props.deleteProperty(draftKey);
+    else props.setProperty(draftKey, savedDraft);
+    if (savedSent === null) props.deleteProperty(reportKey);
+    else props.setProperty(reportKey, savedSent);
   }
-  assertTrue_(threw, '下書き用ルームが本番ルームと同じならエラーになること');
-  assertDraftRoomIsSeparate_('999999999', '122205264'); // 別ならエラーにならない
+}
+
+function test16_DraftRoomFeatureRemoved_() {
+  // Chatwork 上に下書きルームを作る方式は廃止した。名残が残っていないことを確かめる。
+  assertTrue_(
+    typeof globalThis.CHATWORK_DRAFT_ROOM_ID === 'undefined' &&
+      typeof globalThis.PROP_CHATWORK_DRAFT_ROOM_ID === 'undefined',
+    '下書き用ルームの設定が残っていないこと'
+  );
+  assertTrue_(
+    typeof globalThis.postDraftToDraftRoom_ === 'undefined' &&
+      typeof globalThis.getChatworkDraftRoomId_ === 'undefined' &&
+      typeof globalThis.assertDraftRoomIsSeparate_ === 'undefined' &&
+      typeof globalThis.markDraftPosted_ === 'undefined',
+    '下書き用ルームへ投稿する処理が残っていないこと'
+  );
 }
 
 /* ------------------------------------------------------------------ *

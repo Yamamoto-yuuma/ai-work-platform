@@ -1,20 +1,38 @@
 /**
  * 下書きの保管。
  *
- * Chatwork API には下書きを作る機能がないため、日報の本文を Script Properties へ保管し、
- * 内容を確認してから手動で送信できるようにする。
+ * 自動実行では日報を作って、ここに下書きとして残すところまでを行う。
+ * Chatwork の本番ルームへ送るのは、手動で sendDayDraft() / sendNightDraft() を
+ * 実行したときだけ（「日報を作る」と「Chatwork へ送る」を分けている）。
+ *
+ * 将来 AI 業務プラットフォームから読み出せるよう、下書きは次の形で保管する。
+ *   {
+ *     reportDate:  "2026-09-11",   // 日報の日付（日本時間）
+ *     reportType:  "day" | "night",
+ *     body:        "【昼用】…",     // 日報本文
+ *     status:      "draft" | "sent",
+ *     generatedAt: "2026-09-11T12:55:00+09:00",
+ *     sentAt:      "2026-09-11T13:02:00+09:00"  // 送信済みのときだけ入る
+ *   }
  */
+
+var DRAFT_STATUS_DRAFT = 'draft';
+var DRAFT_STATUS_SENT = 'sent';
 
 /** 下書きの保管キー。例: draft_20260911_day */
 function buildDraftKey_(date, reportType) {
   return 'draft_' + formatDateKey_(date) + '_' + reportType;
 }
 
+/** 保管する日時の文字列。例: 2026-09-11T12:55:00+09:00（日本時間で動くことは別途確認済み） */
+function formatTimestamp_(date) {
+  return Utilities.formatDate(date, TIME_ZONE, "yyyy-MM-dd'T'HH:mm:ss") + '+09:00';
+}
+
 /**
  * 下書きを保存する。
  *
- * 中身が前回と同じなら、下書き用ルームへ流し済みという記録ごとそのまま残す
- * （同じ日にトリガーが再び動いても、同じ下書きが二重に流れないようにするため）。
+ * 中身が前回と同じなら、生成日時や状態を含めてそのまま残す。
  * 予定が変わって中身が変わった場合は、新しい下書きとして保存し直す。
  */
 function saveDraft_(date, reportType, body) {
@@ -25,22 +43,21 @@ function saveDraft_(date, reportType, body) {
     // 壊れている下書きは、そのまま上書きする。
     Logger.log('保存済みの下書きを読めなかったため作り直します: ' + e);
   }
-  if (existing !== null && existing.body === body) return;
+  if (existing !== null && existing.body === body) return existing;
 
-  var record = { createdAt: Utilities.formatDate(new Date(), TIME_ZONE, 'yyyy-MM-dd HH:mm'), body: body };
-  PropertiesService.getScriptProperties().setProperty(
-    buildDraftKey_(date, reportType),
-    JSON.stringify(record)
-  );
+  var record = {
+    reportDate: Utilities.formatDate(date, TIME_ZONE, 'yyyy-MM-dd'),
+    reportType: reportType,
+    body: body,
+    status: DRAFT_STATUS_DRAFT,
+    generatedAt: formatTimestamp_(new Date()),
+  };
+  writeDraft_(date, reportType, record);
+  return record;
 }
 
-/**
- * 下書きを「下書き用ルームへ流し済み」として記録する。
- */
-function markDraftPosted_(date, reportType) {
-  var record = loadDraft_(date, reportType);
-  if (record === null) return;
-  record.postedToDraftRoom = true;
+/** 下書きを書き込む。 */
+function writeDraft_(date, reportType, record) {
   PropertiesService.getScriptProperties().setProperty(
     buildDraftKey_(date, reportType),
     JSON.stringify(record)
@@ -49,7 +66,8 @@ function markDraftPosted_(date, reportType) {
 
 /**
  * 保存済みの下書きを取り出す。無ければ null。
- * @return {?{createdAt: string, body: string, postedToDraftRoom: (boolean|undefined)}}
+ * @return {?{reportDate: string, reportType: string, body: string, status: string,
+ *            generatedAt: string, sentAt: (string|undefined)}}
  */
 function loadDraft_(date, reportType) {
   var raw = PropertiesService.getScriptProperties().getProperty(buildDraftKey_(date, reportType));
@@ -68,43 +86,21 @@ function loadDraft_(date, reportType) {
 }
 
 /**
- * 下書きを削除する（送信済みになった下書きを残さないため）。
+ * 下書きを「本番ルームへ送信済み」の状態にする。
  */
-function deleteDraft_(date, reportType) {
-  PropertiesService.getScriptProperties().deleteProperty(buildDraftKey_(date, reportType));
+function markDraftSent_(date, reportType) {
+  var record = loadDraft_(date, reportType);
+  if (record === null) return;
+  record.status = DRAFT_STATUS_SENT;
+  record.sentAt = formatTimestamp_(new Date());
+  writeDraft_(date, reportType, record);
 }
 
 /**
- * 下書きを日報送信用チャット（本番とは別のルーム）へ流す。
- *
- * 本文はそのまま流す。確認したあと、コピーして本番ルームへ貼れるようにするため、
- * 見出しなどの余計な文章は足さない（本文の 1 行目が【昼用】【夜用】になっている）。
- * 同じ日の下書きを二重に流さないよう、流し済みは下書きへ記録する。
+ * 下書きを削除する。
  */
-function postDraftToDraftRoom_(date, reportType, label) {
-  var draftRoomId = getChatworkDraftRoomId_();
-  if (draftRoomId === null) {
-    Logger.log(
-      '下書き用ルーム（' + PROP_CHATWORK_DRAFT_ROOM_ID + '）が未設定のため、' +
-        label + 'の下書きは Chatwork へ流していません。'
-    );
-    return false;
-  }
-
-  var record = loadDraft_(date, reportType);
-  if (record === null) return false;
-  if (record.postedToDraftRoom === true) {
-    Logger.log(label + 'の下書きは、すでに日報送信用チャットへ流し済みです。');
-    return false;
-  }
-
-  var messageId = sendToChatworkRoom_(draftRoomId, record.body);
-  markDraftPosted_(date, reportType);
-  Logger.log(
-    label + 'の下書きを日報送信用チャットへ流しました（room: ' + draftRoomId +
-      ' / message_id: ' + messageId + '）。'
-  );
-  return true;
+function deleteDraft_(date, reportType) {
+  PropertiesService.getScriptProperties().deleteProperty(buildDraftKey_(date, reportType));
 }
 
 /**
@@ -118,8 +114,7 @@ function prepareDraft_(reportType) {
   if (existing !== null) return { date: today, record: existing, created: false };
 
   var body = reportType === REPORT_TYPE_DAY ? generateDayReport(today) : generateNightReport(today);
-  saveDraft_(today, reportType, body);
-  return { date: today, record: loadDraft_(today, reportType), created: true };
+  return { date: today, record: saveDraft_(today, reportType, body), created: true };
 }
 
 /**
@@ -132,8 +127,9 @@ function showDraft_(reportType) {
 
   var header =
     '----- ' + label + 'の下書き（' + formatJapaneseDate(draft.date) + '） -----\n' +
-    '作成: ' + draft.record.createdAt + (draft.created ? '（いま作成しました）' : '') + '\n' +
-    (hasAlreadySent(reportKey) ? '※ この日報は送信済みです。\n' : '') +
+    '生成: ' + draft.record.generatedAt + (draft.created ? '（いま作成しました）' : '') + '\n' +
+    '状態: ' + draft.record.status +
+    (hasAlreadySent(reportKey) ? '（本番ルームへ送信済みです）' : '（未送信）') + '\n' +
     '------------------------------------------';
 
   Logger.log(header + '\n' + draft.record.body + '\n------------------------------------------');
@@ -141,8 +137,8 @@ function showDraft_(reportType) {
 }
 
 /**
- * 下書きを Chatwork へ送信する。
- * 送信済みの場合は再送信しない（手動実行でも二重投稿を防ぐ）。
+ * 下書きを Chatwork の本番ルームへ送信する（手動実行のときだけ通る道）。
+ * 送信済みの場合は再送信しない。
  *
  * @return {boolean} 送信したかどうか
  */
@@ -169,9 +165,9 @@ function sendDraft_(reportType) {
 
     var messageId = sendToChatwork(draft.body);
     markAsSent(reportKey);
-    deleteDraft_(today, reportType);
+    markDraftSent_(today, reportType);
     sent = true;
-    Logger.log(label + 'を投稿しました（key: ' + reportKey + ' / message_id: ' + messageId + '）。');
+    Logger.log(label + 'を本番ルームへ投稿しました（key: ' + reportKey + ' / message_id: ' + messageId + '）。');
   });
 
   if (!executed) {

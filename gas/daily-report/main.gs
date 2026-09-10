@@ -12,16 +12,16 @@ var REPORT_TYPE_NIGHT = 'night';
  * ------------------------------------------------------------------ */
 
 /**
- * 昼の日報を用意する（13:00 頃のトリガー／手動実行の入口）。
- * AUTO_SEND_ENABLED が false の間は、下書きを保存するだけで Chatwork へは送らない。
+ * 昼の日報の下書きを用意する（12:55 頃のトリガー／手動実行の入口）。
+ * 下書きを保存するだけで、Chatwork へは送らない。
  */
 function runDayReport() {
   runReport_(REPORT_TYPE_DAY);
 }
 
 /**
- * 夜の日報を用意する（18:30 頃のトリガー／手動実行の入口）。
- * AUTO_SEND_ENABLED が false の間は、下書きを保存するだけで Chatwork へは送らない。
+ * 夜の日報の下書きを用意する（18:25 頃のトリガー／手動実行の入口）。
+ * 下書きを保存するだけで、Chatwork へは送らない。
  */
 function runNightReport() {
   runReport_(REPORT_TYPE_NIGHT);
@@ -41,22 +41,22 @@ function showNightDraft() {
   return showDraft_(REPORT_TYPE_NIGHT);
 }
 
-/** 確認した昼の日報の下書きを Chatwork へ送信する。 */
+/** 確認した昼の日報の下書きを Chatwork の本番ルームへ送信する（手動実行のみ）。 */
 function sendDayDraft() {
   return sendDraft_(REPORT_TYPE_DAY);
 }
 
-/** 確認した夜の日報の下書きを Chatwork へ送信する。 */
+/** 確認した夜の日報の下書きを Chatwork の本番ルームへ送信する（手動実行のみ）。 */
 function sendNightDraft() {
   return sendDraft_(REPORT_TYPE_NIGHT);
 }
 
 /**
- * 日報の生成。
+ * 日報の生成と下書き保存。
  *
- * AUTO_SEND_ENABLED が false の間は下書きを保存するだけで、Chatwork へは投稿しない。
+ * ここから Chatwork へ送信することはない（送信は sendDayDraft() / sendNightDraft() のみ）。
  * 土日祝は何もせずに終了する（トリガーは止めない）。
- * 同日・同種の日報が送信済みの場合も何もしない。
+ * 同日・同種の日報が本番ルームへ送信済みの場合も何もしない。
  */
 function runReport_(reportType) {
   var label = reportType === REPORT_TYPE_DAY ? '昼の日報' : '夜の日報';
@@ -82,23 +82,15 @@ function runReport_(reportType) {
 
       var body =
         reportType === REPORT_TYPE_DAY ? generateDayReport(today) : generateNightReport(today);
-      saveDraft_(today, reportType, body);
+      var record = saveDraft_(today, reportType, body);
 
-      if (!AUTO_SEND_ENABLED) {
-        Logger.log(
-          label + 'の下書きを用意しました（本番ルームへの自動投稿はオフです）。\n' +
-            '内容の確認: ' + (reportType === REPORT_TYPE_DAY ? 'showDayDraft()' : 'showNightDraft()') + '\n' +
-            '送信: ' + (reportType === REPORT_TYPE_DAY ? 'sendDayDraft()' : 'sendNightDraft()') + '\n' +
-            body
-        );
-        postDraftToDraftRoom_(today, reportType, label);
-        return;
-      }
-
-      var messageId = sendToChatwork(body);
-      markAsSent(reportKey);
-      deleteDraft_(today, reportType);
-      Logger.log(label + 'を投稿しました（key: ' + reportKey + ' / message_id: ' + messageId + '）。');
+      Logger.log(
+        label + 'の下書きを保存しました（key: ' + buildDraftKey_(today, reportType) +
+          ' / status: ' + record.status + '）。Chatwork へは送信していません。\n' +
+          '内容の確認: ' + (reportType === REPORT_TYPE_DAY ? 'showDayDraft()' : 'showNightDraft()') + '\n' +
+          '本番ルームへの送信: ' + (reportType === REPORT_TYPE_DAY ? 'sendDayDraft()' : 'sendNightDraft()') + '\n' +
+          body
+      );
     });
 
     if (!executed) {
@@ -159,11 +151,11 @@ function testNightReportForDate(dateText) {
  * ------------------------------------------------------------------ */
 
 /**
- * 自動実行トリガーを設定する（昼 13:00 頃 / 夜 18:30 頃）。
+ * 自動実行トリガーを設定する（昼 12:55 頃 / 夜 18:25 頃）。
  *
  * 何度実行しても重複しないよう、同じ関数の既存トリガーを作り直す。
  * 土日祝もトリガーは止めない（実行時に営業日判定でスキップする）。
- * AUTO_SEND_ENABLED が false の間、トリガーは下書きを用意するだけで投稿はしない。
+ * トリガーが行うのは下書きの保存までで、Chatwork への送信は行わない。
  */
 function setupTriggers() {
   assertTimeZone_();
@@ -192,7 +184,7 @@ function setupTriggers() {
   Logger.log(
     'トリガーを設定しました（runDayReport ' + formatTriggerTime_(DAY_REPORT_HOUR, DAY_REPORT_MINUTE) +
       ' 頃 / runNightReport ' + formatTriggerTime_(NIGHT_REPORT_HOUR, NIGHT_REPORT_MINUTE) + ' 頃）。' +
-      (AUTO_SEND_ENABLED ? '自動投稿はオンです。' : '自動投稿はオフのため、下書きの作成のみ行います。')
+      'トリガーは下書きを保存するだけで、Chatwork へは送信しません。'
   );
 }
 

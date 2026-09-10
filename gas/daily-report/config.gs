@@ -12,24 +12,15 @@ var TIME_ZONE = 'Asia/Tokyo';
 var SENDER_NAME = '山本';
 
 /**
- * 自動投稿を行うか。
- *
- * false（既定）… トリガーは日報を作って「下書き」として保存するだけで、Chatwork へは送らない。
- *                 内容を確認したうえで sendDayDraft() / sendNightDraft() を実行すると送信される。
- * true          … トリガーの実行時にそのまま Chatwork へ投稿する。
- *
- * 運用に慣れて、確認なしで送ってよいと判断できるまでは false のままにしておく。
- */
-var AUTO_SEND_ENABLED = false;
-
-/**
- * トリガーで日報を用意する時刻。
+ * トリガーで日報の下書きを用意する時刻（送信予定時刻の 5 分前）。
  * GAS の時間主導型トリガーは指定時刻の前後 15 分ほどぶれるため、秒単位の保証はない。
+ *
+ * トリガーが行うのは下書きの保存までで、Chatwork への送信は一切行わない。
  */
-var DAY_REPORT_HOUR = 13;
-var DAY_REPORT_MINUTE = 0;
+var DAY_REPORT_HOUR = 12;
+var DAY_REPORT_MINUTE = 55;
 var NIGHT_REPORT_HOUR = 18;
-var NIGHT_REPORT_MINUTE = 30;
+var NIGHT_REPORT_MINUTE = 25;
 
 /**
  * 終日イベントを日報に含めるか。
@@ -61,7 +52,6 @@ var MAX_BUSINESS_DAY_LOOKAHEAD = 14;
 /** Script Properties のキー名。 */
 var PROP_CHATWORK_API_TOKEN = 'CHATWORK_API_TOKEN';
 var PROP_CHATWORK_ROOM_ID = 'CHATWORK_ROOM_ID';
-var PROP_CHATWORK_DRAFT_ROOM_ID = 'CHATWORK_DRAFT_ROOM_ID';
 var PROP_HOLIDAY_CALENDAR_ID = 'HOLIDAY_CALENDAR_ID';
 var PROP_TARGET_CALENDAR_ID = 'TARGET_CALENDAR_ID';
 
@@ -103,37 +93,6 @@ function getChatworkRoomId_() {
     );
   }
   return roomId;
-}
-
-/**
- * 下書きを流す Chatwork ルーム ID（日報送信用の専用チャット）。
- * 未設定なら null を返し、下書きはログに残すだけになる。
- */
-function getChatworkDraftRoomId_() {
-  var draftRoomId = getProperty_(PROP_CHATWORK_DRAFT_ROOM_ID);
-  if (draftRoomId === null) return null;
-
-  if (!/^[0-9]+$/.test(draftRoomId)) {
-    throw new Error(
-      'Script Properties の「' + PROP_CHATWORK_DRAFT_ROOM_ID + '」が数値ではありません: ' + draftRoomId
-    );
-  }
-  assertDraftRoomIsSeparate_(draftRoomId, getChatworkRoomId_());
-  return draftRoomId;
-}
-
-/**
- * 下書き用ルームが本番ルームと別であることを確認する。
- * 同じだと、確認前の日報がそのまま本番ルームへ流れてしまう。
- */
-function assertDraftRoomIsSeparate_(draftRoomId, roomId) {
-  if (draftRoomId === roomId) {
-    throw new Error(
-      '「' + PROP_CHATWORK_DRAFT_ROOM_ID + '」が本番の投稿先「' + PROP_CHATWORK_ROOM_ID +
-        '」と同じルーム（' + roomId + '）になっています。' +
-        '下書きが本番ルームへ流れてしまうため、日報送信用の別チャットの ID を設定してください。'
-    );
-  }
 }
 
 /** 祝日カレンダー ID（未設定なら既定値）。 */
