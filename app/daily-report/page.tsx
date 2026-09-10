@@ -141,48 +141,43 @@ export default function DailyReportPage() {
 
   if (loading) {
     return (
-      <>
+      <div className="mx-auto max-w-[900px] px-6 pb-8">
         <PageHeader
           title="日報"
           description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
         />
-        <div className="max-w-3xl">
-          <Empty>読み込んでいます…</Empty>
-        </div>
-      </>
+        <Empty>読み込んでいます…</Empty>
+      </div>
     );
   }
 
   if (failure?.notConfigured) {
     return (
-      <>
+      <div className="mx-auto max-w-[900px] px-6 pb-8">
         <PageHeader
           title="日報"
           description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
         />
-        <div className="max-w-3xl">
-          <Empty>
-            <span className="mx-auto block max-w-[42ch] text-left">
-              日報の連携先がまだ設定されていません。
-              <br />
-              Apps Script をウェブアプリとして公開し、その URL
-              と合言葉を環境変数
-              <code className="mx-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
-                DAILY_REPORT_GAS_URL
-              </code>
-              <code className="mr-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
-                DAILY_REPORT_SECRET
-              </code>
-              に設定してください。
-            </span>
-          </Empty>
-        </div>
-      </>
+        <Empty>
+          <span className="mx-auto block max-w-[42ch] text-left">
+            日報の連携先がまだ設定されていません。
+            <br />
+            Apps Script をウェブアプリとして公開し、その URL と合言葉を環境変数
+            <code className="mx-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+              DAILY_REPORT_GAS_URL
+            </code>
+            <code className="mr-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+              DAILY_REPORT_SECRET
+            </code>
+            に設定してください。
+          </span>
+        </Empty>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="mx-auto max-w-[900px] px-6 pb-8">
       <PageHeader
         title="日報"
         description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
@@ -199,19 +194,19 @@ export default function DailyReportPage() {
       />
 
       {failure && (
-        <div className="mb-4 rounded-[9px] bg-danger-soft px-3.5 py-2.5 text-[12px] leading-[1.8] text-danger">
+        <div className="mb-4 rounded-[5px] bg-danger-soft px-3.5 py-2.5 text-[12px] leading-[1.8] text-danger">
           {failure.error}
         </div>
       )}
 
       {notice && (
-        <div className="mb-4 rounded-[9px] bg-ok-soft px-3.5 py-2.5 text-[12px] text-ok">
+        <div className="mb-4 rounded-[5px] bg-ok-soft px-3.5 py-2.5 text-[12px] text-ok">
           {notice}
         </div>
       )}
 
       {state && (
-        <div className="max-w-3xl">
+        <div>
           <div className="mb-4 flex flex-wrap items-center gap-2 text-[12px] text-ink-2">
             <span className="font-medium text-ink">{state.todayLabel}</span>
             {state.nonBusinessDayReason !== null && (
@@ -257,7 +252,7 @@ export default function DailyReportPage() {
                     <>
                       <textarea
                         id={`daily-report-${reportType}`}
-                        className="mt-3 h-64 w-full resize-y rounded-[9px] border border-line bg-surface px-3 py-2.5 font-mono text-[12px] leading-[1.8] text-ink outline-none focus:border-brand"
+                        className="mt-3 h-64 w-full resize-y rounded-[5px] border border-line bg-surface px-3 py-2.5 font-mono text-[12px] leading-[1.8] text-ink outline-none focus:border-brand"
                         value={edited}
                         readOnly={report.sent}
                         onChange={(event) =>
@@ -378,6 +373,6 @@ export default function DailyReportPage() {
           </p>
         </div>
       )}
-    </>
+    </div>
   );
 }

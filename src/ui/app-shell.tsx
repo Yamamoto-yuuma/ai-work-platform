@@ -122,7 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
             aria-expanded={!collapsed}
             title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
-            className={`hidden shrink-0 rounded-[9px] py-1 text-[13px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-2 md:block ${
+            className={`hidden shrink-0 rounded-[5px] py-1 text-[13px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-2 md:block ${
               collapsed ? "px-2" : "ml-auto px-2"
             }`}
           >
@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 title={item.label}
-                className={`flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[13px] transition-[background-color,color,box-shadow] duration-150 ${
+                className={`flex items-center gap-2.5 rounded-[5px] px-2.5 py-2 text-[13px] transition-[background-color,color,box-shadow] duration-150 ${
                   active
                     ? "bg-brand-soft font-semibold text-brand-ink"
                     : "font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
@@ -172,7 +172,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* 開いたメニュー。設定への入口をここに集める */}
           {menuOpen && (
-            <div className="mb-1.5 overflow-hidden rounded-[9px] border border-line-soft bg-surface shadow-pop">
+            <div className="mb-1.5 overflow-hidden rounded-[5px] border border-line-soft bg-surface shadow-pop">
               <Link
                 href="/settings"
                 className="block px-3.5 py-2.5 text-[12.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
@@ -197,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             title="設定を開く"
-            className={`flex w-full items-center gap-2 rounded-[9px] py-2 text-left text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink ${
+            className={`flex w-full items-center gap-2 rounded-[5px] py-2 text-left text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink ${
               collapsed ? "justify-center px-1" : "px-2.5"
             }`}
           >

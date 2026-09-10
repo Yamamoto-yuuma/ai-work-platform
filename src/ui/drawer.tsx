@@ -57,7 +57,7 @@ export function Drawer({
           </div>
           <button
             type="button" onClick={onClose} aria-label="閉じる" title="閉じる（Esc）"
-            className="shrink-0 rounded-[9px] px-2 py-1 text-[15px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+            className="shrink-0 rounded-[5px] px-2 py-1 text-[15px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
           >
             ×
           </button>

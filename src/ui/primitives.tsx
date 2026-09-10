@@ -200,7 +200,7 @@ const TONE: Record<Tone, string> = {
 
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11px] font-medium leading-5 ${TONE[tone]}`}>
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-[3px] px-2 py-0.5 text-[11px] font-medium leading-5 ${TONE[tone]}`}>
       {children}
     </span>
   );
@@ -210,15 +210,18 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
   ボタン。用途で3段に分ける。同じ画面に同じ強さのものを並べない。
 
   primary   … いま押してほしい操作。青い面で塗る。1画面に基本ひとつ
-  secondary … 並ぶ選択肢。白い面に、あるかないかの線
+  secondary … 並ぶ選択肢。白い面に、輪郭の線
   ghost     … 文字と同じ扱い。枠は持たない
   danger    … 戻せない操作。ふだんは静かで、触れたときだけ赤が差す
+
+  影は持たせない。押せるものは、面の色と輪郭の線で示す。
+  影で浮かせると、並んだときにボタンだけが画面から離れて見える。
 
   角丸・余白・触れたときの動きは全段で揃える。
   触れると1段浮き、押した瞬間に1px沈む。それ以上は動かさない。
 */
 const BTN_BASE =
-  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border font-medium " +
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[5px] border font-medium " +
   "transition-[background-color,border-color,box-shadow,transform] duration-150 " +
   /*
     押せないときは、薄くするのではなく沈めた面にする。
@@ -231,17 +234,17 @@ const BTN_BASE =
 
 const BTN_VARIANTS = {
   primary:
-    "border-transparent bg-brand text-white shadow-card " +
-    "hover:bg-brand-ink hover:shadow-lift",
+    "border-transparent bg-brand text-white " +
+    "hover:bg-brand-ink",
   secondary:
-    "border-line-soft bg-surface text-ink shadow-card " +
-    "hover:border-line hover:bg-brand-soft/45 hover:shadow-lift",
+    "border-line bg-surface text-ink " +
+    "hover:border-ink-3 hover:bg-surface-2",
   ghost:
     "border-transparent bg-transparent text-ink-2 " +
     "hover:bg-surface-2 hover:text-ink",
   danger:
-    "border-transparent bg-surface text-danger shadow-card " +
-    "hover:bg-danger-soft hover:shadow-lift",
+    "border-line bg-surface text-danger " +
+    "hover:border-danger/40 hover:bg-danger-soft",
 } as const;
 
 const BTN_SIZES = {
@@ -382,7 +385,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
 /** 未接続の外部連携を明示するバナー。仕様 §22-3 */
 export function NotConnected({ label, phase }: { label: string; phase: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-[9px] bg-surface-2 px-3.5 py-2.5 text-[12px] text-ink-3">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-[5px] bg-surface-2 px-3.5 py-2.5 text-[12px] text-ink-3">
       <span className="font-medium text-ink-2">{label} は未接続です</span>
       <span>（{phase} で接続予定。業務の進行は妨げません）</span>
     </div>

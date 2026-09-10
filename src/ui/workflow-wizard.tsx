@@ -76,7 +76,7 @@ function ScheduleRow({
   );
 
   return (
-    <div className={`rounded-[9px] bg-surface-2 p-4 ${off ? "opacity-60" : ""}`}>
+    <div className={`rounded-[5px] bg-surface-2 p-4 ${off ? "opacity-60" : ""}`}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-[11.5px] font-bold text-ink-3">スケジュール {index + 1}</span>
         <input
@@ -633,7 +633,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
             </div>
 
             {draft.startSchedules.length === 0 ? (
-              <p className="rounded-[9px] bg-surface-2 px-4 py-5 text-center text-[12.5px] leading-relaxed text-ink-3">
+              <p className="rounded-[5px] bg-surface-2 px-4 py-5 text-center text-[12.5px] leading-relaxed text-ink-3">
                 繰り返しの予定はまだありません。
                 <br />
                 決まった曜日や月末に始める業務なら、ここに足しておくとHOMEに出ます。
