@@ -61,6 +61,7 @@ var MAX_BUSINESS_DAY_LOOKAHEAD = 14;
 /** Script Properties のキー名。 */
 var PROP_CHATWORK_API_TOKEN = 'CHATWORK_API_TOKEN';
 var PROP_CHATWORK_ROOM_ID = 'CHATWORK_ROOM_ID';
+var PROP_CHATWORK_DRAFT_ROOM_ID = 'CHATWORK_DRAFT_ROOM_ID';
 var PROP_HOLIDAY_CALENDAR_ID = 'HOLIDAY_CALENDAR_ID';
 var PROP_TARGET_CALENDAR_ID = 'TARGET_CALENDAR_ID';
 
@@ -102,6 +103,37 @@ function getChatworkRoomId_() {
     );
   }
   return roomId;
+}
+
+/**
+ * 下書きを流す Chatwork ルーム ID（日報送信用の専用チャット）。
+ * 未設定なら null を返し、下書きはログに残すだけになる。
+ */
+function getChatworkDraftRoomId_() {
+  var draftRoomId = getProperty_(PROP_CHATWORK_DRAFT_ROOM_ID);
+  if (draftRoomId === null) return null;
+
+  if (!/^[0-9]+$/.test(draftRoomId)) {
+    throw new Error(
+      'Script Properties の「' + PROP_CHATWORK_DRAFT_ROOM_ID + '」が数値ではありません: ' + draftRoomId
+    );
+  }
+  assertDraftRoomIsSeparate_(draftRoomId, getChatworkRoomId_());
+  return draftRoomId;
+}
+
+/**
+ * 下書き用ルームが本番ルームと別であることを確認する。
+ * 同じだと、確認前の日報がそのまま本番ルームへ流れてしまう。
+ */
+function assertDraftRoomIsSeparate_(draftRoomId, roomId) {
+  if (draftRoomId === roomId) {
+    throw new Error(
+      '「' + PROP_CHATWORK_DRAFT_ROOM_ID + '」が本番の投稿先「' + PROP_CHATWORK_ROOM_ID +
+        '」と同じルーム（' + roomId + '）になっています。' +
+        '下書きが本番ルームへ流れてしまうため、日報送信用の別チャットの ID を設定してください。'
+    );
+  }
 }
 
 /** 祝日カレンダー ID（未設定なら既定値）。 */

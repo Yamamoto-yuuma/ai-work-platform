@@ -12,16 +12,23 @@ var CHATWORK_MAX_ATTEMPTS = 3;
 var CHATWORK_RETRY_WAIT_MS = [2000, 5000];
 
 /**
- * 日報本文を Chatwork へ投稿する。
+ * 日報本文を本番ルームへ投稿する。
  * @return {string} 投稿したメッセージ ID
  */
 function sendToChatwork(message) {
+  return sendToChatworkRoom_(getChatworkRoomId_(), message);
+}
+
+/**
+ * 指定したルームへ投稿する。
+ * @return {string} 投稿したメッセージ ID
+ */
+function sendToChatworkRoom_(roomId, message) {
   if (String(message === null || message === undefined ? '' : message).trim() === '') {
     throw new Error('Chatwork へ送信する本文が空です。');
   }
 
   var token = getChatworkApiToken_();
-  var roomId = getChatworkRoomId_();
   var url = CHATWORK_API_BASE_URL + '/rooms/' + roomId + '/messages';
 
   var options = {

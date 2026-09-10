@@ -86,11 +86,12 @@ function runReport_(reportType) {
 
       if (!AUTO_SEND_ENABLED) {
         Logger.log(
-          label + 'の下書きを用意しました（自動投稿はオフです）。\n' +
+          label + 'の下書きを用意しました（本番ルームへの自動投稿はオフです）。\n' +
             '内容の確認: ' + (reportType === REPORT_TYPE_DAY ? 'showDayDraft()' : 'showNightDraft()') + '\n' +
             '送信: ' + (reportType === REPORT_TYPE_DAY ? 'sendDayDraft()' : 'sendNightDraft()') + '\n' +
             body
         );
+        postDraftToDraftRoom_(today, reportType, label);
         return;
       }
 

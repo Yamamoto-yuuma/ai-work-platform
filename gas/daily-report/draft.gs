@@ -11,9 +11,22 @@ function buildDraftKey_(date, reportType) {
 }
 
 /**
- * 下書きを保存する（同じ日・同じ種類の下書きは上書きする）。
+ * 下書きを保存する。
+ *
+ * 中身が前回と同じなら、下書き用ルームへ流し済みという記録ごとそのまま残す
+ * （同じ日にトリガーが再び動いても、同じ下書きが二重に流れないようにするため）。
+ * 予定が変わって中身が変わった場合は、新しい下書きとして保存し直す。
  */
 function saveDraft_(date, reportType, body) {
+  var existing = null;
+  try {
+    existing = loadDraft_(date, reportType);
+  } catch (e) {
+    // 壊れている下書きは、そのまま上書きする。
+    Logger.log('保存済みの下書きを読めなかったため作り直します: ' + e);
+  }
+  if (existing !== null && existing.body === body) return;
+
   var record = { createdAt: Utilities.formatDate(new Date(), TIME_ZONE, 'yyyy-MM-dd HH:mm'), body: body };
   PropertiesService.getScriptProperties().setProperty(
     buildDraftKey_(date, reportType),
@@ -22,8 +35,21 @@ function saveDraft_(date, reportType, body) {
 }
 
 /**
+ * 下書きを「下書き用ルームへ流し済み」として記録する。
+ */
+function markDraftPosted_(date, reportType) {
+  var record = loadDraft_(date, reportType);
+  if (record === null) return;
+  record.postedToDraftRoom = true;
+  PropertiesService.getScriptProperties().setProperty(
+    buildDraftKey_(date, reportType),
+    JSON.stringify(record)
+  );
+}
+
+/**
  * 保存済みの下書きを取り出す。無ければ null。
- * @return {?{createdAt: string, body: string}}
+ * @return {?{createdAt: string, body: string, postedToDraftRoom: (boolean|undefined)}}
  */
 function loadDraft_(date, reportType) {
   var raw = PropertiesService.getScriptProperties().getProperty(buildDraftKey_(date, reportType));
@@ -46,6 +72,39 @@ function loadDraft_(date, reportType) {
  */
 function deleteDraft_(date, reportType) {
   PropertiesService.getScriptProperties().deleteProperty(buildDraftKey_(date, reportType));
+}
+
+/**
+ * 下書きを日報送信用チャット（本番とは別のルーム）へ流す。
+ *
+ * 本文はそのまま流す。確認したあと、コピーして本番ルームへ貼れるようにするため、
+ * 見出しなどの余計な文章は足さない（本文の 1 行目が【昼用】【夜用】になっている）。
+ * 同じ日の下書きを二重に流さないよう、流し済みは下書きへ記録する。
+ */
+function postDraftToDraftRoom_(date, reportType, label) {
+  var draftRoomId = getChatworkDraftRoomId_();
+  if (draftRoomId === null) {
+    Logger.log(
+      '下書き用ルーム（' + PROP_CHATWORK_DRAFT_ROOM_ID + '）が未設定のため、' +
+        label + 'の下書きは Chatwork へ流していません。'
+    );
+    return false;
+  }
+
+  var record = loadDraft_(date, reportType);
+  if (record === null) return false;
+  if (record.postedToDraftRoom === true) {
+    Logger.log(label + 'の下書きは、すでに日報送信用チャットへ流し済みです。');
+    return false;
+  }
+
+  var messageId = sendToChatworkRoom_(draftRoomId, record.body);
+  markDraftPosted_(date, reportType);
+  Logger.log(
+    label + 'の下書きを日報送信用チャットへ流しました（room: ' + draftRoomId +
+      ' / message_id: ' + messageId + '）。'
+  );
+  return true;
 }
 
 /**

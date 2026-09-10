@@ -25,6 +25,7 @@ function runAllTests() {
     ['Test 12: 節分・七夕は営業日（実カレンダー）', test12_ObservanceDayIsBusinessDay_],
     ['Test 13: 既定では自動投稿しない', test13_AutoSendIsOff_],
     ['Test 14: 下書きの保存・取り出し・削除', test14_DraftStore_],
+    ['Test 15: 下書き用ルームは本番ルームと別であること', test15_DraftRoomMustBeSeparate_],
   ];
 
   var failed = 0;
@@ -203,6 +204,18 @@ function test14_DraftStore_() {
   } finally {
     PropertiesService.getScriptProperties().deleteProperty(key);
   }
+}
+
+function test15_DraftRoomMustBeSeparate_() {
+  // 同じルームだと、確認前の日報が本番ルームへ流れてしまう。
+  var threw = false;
+  try {
+    assertDraftRoomIsSeparate_('122205264', '122205264');
+  } catch (e) {
+    threw = true;
+  }
+  assertTrue_(threw, '下書き用ルームが本番ルームと同じならエラーになること');
+  assertDraftRoomIsSeparate_('999999999', '122205264'); // 別ならエラーにならない
 }
 
 /* ------------------------------------------------------------------ *
