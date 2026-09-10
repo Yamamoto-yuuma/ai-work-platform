@@ -41,8 +41,14 @@ interface FailureState {
 
 type ApiResult = DailyReportState | FailureState;
 
-const LABEL: Record<ReportType, string> = { day: "昼の日報", night: "夜の日報" };
-const TIME: Record<ReportType, string> = { day: "12:55 頃に作成", night: "18:25 頃に作成" };
+const LABEL: Record<ReportType, string> = {
+  day: "昼の日報",
+  night: "夜の日報",
+};
+const TIME: Record<ReportType, string> = {
+  day: "12:55 頃に作成",
+  night: "18:25 頃に作成",
+};
 
 /** 中継口へ投げる。画面からは GAS の場所も合言葉も見えない */
 async function callApi(payload: Record<string, unknown>): Promise<ApiResult> {
@@ -65,7 +71,10 @@ export default function DailyReportPage() {
   const [failure, setFailure] = useState<FailureState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<ReportType, string>>({ day: "", night: "" });
+  const [drafts, setDrafts] = useState<Record<ReportType, string>>({
+    day: "",
+    night: "",
+  });
   const [notice, setNotice] = useState<string | null>(null);
 
   /** 受け取った状態を画面に映す。編集中の本文も、届いた本文で置き直す */
@@ -73,7 +82,10 @@ export default function DailyReportPage() {
     if (result.ok) {
       setState(result);
       setFailure(null);
-      setDrafts({ day: result.reports.day.body, night: result.reports.night.body });
+      setDrafts({
+        day: result.reports.day.body,
+        night: result.reports.night.body,
+      });
     } else {
       setFailure(result);
     }
@@ -86,7 +98,11 @@ export default function DailyReportPage() {
         if (alive) apply(result);
       })
       .catch((error: unknown) => {
-        if (alive) setFailure({ ok: false, error: `読み込めませんでした: ${String(error)}` });
+        if (alive)
+          setFailure({
+            ok: false,
+            error: `読み込めませんでした: ${String(error)}`,
+          });
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -98,7 +114,11 @@ export default function DailyReportPage() {
 
   /** 一手ぶん実行して、結果を返す（続けて別の操作へ進むかを呼び出し側で決められる） */
   const run = useCallback(
-    async (key: string, payload: Record<string, unknown>, done?: string): Promise<ApiResult | null> => {
+    async (
+      key: string,
+      payload: Record<string, unknown>,
+      done?: string,
+    ): Promise<ApiResult | null> => {
       setBusy(key);
       setNotice(null);
       try {
@@ -107,7 +127,10 @@ export default function DailyReportPage() {
         if (result.ok && done) setNotice(done);
         return result;
       } catch (error: unknown) {
-        setFailure({ ok: false, error: `通信できませんでした: ${String(error)}` });
+        setFailure({
+          ok: false,
+          error: `通信できませんでした: ${String(error)}`,
+        });
         return null;
       } finally {
         setBusy(null);
@@ -119,8 +142,13 @@ export default function DailyReportPage() {
   if (loading) {
     return (
       <>
-        <PageHeader title="日報" description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。" />
-        <Empty>読み込んでいます…</Empty>
+        <PageHeader
+          title="日報"
+          description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
+        />
+        <div className="max-w-3xl">
+          <Empty>読み込んでいます…</Empty>
+        </div>
       </>
     );
   }
@@ -128,13 +156,27 @@ export default function DailyReportPage() {
   if (failure?.notConfigured) {
     return (
       <>
-        <PageHeader title="日報" description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。" />
-        <Empty>
-          日報の連携先がまだ設定されていません。
-          <br />
-          Apps Script をウェブアプリとして公開し、その URL と合言葉を環境変数
-          （DAILY_REPORT_GAS_URL / DAILY_REPORT_SECRET）に設定してください。
-        </Empty>
+        <PageHeader
+          title="日報"
+          description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
+        />
+        <div className="max-w-3xl">
+          <Empty>
+            <span className="mx-auto block max-w-[42ch] text-left">
+              日報の連携先がまだ設定されていません。
+              <br />
+              Apps Script をウェブアプリとして公開し、その URL
+              と合言葉を環境変数
+              <code className="mx-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+                DAILY_REPORT_GAS_URL
+              </code>
+              <code className="mr-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+                DAILY_REPORT_SECRET
+              </code>
+              に設定してください。
+            </span>
+          </Empty>
+        </div>
       </>
     );
   }
@@ -163,15 +205,19 @@ export default function DailyReportPage() {
       )}
 
       {notice && (
-        <div className="mb-4 rounded-[9px] bg-ok-soft px-3.5 py-2.5 text-[12px] text-ok">{notice}</div>
+        <div className="mb-4 rounded-[9px] bg-ok-soft px-3.5 py-2.5 text-[12px] text-ok">
+          {notice}
+        </div>
       )}
 
       {state && (
-        <>
+        <div className="max-w-3xl">
           <div className="mb-4 flex flex-wrap items-center gap-2 text-[12px] text-ink-2">
             <span className="font-medium text-ink">{state.todayLabel}</span>
             {state.nonBusinessDayReason !== null && (
-              <Badge tone="neutral">{state.nonBusinessDayReason}のため自動作成はされません</Badge>
+              <Badge tone="neutral">
+                {state.nonBusinessDayReason}のため自動作成はされません
+              </Badge>
             )}
           </div>
 
@@ -186,9 +232,14 @@ export default function DailyReportPage() {
                 <Card key={reportType}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-[14px] font-bold">{LABEL[reportType]}</h2>
+                      <h2 className="text-[14px] font-bold">
+                        {LABEL[reportType]}
+                      </h2>
                       {report.sent ? (
-                        <Badge tone="ok">送信済み{report.sentAt ? ` ${timeOf(report.sentAt)}` : ""}</Badge>
+                        <Badge tone="ok">
+                          送信済み
+                          {report.sentAt ? ` ${timeOf(report.sentAt)}` : ""}
+                        </Badge>
                       ) : report.exists ? (
                         <Badge tone="brand">未送信</Badge>
                       ) : (
@@ -210,7 +261,10 @@ export default function DailyReportPage() {
                         value={edited}
                         readOnly={report.sent}
                         onChange={(event) =>
-                          setDrafts((current) => ({ ...current, [reportType]: event.target.value }))
+                          setDrafts((current) => ({
+                            ...current,
+                            [reportType]: event.target.value,
+                          }))
                         }
                       />
                       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -234,7 +288,10 @@ export default function DailyReportPage() {
                                 });
                                 if (!saved || !saved.ok) return;
                               }
-                              const result = await run(`send-${reportType}`, { action: "send", reportType });
+                              const result = await run(`send-${reportType}`, {
+                                action: "send",
+                                reportType,
+                              });
                               if (result?.ok) {
                                 setNotice(
                                   result.sentNow === false
@@ -264,7 +321,13 @@ export default function DailyReportPage() {
                           variant="ghost"
                           disabled={working || report.sent}
                           onClick={() => {
-                            if (changed && !window.confirm("編集した内容は消えます。作り直しますか？")) return;
+                            if (
+                              changed &&
+                              !window.confirm(
+                                "編集した内容は消えます。作り直しますか？",
+                              )
+                            )
+                              return;
                             void run(
                               `rebuild-${reportType}`,
                               { action: "rebuild", reportType },
@@ -274,7 +337,11 @@ export default function DailyReportPage() {
                         >
                           作り直す
                         </Button>
-                        {changed && <span className="text-[11px] text-ink-3">未保存の変更があります</span>}
+                        {changed && (
+                          <span className="text-[11px] text-ink-3">
+                            未保存の変更があります
+                          </span>
+                        )}
                       </div>
                     </>
                   ) : (
@@ -305,10 +372,11 @@ export default function DailyReportPage() {
           </div>
 
           <p className="mt-5 text-[11px] leading-[1.9] text-ink-3">
-            自動で作られるのは下書きまでです。Chatwork へ投稿されるのは、ここで送信を押したときだけです。
+            自動で作られるのは下書きまでです。Chatwork
+            へ投稿されるのは、ここで送信を押したときだけです。
             送信した日報は取り消せません。
           </p>
-        </>
+        </div>
       )}
     </>
   );
