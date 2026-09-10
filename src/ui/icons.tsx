@@ -73,10 +73,20 @@ export const SettingsIcon = () => (
   </svg>
 );
 
+/** 日報＝書いて出すもの。紙面と、書かれた行で表す */
+export const ReportIcon = () => (
+  <svg {...BOX} className="h-[17px] w-[17px]">
+    <path d="M5 3.2h7.2L16 6.9V16a.8.8 0 0 1-.8.8H5a.8.8 0 0 1-.8-.8V4a.8.8 0 0 1 .8-.8Z" />
+    <path d="M11.8 3.4v3.6h3.6" />
+    <path d="M6.9 10.4h5.4M6.9 13.2h3.6" />
+  </svg>
+);
+
 export const NAV_ICON: Record<string, ComponentType> = {
   "/": HomeIcon,
   "/workflows": FlowIcon,
   "/tasks": TaskIcon,
+  "/daily-report": ReportIcon,
   "/map": MapIcon,
   "/knowledge": KnowledgeIcon,
   "/settings": SettingsIcon,

@@ -30,6 +30,7 @@ function runAllTests() {
     ['Test 17: 実行メニューに出るのは入口の関数だけであること', test17_OnlyEntryPointsArePublic_],
     ['Test 18: 下書きがシートに書き出される', test18_DraftIsWrittenToSheet_],
     ['Test 19: シートで書き足した本文が送信に使われる', test19_EditedSheetBodyWins_],
+    ['Test 20: 合言葉が合わないと API を通さない', test20_ApiRequiresSecret_],
   ];
 
   var failed = 0;
@@ -311,7 +312,7 @@ function test17_OnlyEntryPointsArePublic_() {
   // 実行メニューに並んでいると、選ぶたびにエラーになる。
   // 名前の末尾が _ の関数はメニューに出ないので、入口だけを _ なしにしておく。
   var entryPoints = [
-    'onOpen',
+    'onOpen', 'doGet', 'doPost',
     'rebuildDayDraft', 'rebuildNightDraft',
     'sendDayReportButton', 'sendNightReportButton',
     'runDayReport', 'runNightReport',
@@ -395,6 +396,42 @@ function test19_EditedSheetBodyWins_() {
     PropertiesService.getScriptProperties().deleteProperty(draftKey);
     var cleanup = findDraftRow_(sheet, '2099-01-05', REPORT_TYPE_NIGHT);
     if (cleanup > 0) sheet.deleteRow(cleanup);
+  }
+}
+
+function test20_ApiRequiresSecret_() {
+  // プラットフォームからの入口は、合言葉が合うときだけ通す。
+  // 読み取り（drafts）だけを試すので、Chatwork へは送信されない。
+  var props = PropertiesService.getScriptProperties();
+  var saved = props.getProperty(PROP_API_SHARED_SECRET);
+
+  function call(payload) {
+    return JSON.parse(doPost({ postData: { contents: JSON.stringify(payload) } }).getContent());
+  }
+
+  try {
+    props.setProperty(PROP_API_SHARED_SECRET, 'テスト用の合言葉');
+
+    assertTrue_(call({ action: 'drafts' }).ok === false, '合言葉が無ければ通さない');
+    assertTrue_(call({ secret: 'ちがう合言葉', action: 'drafts' }).ok === false, '合言葉が違えば通さない');
+
+    var allowed = call({ secret: 'テスト用の合言葉', action: 'drafts' });
+    assertTrue_(allowed.ok === true, '合言葉が合えば通る');
+    assertTrue_(typeof allowed.reports.day === 'object', '昼の日報の状態が入っていること');
+    assertTrue_(typeof allowed.reports.night === 'object', '夜の日報の状態が入っていること');
+    assertEquals_('day', allowed.reports.day.reportType, '種別');
+
+    var unknown = call({ secret: 'テスト用の合言葉', action: 'なにかの操作' });
+    assertTrue_(unknown.ok === false, '知らない操作は通さない');
+
+    props.deleteProperty(PROP_API_SHARED_SECRET);
+    assertTrue_(
+      call({ secret: 'テスト用の合言葉', action: 'drafts' }).ok === false,
+      '合言葉が未設定なら、そもそも通さない'
+    );
+  } finally {
+    if (saved === null) props.deleteProperty(PROP_API_SHARED_SECRET);
+    else props.setProperty(PROP_API_SHARED_SECRET, saved);
   }
 }
 

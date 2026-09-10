@@ -18,6 +18,7 @@ const NAV = [
   { href: "/", label: "ホーム" },
   { href: "/workflows", label: "業務" },
   { href: "/tasks", label: "タスク" },
+  { href: "/daily-report", label: "日報" },
   { href: "/map", label: "マップ" },
   { href: "/knowledge", label: "ナレッジ" },
   { href: "/settings", label: "管理" },

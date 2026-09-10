@@ -158,6 +158,52 @@ function readDraftBodyFromSheet_(date, reportType) {
 }
 
 /**
+ * 1 行分の下書きを読み取る。無ければ null。
+ * @return {?{reportDate: string, reportType: string, status: string, body: string,
+ *            generatedAt: string, sentAt: string}}
+ */
+function readDraftRow_(date, reportType) {
+  var sheet = getDraftSheet_();
+  var reportDate = Utilities.formatDate(date, TIME_ZONE, 'yyyy-MM-dd');
+  var row = findDraftRow_(sheet, reportDate, reportType);
+  if (row === 0) return null;
+
+  var values = sheet.getRange(row, 1, 1, SHEET_HEADERS.length).getValues()[0];
+  return {
+    reportDate: toReportDateText_(values[SHEET_COL_DATE - 1]),
+    reportType: reportType,
+    status: String(values[SHEET_COL_STATUS - 1]).trim(),
+    body: String(values[SHEET_COL_BODY - 1]),
+    generatedAt: String(values[SHEET_COL_GENERATED - 1]),
+    sentAt: String(values[SHEET_COL_SENT - 1]),
+  };
+}
+
+/**
+ * 本文だけを書き換える（人が手を入れたとき）。
+ * 生成日時は触らない。送信済みの行は書き換えない。
+ */
+function updateDraftBodyInSheet_(date, reportType, body) {
+  if (String(body === null || body === undefined ? '' : body).trim() === '') {
+    throw new Error('日報の本文が空です。');
+  }
+
+  var sheet = getDraftSheet_();
+  var reportDate = Utilities.formatDate(date, TIME_ZONE, 'yyyy-MM-dd');
+  var row = findDraftRow_(sheet, reportDate, reportType);
+  if (row === 0) {
+    throw new Error(reportDate + ' の下書きがありません。先に作り直してください。');
+  }
+
+  var status = String(sheet.getRange(row, SHEET_COL_STATUS).getValue()).trim();
+  if (status === SHEET_STATUS_SENT) {
+    throw new Error('この日報はすでに送信済みのため、書き換えられません。');
+  }
+
+  sheet.getRange(row, SHEET_COL_BODY).setValue(body);
+}
+
+/**
  * シートの行を送信済みにする。
  */
 function markSheetSent_(date, reportType, sentAt) {
