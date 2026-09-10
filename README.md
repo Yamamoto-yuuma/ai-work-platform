@@ -59,6 +59,7 @@ docs/                   仕様書・設計書
 |---|---|
 | [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) | **正式仕様書**（何を作るのか・なぜ）。矛盾した場合はこちらが正 |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | 技術設計（どう作るのか） |
+| [`gas/daily-report/README.md`](gas/daily-report/README.md) | 日報自動生成システム（Google Apps Script・本体とは独立した単体機能） |
 
 ## 設計の要点
 
