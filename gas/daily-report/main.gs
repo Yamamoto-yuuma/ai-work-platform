@@ -64,7 +64,7 @@ function runReport_(reportType) {
   try {
     assertTimeZone_();
 
-    var today = toJstStartOfDay_(new Date());
+    var today = businessToday_();
     var dateKey = formatDateKey_(today);
 
     var nonBusinessDayReason = describeNonBusinessDay_(today);

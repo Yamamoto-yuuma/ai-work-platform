@@ -71,6 +71,21 @@ function addDays_(date, days) {
 }
 
 /**
+ * 日報が対象とする「業務日」。
+ *
+ * 夜の日報を 18:25 に作り、送るのが日付をまたいだあとになることがある。
+ * 暦の日付で切ると、日付が変わった瞬間に前日の下書きが行方不明になるので、
+ * 朝 BUSINESS_DAY_START_HOUR 時までは前日の続きとして扱う。
+ *
+ * トリガーは 12:55 と 18:25 に動くので、この切り替えの影響は受けない。
+ */
+function businessToday_() {
+  var now = new Date();
+  var today = toJstStartOfDay_(now);
+  return getJstHour_(now) < BUSINESS_DAY_START_HOUR ? addDays_(today, -1) : today;
+}
+
+/**
  * 日報に表示する日付文字列。例: 2026年9月11日(金)
  */
 function formatJapaneseDate_(date) {

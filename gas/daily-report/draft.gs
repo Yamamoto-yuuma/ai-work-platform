@@ -154,7 +154,7 @@ function deleteDraft_(date, reportType) {
  */
 function prepareDraft_(reportType) {
   assertTimeZone_();
-  var today = toJstStartOfDay_(new Date());
+  var today = businessToday_();
 
   var existing = loadDraft_(today, reportType);
   if (existing !== null) return { date: today, record: existing, created: false };
@@ -194,7 +194,7 @@ function showDraft_(reportType) {
 function sendDraft_(reportType) {
   var label = reportType === REPORT_TYPE_DAY ? '昼の日報' : '夜の日報';
   assertTimeZone_();
-  var today = toJstStartOfDay_(new Date());
+  var today = businessToday_();
 
   var sent = false;
   var executed = runExclusively_(function () {

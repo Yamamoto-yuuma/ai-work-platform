@@ -67,7 +67,7 @@ function rebuildDraft_(reportType) {
   var label = reportType === REPORT_TYPE_DAY ? '昼の日報' : '夜の日報';
   try {
     assertTimeZone_();
-    var today = toJstStartOfDay_(new Date());
+    var today = businessToday_();
 
     if (hasAlreadySent_(buildReportKey_(today, reportType))) {
       notify_(label, '今日の' + label + 'はすでに送信済みです。下書きは作り直しません。');
@@ -92,7 +92,7 @@ function confirmAndSend_(reportType) {
 
   try {
     assertTimeZone_();
-    var today = toJstStartOfDay_(new Date());
+    var today = businessToday_();
 
     if (hasAlreadySent_(buildReportKey_(today, reportType))) {
       notify_(label, '今日の' + label + 'はすでに送信済みです。二重に送らないよう、送信しませんでした。');

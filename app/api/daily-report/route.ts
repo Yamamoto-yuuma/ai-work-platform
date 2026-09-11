@@ -12,6 +12,13 @@ import { NextResponse } from "next/server";
 /** 毎回 GAS へ聞きに行く（結果を寝かせない） */
 export const dynamic = "force-dynamic";
 
+/**
+ * 連携先を待つ上限。
+ * Apps Script はカレンダーを見に行くぶん遅いことがあるが、
+ * 待ち続けると画面が「読み込んでいます…」のまま動かなくなる。
+ */
+const TIMEOUT_MS = 20_000;
+
 /** GAS に通す操作。ここに無いものは受け付けない */
 const ACTIONS = ["drafts", "rebuild", "save", "send"] as const;
 type Action = (typeof ACTIONS)[number];
@@ -113,6 +120,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({ ...parsed, secret }),
       redirect: "follow",
       cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
 
     const text = await response.text();
@@ -124,8 +132,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: describeBadResponse(response.status) }, { status: 200 });
     }
   } catch (error) {
+    const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
     return NextResponse.json(
-      { ok: false, error: `連携先へ接続できませんでした: ${String(error)}` },
+      {
+        ok: false,
+        error: timedOut
+          ? `連携先から ${TIMEOUT_MS / 1000} 秒以内に応答がありませんでした。時間をおいて「最新の状態にする」を押してください。`
+          : `連携先へ接続できませんでした: ${String(error)}`,
+      },
       { status: 200 },
     );
   }

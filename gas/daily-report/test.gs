@@ -31,6 +31,8 @@ function runAllTests() {
     ['Test 18: 下書きがシートに書き出される', test18_DraftIsWrittenToSheet_],
     ['Test 19: シートで書き足した本文が送信に使われる', test19_EditedSheetBodyWins_],
     ['Test 20: 合言葉が合わないと API を通さない', test20_ApiRequiresSecret_],
+    ['Test 21: 予定名の改行で行が崩れない', test21_TitleWithNewline_],
+    ['Test 22: 日付が変わっても前日の日報を扱える', test22_BusinessDayAcrossMidnight_],
   ];
 
   var failed = 0;
@@ -433,6 +435,29 @@ function test20_ApiRequiresSecret_() {
     if (saved === null) props.deleteProperty(PROP_API_SHARED_SECRET);
     else props.setProperty(PROP_API_SHARED_SECRET, saved);
   }
+}
+
+function test21_TitleWithNewline_() {
+  // 予定名に改行が入ると、1 件が 2 行になって「■」の無い行や偽の見出しができてしまう。
+  assertEquals_('■架電 （重要）', formatTitleLine_('架電\n（重要）'), '改行は 1 行に畳む');
+  assertEquals_('■架電 ■偽の見出し', formatTitleLine_('架電\n■偽の見出し'), '2 行目の「■」も畳んだうえで 1 行にする');
+  assertEquals_('■打ち合わせ 先方訪問', formatTitleLine_('打ち合わせ\t先方訪問'), 'タブも空白にする');
+}
+
+function test22_BusinessDayAcrossMidnight_() {
+  // 夜の日報を作ったあと、日付が変わってから送ることがある。
+  // 暦の日付で切ると前日の下書きを見失うため、朝までは前日の続きとして扱う。
+  var now = new Date();
+  var hour = getJstHour_(now);
+  var expected = hour < BUSINESS_DAY_START_HOUR
+    ? formatDateKey_(addDays_(toJstStartOfDay_(now), -1))
+    : formatDateKey_(toJstStartOfDay_(now));
+  assertEquals_(expected, formatDateKey_(businessToday_()), '業務日の決まり方');
+
+  assertTrue_(
+    BUSINESS_DAY_START_HOUR > 0 && BUSINESS_DAY_START_HOUR < DAY_REPORT_HOUR,
+    '業務日の区切りは、昼のトリガーより前であること'
+  );
 }
 
 /* ------------------------------------------------------------------ *

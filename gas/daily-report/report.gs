@@ -13,7 +13,10 @@ var DAY_REPORT_SPACER_LINE = ' ';
  * すでに「■」が付いている場合は二重にしない。空タイトルは null を返す。
  */
 function formatTitleLine_(title) {
-  var text = String(title === null || title === undefined ? '' : title).trim();
+  var text = String(title === null || title === undefined ? '' : title);
+  // 予定名に改行が入っていると、1 件が複数行になって日報の形が崩れる。
+  // 見出しのない行や、偽の「■」行ができてしまうため、1 行に畳む。
+  text = text.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
   text = text.replace(/^[■\s]+/, '').trim();
   if (text === '') return null;
   return '■' + text;

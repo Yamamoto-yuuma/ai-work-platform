@@ -68,7 +68,7 @@ function assertApiSecret_(secret) {
 /** 操作を振り分ける。 */
 function handleApiAction_(request) {
   assertTimeZone_();
-  var today = toJstStartOfDay_(new Date());
+  var today = businessToday_();
 
   switch (request.action) {
     case 'drafts':
