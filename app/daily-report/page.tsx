@@ -159,14 +159,14 @@ export default function DailyReportPage() {
           description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
         />
         <Empty>
-          <span className="mx-auto block max-w-[42ch] text-left">
+          <span className="mx-auto block w-full max-w-[42ch] text-left">
             日報の連携先がまだ設定されていません。
             <br />
             Apps Script をウェブアプリとして公開し、その URL と合言葉を環境変数
-            <code className="mx-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+            <code className="mx-1 break-all rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
               DAILY_REPORT_GAS_URL
             </code>
-            <code className="mr-1 rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+            <code className="mr-1 break-all rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
               DAILY_REPORT_SECRET
             </code>
             に設定してください。
