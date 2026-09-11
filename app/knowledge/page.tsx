@@ -307,7 +307,8 @@ function KnowledgeGuide() {
         {samples.map(({ service, example }) => {
           const Mark = LOCATION_MARK[service];
           return (
-            <li key={service} className="flex items-center gap-2 text-[11.5px]">
+            /* min-w-0 が無いと、URL の例が縮まずに列ごと広がる */
+            <li key={service} className="flex min-w-0 items-center gap-2 text-[11.5px]">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-line-soft bg-surface-2 text-ink-3">
                 <Mark />
               </span>

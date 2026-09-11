@@ -132,7 +132,11 @@ export default function HomePage() {
         message={catForHome({ next, now })}
       />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/*
+        1 列のときも minmax(0,1fr) で押さえる。既定のままだと列が中身の幅まで広がり、
+        折り返せない予定名や案件名が入った日にだけ、画面が横へずれる。
+      */}
+      <div className="grid gap-5 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6">
           {/* 要確認：待ちの確認日が来たもの。作業ではなく判断 */}
           {dueChecks.length > 0 && (
