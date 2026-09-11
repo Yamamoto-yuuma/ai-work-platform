@@ -3,6 +3,10 @@
  *
  * フォーマットは固定のため、AI・LLM は使用しない。
  * カレンダーのタイトルをそのまま「■」付きの行にするだけ。
+ *
+ * 出来上がるのは、そのまま Chatwork へ貼れる本文だけにする。
+ * 「【昼用】」「【夜用】」のような、どちらの型かを示す見出しは入れない。
+ * 送る前に毎回消す手間になるうえ、消し忘れるとそのまま相手に届く。
  */
 
 /** 昼の日報で AM ブロックと業務予定の間に入る行（半角スペース 1 つ）。 */
@@ -42,7 +46,6 @@ function appendTitleLines_(lines, titles) {
  */
 function buildDayReportBody_(morningTitles, afternoonTitles) {
   var lines = [];
-  lines.push('【昼用】');
   lines.push('---業務報告---');
   lines.push('AM');
   appendTitleLines_(lines, morningTitles);
@@ -67,7 +70,6 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
 function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles) {
   assertDate_(date);
   var lines = [];
-  lines.push('【夜用】');
   lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
   lines.push(formatJapaneseDate_(date) + 'の日報をお送りいたします。');
   lines.push('---業務報告---');

@@ -59,7 +59,6 @@ function runAllTests() {
 function test1_DayReport_() {
   var actual = buildDayReportBody_(['朝礼', '架電'], ['昼礼', '計上作業']);
   var expected = [
-    '【昼用】',
     '---業務報告---',
     'AM',
     '■朝礼',
@@ -81,7 +80,6 @@ function test2_NightReport_() {
     ['昼礼', '架電']
   );
   var expected = [
-    '【夜用】',
     'お疲れ様です。' + SENDER_NAME + 'です。',
     '2026年9月11日(金)の日報をお送りいたします。',
     '---業務報告---',
@@ -164,7 +162,7 @@ function test9_SquareMarkNotDuplicated_() {
 
 function test10_EmptyHalfKeepsHeading_() {
   var actual = buildDayReportBody_([], ['昼礼']);
-  var expected = ['【昼用】', '---業務報告---', 'AM', ' ', '---業務予定---', 'PM', '■昼礼'].join('\n');
+  var expected = ['---業務報告---', 'AM', ' ', '---業務予定---', 'PM', '■昼礼'].join('\n');
   assertEquals_(expected, actual, '予定が無い時間帯でも見出しを残す');
 }
 
@@ -237,16 +235,16 @@ function test14_DraftStore_() {
     PropertiesService.getScriptProperties().deleteProperty(key);
     assertEquals_(null, loadDraft_(date, REPORT_TYPE_NIGHT), '下書きが無ければ null');
 
-    saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n本文');
+    saveDraft_(date, REPORT_TYPE_NIGHT, '夜の日報\n本文');
     var record = loadDraft_(date, REPORT_TYPE_NIGHT);
-    assertEquals_('【夜用】\n本文', record.body, '保存した下書きを取り出せる');
+    assertEquals_('夜の日報\n本文', record.body, '保存した下書きを取り出せる');
     assertEquals_('2099-01-05', record.reportDate, '下書きの日付');
     assertEquals_('night', record.reportType, '下書きの種別');
     assertEquals_(DRAFT_STATUS_DRAFT, record.status, '下書きの状態');
     assertTrue_(typeof record.generatedAt === 'string' && record.generatedAt !== '', '生成日時が入ること');
 
-    saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n上書き');
-    assertEquals_('【夜用】\n上書き', loadDraft_(date, REPORT_TYPE_NIGHT).body, '同じ日の下書きは上書きされる');
+    saveDraft_(date, REPORT_TYPE_NIGHT, '夜の日報\n上書き');
+    assertEquals_('夜の日報\n上書き', loadDraft_(date, REPORT_TYPE_NIGHT).body, '同じ日の下書きは上書きされる');
 
     markDraftSent_(date, REPORT_TYPE_NIGHT);
     assertEquals_(DRAFT_STATUS_SENT, loadDraft_(date, REPORT_TYPE_NIGHT).status, '送信後の状態');
@@ -278,7 +276,7 @@ function test15_SentDraftIsNotResent_() {
       callCount++;
       throw new Error('送信済みの日報を再送信しようとしました。');
     };
-    saveDraft_(today, REPORT_TYPE_NIGHT, '【夜用】\n再送信の確認');
+    saveDraft_(today, REPORT_TYPE_NIGHT, '夜の日報\n再送信の確認');
     markAsSent_(reportKey);
 
     assertTrue_(sendNightDraft() === false, '送信済みなら送信しないこと');
@@ -353,23 +351,23 @@ function test18_DraftIsWrittenToSheet_() {
   var date = parseDate_('2099-01-05');
   var sheet = getDraftSheet_();
   try {
-    saveDraftToSheet_(date, REPORT_TYPE_DAY, '【昼用】\nテスト用の本文', '2099-01-05T12:55:00+09:00');
+    saveDraftToSheet_(date, REPORT_TYPE_DAY, '昼の日報\nテスト用の本文', '2099-01-05T12:55:00+09:00');
 
     var row = findDraftRow_(sheet, '2099-01-05', REPORT_TYPE_DAY);
     assertTrue_(row > 0, 'シートに行ができること');
     assertEquals_('2099-01-05', toReportDateText_(sheet.getRange(row, SHEET_COL_DATE).getValue()), '日付の列');
     assertEquals_('昼', String(sheet.getRange(row, SHEET_COL_TYPE).getValue()), '種別の列');
     assertEquals_(SHEET_STATUS_DRAFT, String(sheet.getRange(row, SHEET_COL_STATUS).getValue()), '状態の列');
-    assertEquals_('【昼用】\nテスト用の本文', String(sheet.getRange(row, SHEET_COL_BODY).getValue()), '本文の列');
+    assertEquals_('昼の日報\nテスト用の本文', String(sheet.getRange(row, SHEET_COL_BODY).getValue()), '本文の列');
 
     markSheetSent_(date, REPORT_TYPE_DAY, '2099-01-05T13:00:00+09:00');
     assertEquals_(SHEET_STATUS_SENT, String(sheet.getRange(row, SHEET_COL_STATUS).getValue()), '送信後の状態');
     assertEquals_('2099-01-05T13:00:00+09:00', String(sheet.getRange(row, SHEET_COL_SENT).getValue()), '送信日時の列');
 
     // 送信済みの行は、作り直しても書き換えない。
-    saveDraftToSheet_(date, REPORT_TYPE_DAY, '【昼用】\n書き換えようとした本文', '2099-01-05T13:30:00+09:00');
+    saveDraftToSheet_(date, REPORT_TYPE_DAY, '昼の日報\n書き換えようとした本文', '2099-01-05T13:30:00+09:00');
     assertEquals_(
-      '【昼用】\nテスト用の本文',
+      '昼の日報\nテスト用の本文',
       String(sheet.getRange(row, SHEET_COL_BODY).getValue()),
       '送信済みの行は書き換えない'
     );
@@ -385,13 +383,13 @@ function test19_EditedSheetBodyWins_() {
   var sheet = getDraftSheet_();
   var draftKey = buildDraftKey_(date, REPORT_TYPE_NIGHT);
   try {
-    saveDraft_(date, REPORT_TYPE_NIGHT, '【夜用】\n生成した本文');
-    assertEquals_('【夜用】\n生成した本文', loadDraftBody_(date, REPORT_TYPE_NIGHT), '生成直後の本文');
+    saveDraft_(date, REPORT_TYPE_NIGHT, '夜の日報\n生成した本文');
+    assertEquals_('夜の日報\n生成した本文', loadDraftBody_(date, REPORT_TYPE_NIGHT), '生成直後の本文');
 
     var row = findDraftRow_(sheet, '2099-01-05', REPORT_TYPE_NIGHT);
     assertTrue_(row > 0, 'シートに行ができること');
 
-    var edited = '【夜用】\n生成した本文\n---所感---\n手で書き足しました';
+    var edited = '夜の日報\n生成した本文\n---所感---\n手で書き足しました';
     sheet.getRange(row, SHEET_COL_BODY).setValue(edited);
     assertEquals_(edited, loadDraftBody_(date, REPORT_TYPE_NIGHT), 'シートで書き足した本文が使われること');
   } finally {

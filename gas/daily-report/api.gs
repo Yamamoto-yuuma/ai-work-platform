@@ -10,7 +10,7 @@
  *   { "secret": "…", "action": "drafts" }                       今日の下書きを返す
  *   { "secret": "…", "action": "rebuild", "reportType": "day" }  最新のカレンダーで作り直す
  *   { "secret": "…", "action": "save", "reportType": "day",
- *     "body": "【昼用】…" }                                      本文を書き換える
+ *     "body": "---業務報告---…" }                                      本文を書き換える
  *   { "secret": "…", "action": "send", "reportType": "day" }     Chatwork の本番ルームへ送る
  *
  * どの操作でも、終わったあとの状態をまとめて返す（画面側で組み立て直さずに済む）。
