@@ -61,6 +61,56 @@ function readRequest(payload: unknown): ClientRequest | string {
   return request;
 }
 
+/** 日報 1 本ぶんとして画面が期待する形か */
+function isReport(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const report = value as Record<string, unknown>;
+  return (
+    typeof report.exists === "boolean" &&
+    typeof report.sent === "boolean" &&
+    typeof report.body === "string" &&
+    typeof report.generatedAt === "string" &&
+    typeof report.sentAt === "string"
+  );
+}
+
+/**
+ * 連携先の応答が、画面の期待どおりの形か確かめる。
+ *
+ * JSON として読めることと、日報として使えることは別。形の違う JSON をそのまま
+ * 画面へ渡すと、描くところで落ちて「保存内容を消す」案内まで出てしまう。
+ * 消しても直らないうえ、自分で作ったタスクまで失う。ここで止める。
+ *
+ * @return 通してよい応答、または通せない理由
+ */
+function readGasResponse(value: unknown): Record<string, unknown> | string {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return "連携先から日報以外の応答が返りました。ウェブアプリのデプロイを確認してください。";
+  }
+  const source = value as Record<string, unknown>;
+
+  // 連携先が理由付きで断った場合は、その理由をそのまま見せる
+  if (source.ok === false) {
+    return typeof source.error === "string" && source.error.trim() !== ""
+      ? source
+      : "連携先が処理できませんでした（理由は返っていません）。";
+  }
+
+  if (source.ok !== true) {
+    return "連携先から日報以外の応答が返りました。ウェブアプリのデプロイを確認してください。";
+  }
+
+  const reports = source.reports;
+  if (typeof reports !== "object" || reports === null) {
+    return "連携先の応答に日報が入っていませんでした。ウェブアプリのデプロイが古い可能性があります。";
+  }
+  const byType = reports as Record<string, unknown>;
+  if (!isReport(byType.day) || !isReport(byType.night)) {
+    return "連携先の応答の形が違います。ウェブアプリのデプロイが古い可能性があります。";
+  }
+  return source;
+}
+
 /** 連携先から JSON が返らなかったときに、直す場所まで書いたメッセージにする */
 function describeBadResponse(status: number): string {
   if (status === 404) {
@@ -124,13 +174,20 @@ export async function POST(request: Request) {
     });
 
     const text = await response.text();
+    let parsedJson: unknown;
     try {
-      return NextResponse.json(JSON.parse(text) as unknown, { status: 200 });
+      parsedJson = JSON.parse(text);
     } catch {
       // JSON が返らないときは、設定のどこがおかしいかまで書く。
       // 番号だけ出しても、どこを直せばよいか分からない
       return NextResponse.json({ ok: false, error: describeBadResponse(response.status) }, { status: 200 });
     }
+
+    const checked = readGasResponse(parsedJson);
+    if (typeof checked === "string") {
+      return NextResponse.json({ ok: false, error: checked }, { status: 200 });
+    }
+    return NextResponse.json(checked, { status: 200 });
   } catch (error) {
     const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
     return NextResponse.json(
