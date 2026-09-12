@@ -971,7 +971,20 @@ function runExclusively_(task) {
  * 送信するときは、シートに書かれている本文（＝編集後の内容）を使う。
  */
 
-var DRAFT_SHEET_NAME = '日報';
+/**
+ * 下書きの記録を残すシートの名前。
+ *
+ * このスクリプトが付いているスプレッドシートに、同じ名前で別の用途のシートが
+ * すでにあるときは、Script Property「DRAFT_SHEET_NAME」で別の名前にできる。
+ */
+var DEFAULT_DRAFT_SHEET_NAME = '日報';
+var PROP_DRAFT_SHEET_NAME = 'DRAFT_SHEET_NAME';
+
+/** 下書きの記録を残すシートの名前を返す。 */
+function getDraftSheetName_() {
+  var name = getProperty_(PROP_DRAFT_SHEET_NAME);
+  return name === null ? DEFAULT_DRAFT_SHEET_NAME : name;
+}
 
 var SHEET_COL_DATE = 1;
 var SHEET_COL_TYPE = 2;
@@ -1008,14 +1021,38 @@ function getSpreadsheet_() {
  */
 function getDraftSheet_() {
   var spreadsheet = getSpreadsheet_();
-  var sheet = spreadsheet.getSheetByName(DRAFT_SHEET_NAME);
-  if (sheet !== null) return sheet;
-  return createDraftSheet_(spreadsheet);
+  var sheet = spreadsheet.getSheetByName(getDraftSheetName_());
+  if (sheet === null) return createDraftSheet_(spreadsheet);
+  assertDraftSheet_(sheet);
+  return sheet;
+}
+
+/**
+ * 同じ名前の、別の用途のシートに書き込まないようにする。
+ *
+ * 「日報」という名前のシートは珍しくない。日報の下書きを人が書いているシートに
+ * このスクリプトが行を差し込むと、書いてあったものが下へずれ、A〜F 列が上書きされる。
+ * 気づいたときには元に戻せない。見出しが違えば、書かずに止める。
+ */
+function assertDraftSheet_(sheet) {
+  var header = sheet.getRange(1, 1, 1, SHEET_HEADERS.length).getValues()[0];
+  for (var i = 0; i < SHEET_HEADERS.length; i++) {
+    if (String(header[i] === null || header[i] === undefined ? '' : header[i]).trim() === SHEET_HEADERS[i]) {
+      continue;
+    }
+    throw new Error(
+      'シート「' + sheet.getName() + '」は下書きの記録用ではないため、書き込みを中止しました' +
+        '（1 行目が「' + SHEET_HEADERS.join(' / ') + '」ではありません）。' +
+        'このスクリプトを付けるスプレッドシートを間違えているか、同じ名前のシートが先にあります。' +
+        '別の名前を使う場合は、Script Properties の「' + PROP_DRAFT_SHEET_NAME + '」に' +
+        '記録用シートの名前（例: 日報下書き）を設定してください。'
+    );
+  }
 }
 
 /** 「日報」シートを作る。 */
 function createDraftSheet_(spreadsheet) {
-  var sheet = spreadsheet.insertSheet(DRAFT_SHEET_NAME);
+  var sheet = spreadsheet.insertSheet(getDraftSheetName_());
 
   var header = sheet.getRange(1, 1, 1, SHEET_HEADERS.length);
   header.setValues([SHEET_HEADERS]);
@@ -1034,7 +1071,7 @@ function createDraftSheet_(spreadsheet) {
   sheet.setColumnWidth(SHEET_COL_GENERATED, 150);
   sheet.setColumnWidth(SHEET_COL_SENT, 150);
 
-  Logger.log('「' + DRAFT_SHEET_NAME + '」シートを作成しました。');
+  Logger.log('「' + sheet.getName() + '」シートを作成しました。');
   return sheet;
 }
 
@@ -1947,6 +1984,7 @@ function runAllTests() {
     ['Test 23: B 列と C 列を空白なしでつなぐ', test23_ColumnsAreJoinedWithoutGap_],
     ['Test 24: シートの数字を計算し直さない', test24_SheetValuesAreNotRecomputed_],
     ['Test 25: 昼の日報はカレンダーだけで作る', test25_DayReportStaysOnCalendar_],
+    ['Test 26: 別用途の同名シートには書き込まない', test26_ForeignSheetIsNotOverwritten_],
   ];
 
   var failed = 0;
@@ -2481,6 +2519,40 @@ function test25_DayReportStaysOnCalendar_() {
   assertEquals_(expected, actual, '昼の日報本文');
   assertTrue_(actual.indexOf('＜進捗状況＞') === -1, '昼には進捗状況を入れない');
   assertTrue_(actual.indexOf('お疲れ様です') === -1, '昼には挨拶を入れない');
+}
+
+function test26_ForeignSheetIsNotOverwritten_() {
+  // 「日報」という名前のシートは珍しくない。人が日報を書いているシートに
+  // 行を差し込むと、書いてあったものがずれて上書きされ、元に戻せない。
+  var spreadsheet = getSpreadsheet_();
+  var name = '日報_別用途のテスト';
+  var props = PropertiesService.getScriptProperties();
+  var saved = props.getProperty(PROP_DRAFT_SHEET_NAME);
+
+  var sheet = spreadsheet.getSheetByName(name);
+  if (sheet === null) sheet = spreadsheet.insertSheet(name);
+
+  try {
+    // 人が書いた内容のつもり（見出しが下書き記録用と違う）
+    sheet.getRange(1, 1).setValue('お疲れ様です。山本です。');
+    props.setProperty(PROP_DRAFT_SHEET_NAME, name);
+
+    var stopped = false;
+    try {
+      saveDraftToSheet_(parseDate_('2099-01-05'), REPORT_TYPE_DAY, '本文', '2099-01-05T12:55:00+09:00');
+    } catch (e) {
+      stopped = true;
+    }
+    assertTrue_(stopped, '見出しが違うシートには書き込まずに止める');
+    assertEquals_(
+      'お疲れ様です。山本です。',
+      String(sheet.getRange(1, 1).getValue()),
+      '書いてあった内容が残っていること'
+    );
+  } finally {
+    if (saved === null) props.deleteProperty(PROP_DRAFT_SHEET_NAME);
+    else props.setProperty(PROP_DRAFT_SHEET_NAME, saved);
+  }
 }
 
 /* ------------------------------------------------------------------ *

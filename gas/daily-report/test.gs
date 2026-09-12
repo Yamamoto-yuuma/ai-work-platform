@@ -36,6 +36,7 @@ function runAllTests() {
     ['Test 23: B 列と C 列を空白なしでつなぐ', test23_ColumnsAreJoinedWithoutGap_],
     ['Test 24: シートの数字を計算し直さない', test24_SheetValuesAreNotRecomputed_],
     ['Test 25: 昼の日報はカレンダーだけで作る', test25_DayReportStaysOnCalendar_],
+    ['Test 26: 別用途の同名シートには書き込まない', test26_ForeignSheetIsNotOverwritten_],
   ];
 
   var failed = 0;
@@ -570,6 +571,40 @@ function test25_DayReportStaysOnCalendar_() {
   assertEquals_(expected, actual, '昼の日報本文');
   assertTrue_(actual.indexOf('＜進捗状況＞') === -1, '昼には進捗状況を入れない');
   assertTrue_(actual.indexOf('お疲れ様です') === -1, '昼には挨拶を入れない');
+}
+
+function test26_ForeignSheetIsNotOverwritten_() {
+  // 「日報」という名前のシートは珍しくない。人が日報を書いているシートに
+  // 行を差し込むと、書いてあったものがずれて上書きされ、元に戻せない。
+  var spreadsheet = getSpreadsheet_();
+  var name = '日報_別用途のテスト';
+  var props = PropertiesService.getScriptProperties();
+  var saved = props.getProperty(PROP_DRAFT_SHEET_NAME);
+
+  var sheet = spreadsheet.getSheetByName(name);
+  if (sheet === null) sheet = spreadsheet.insertSheet(name);
+
+  try {
+    // 人が書いた内容のつもり（見出しが下書き記録用と違う）
+    sheet.getRange(1, 1).setValue('お疲れ様です。山本です。');
+    props.setProperty(PROP_DRAFT_SHEET_NAME, name);
+
+    var stopped = false;
+    try {
+      saveDraftToSheet_(parseDate_('2099-01-05'), REPORT_TYPE_DAY, '本文', '2099-01-05T12:55:00+09:00');
+    } catch (e) {
+      stopped = true;
+    }
+    assertTrue_(stopped, '見出しが違うシートには書き込まずに止める');
+    assertEquals_(
+      'お疲れ様です。山本です。',
+      String(sheet.getRange(1, 1).getValue()),
+      '書いてあった内容が残っていること'
+    );
+  } finally {
+    if (saved === null) props.deleteProperty(PROP_DRAFT_SHEET_NAME);
+    else props.setProperty(PROP_DRAFT_SHEET_NAME, saved);
+  }
 }
 
 /* ------------------------------------------------------------------ *
