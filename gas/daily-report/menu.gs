@@ -43,6 +43,9 @@ function sendNightReportButton() {
  * 中身
  * ------------------------------------------------------------------ */
 
+/** 画面の通知を出しておく秒数。読む時間はほしいが、作業の邪魔にはしない。 */
+var NOTIFY_SECONDS = 8;
+
 /** 画面が使えるなら UI を返す（トリガーからの実行では null）。 */
 function getUiOrNull_() {
   try {
@@ -54,11 +57,17 @@ function getUiOrNull_() {
 
 /** 画面が使えるならメッセージを出す。使えなければログへ。 */
 function notify_(title, message) {
-  var ui = getUiOrNull_();
-  if (ui !== null) {
-    ui.alert(title, message, ui.ButtonSet.OK);
-  } else {
-    Logger.log(title + ': ' + message);
+  // ログには必ず残す。画面の通知は見逃せるが、ログは後から追える。
+  Logger.log(title + ': ' + message);
+
+  // 知らせるだけの用件で ui.alert は使わない。
+  // エディタの実行ボタンから動かしたとき、ダイアログはスプレッドシートの側に出る。
+  // その画面を開いていないと、誰も押せない返事を待って「実行中」のまま止まる。
+  // toast は返事を待たないので、どこから動かしても処理が終わる。
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().toast(message, title, NOTIFY_SECONDS);
+  } catch (e) {
+    // スプレッドシートが無い場面（トリガーなど）。ログには残っているのでこのまま進む。
   }
 }
 
