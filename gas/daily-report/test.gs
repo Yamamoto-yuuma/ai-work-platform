@@ -529,6 +529,23 @@ function test23_ColumnsAreJoinedWithoutGap_() {
   var lines = toReportLines_([['1行目', ''], ['', ''], ['3行目', ''], ['', ''], ['', '']]);
   assertEquals_(3, lines.length, '末尾の空行だけを落とす');
   assertEquals_('', lines[1], '途中の空行は残す');
+
+  // 数式のエラー表示は、そのまま送ると相手に届く。行ごと飛ばす。
+  var withErrors = toReportLines_([
+    ['累計架電数   件', ''],
+    ['#REF!', ''],
+    ['', '#REF!'],
+    ['#N/A', ''],
+    ['---業務報告---', ''],
+  ]);
+  assertEquals_(2, withErrors.length, 'エラーの行は空行も残さずに飛ばす');
+  assertEquals_('累計架電数   件', withErrors[0], 'エラーの前の行はそのまま');
+  assertEquals_('---業務報告---', withErrors[1], 'エラーの後ろの行もそのまま');
+
+  assertTrue_(isSpreadsheetError_('#REF!'), '#REF! はエラー');
+  assertTrue_(isSpreadsheetError_('#DIV/0!'), '#DIV/0! はエラー');
+  assertTrue_(!isSpreadsheetError_('#REF! の対応'), '文の一部なら残す');
+  assertTrue_(!isSpreadsheetError_('■架電'), 'ふつうの行は残す');
 }
 
 function test24_SheetValuesAreNotRecomputed_() {

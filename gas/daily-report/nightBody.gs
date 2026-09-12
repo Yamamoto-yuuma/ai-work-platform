@@ -85,22 +85,44 @@ function readNightReportBody_() {
  * 全角スペースで桁を揃えている行があるので、行の中の空白は詰めない。
  * 落とすのは行末の空白と、末尾の空の行だけ。
  * 途中の空の行は残す（日報の中で段落を分けているため）。
+ *
+ * 「#REF!」などの数式のエラー表示だけは、行ごと飛ばす。
+ * 計算が壊れている印であって、相手に読ませる文ではない。範囲の途中に混じっていても、
+ * そこだけ避けて読めるようにする（空行にすると、日報の中に不自然な隙間が残る）。
  */
 function toReportLines_(rows) {
   var lines = [];
   for (var r = 0; r < rows.length; r++) {
     var line = '';
+    var hadError = false;
     for (var c = 0; c < rows[r].length; c++) {
-      var cell = rows[r][c];
-      line += String(cell === null || cell === undefined ? '' : cell);
+      var cell = String(rows[r][c] === null || rows[r][c] === undefined ? '' : rows[r][c]);
+      if (isSpreadsheetError_(cell)) {
+        hadError = true;
+        continue;
+      }
+      line += cell;
     }
 
     // 1 セルの中の改行は行を崩すため 1 行に畳む
-    lines.push(line.replace(/[\r\n\t]+/g, ' ').replace(/\s+$/, ''));
+    line = line.replace(/[\r\n\t]+/g, ' ').replace(/\s+$/, '');
+
+    // エラーだけの行は、空行も残さずに飛ばす
+    if (hadError && line === '') continue;
+
+    lines.push(line);
     if (lines.length >= NIGHT_REPORT_MAX_LINES) break;
   }
 
   // 範囲を広めに取っていても日報が伸びないよう、末尾の空行だけ落とす
   while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
   return lines;
+}
+
+/**
+ * スプレッドシートの数式のエラー表示かどうか。
+ * これらは計算が壊れている印で、日報の文ではない。
+ */
+function isSpreadsheetError_(text) {
+  return /^#(REF!|N\/A|VALUE!|DIV\/0!|NAME\?|NUM!|NULL!|ERROR!|GETTING_DATA)$/.test(String(text).trim());
 }
