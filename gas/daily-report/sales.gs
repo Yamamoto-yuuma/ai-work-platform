@@ -88,21 +88,28 @@ function readSalesProgressLines_() {
 /**
  * セルの表になったものを、日報へ貼る行に直す。
  *
- * 全角スペースで桁を揃えている行があるため、行の中の空白は詰めない。
+ * 1 行の中は、左のセルから順につなげて 1 行にする。間に何も入れない。
+ * シートは B 列と C 列で 1 つの文をつないで書いているため（「2026年9月12日(土)」＋
+ * 「の日報をお送りいたします。」）、ここで空白を足すと文が割れる。
+ * セルとセルの間を空けたいときは、シート側でセルの中に空白を入れる。
+ *
+ * 全角スペースで桁を揃えている行があるので、行の中の空白は詰めない。
  * 落とすのは行末の空白と、空の行だけ。
  */
 function toProgressLines_(rows) {
   var lines = [];
   for (var r = 0; r < rows.length; r++) {
-    var cells = [];
+    var line = '';
     for (var c = 0; c < rows[r].length; c++) {
-      var cell = String(rows[r][c] === null || rows[r][c] === undefined ? '' : rows[r][c]).replace(/\s+$/, '');
-      if (cell !== '') cells.push(cell);
+      var cell = rows[r][c];
+      line += String(cell === null || cell === undefined ? '' : cell);
     }
-    if (cells.length === 0) continue; // 空の行は飛ばす（範囲を広めに取っていても伸びない）
 
     // 予定名と同じ理由で、1 セルの中の改行は行を崩すため 1 行に畳む
-    lines.push(cells.join(' ').replace(/[\r\n\t]+/g, ' '));
+    line = line.replace(/[\r\n\t]+/g, ' ').replace(/\s+$/, '');
+    if (line === '') continue; // 空の行は飛ばす（範囲を広めに取っていても伸びない）
+
+    lines.push(line);
     if (lines.length >= SALES_MAX_LINES) break;
   }
   return lines;

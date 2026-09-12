@@ -492,6 +492,10 @@ function test23_SalesProgressInNightReport_() {
     '進捗状況は日付の下、業務報告の上にある'
   );
 
+  // 昼の日報は今までどおり。進捗状況は夜だけに入る。
+  var dayBody = buildDayReportBody_(['朝礼'], ['昼礼']);
+  assertTrue_(dayBody.indexOf('＜進捗状況＞') === -1, '昼の日報には進捗状況を入れない');
+
   // 設定していない日は、見出しごと出さない（空の枠を残さない）。
   var without = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], null);
   assertTrue_(without.indexOf('＜進捗状況＞') === -1, '進捗状況が無ければ何も足さない');
@@ -518,6 +522,19 @@ function test24_SalesValuesAreNotRecomputed_() {
     '桁を揃えている空白はそのまま残す'
   );
   assertTrue_(lines[3].indexOf('\n') === -1, 'セルの中の改行は 1 行に畳む');
+
+  // B 列と C 列で 1 つの文をつないで書いている行がある。
+  // 間に空白を入れると文が割れるため、そのままつなげる。
+  assertEquals_(
+    '2026年9月12日(土)の日報をお送りいたします。',
+    toProgressLines_([['2026年9月12日(土)', 'の日報をお送りいたします。']])[0],
+    'B 列と C 列は空白を入れずにつなぐ'
+  );
+  assertEquals_(
+    '架電数実績　　12件',
+    toProgressLines_([['架電数実績　　', '12件']])[0],
+    'セルの中の空白で間を空ける（詰めない）'
+  );
 }
 
 function test25_SalesReadFailureIsVisible_() {
