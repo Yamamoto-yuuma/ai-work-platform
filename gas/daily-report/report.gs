@@ -74,7 +74,8 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
  * 業務報告は当日 PM のみ。業務予定は次営業日の AM と PM。
  * 当日 AM は夜の日報には入れない。所感は空欄のままにする。
  *
- * 進捗状況は売上管理表から読んだ行をそのまま置く。ここでは数字を作らない。
+ * 進捗状況は挨拶の直後、業務報告の前に置く。売上管理表から読んだ行をそのまま使い、
+ * ここでは数字を作らない。
  *
  * @param {Date} date 当日（日報の日付として表示する日）
  * @param {Array.<string>} todayAfternoonTitles 当日 PM の予定タイトル
@@ -87,10 +88,11 @@ function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, ne
   var lines = [];
   lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
   lines.push(formatJapaneseDate_(date) + 'の日報をお送りいたします。');
+  // 進捗状況は挨拶のすぐ下。数字を先に見せて、そのあとに中身を並べる
+  appendProgressLines_(lines, progressLines);
   lines.push('---業務報告---');
   lines.push('PM');
   appendTitleLines_(lines, todayAfternoonTitles);
-  appendProgressLines_(lines, progressLines);
   lines.push('---業務予定---');
   lines.push('AM');
   appendTitleLines_(lines, nextMorningTitles);

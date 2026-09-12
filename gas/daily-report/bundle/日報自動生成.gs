@@ -778,7 +778,8 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
  * 業務報告は当日 PM のみ。業務予定は次営業日の AM と PM。
  * 当日 AM は夜の日報には入れない。所感は空欄のままにする。
  *
- * 進捗状況は売上管理表から読んだ行をそのまま置く。ここでは数字を作らない。
+ * 進捗状況は挨拶の直後、業務報告の前に置く。売上管理表から読んだ行をそのまま使い、
+ * ここでは数字を作らない。
  *
  * @param {Date} date 当日（日報の日付として表示する日）
  * @param {Array.<string>} todayAfternoonTitles 当日 PM の予定タイトル
@@ -791,10 +792,11 @@ function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, ne
   var lines = [];
   lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
   lines.push(formatJapaneseDate_(date) + 'の日報をお送りいたします。');
+  // 進捗状況は挨拶のすぐ下。数字を先に見せて、そのあとに中身を並べる
+  appendProgressLines_(lines, progressLines);
   lines.push('---業務報告---');
   lines.push('PM');
   appendTitleLines_(lines, todayAfternoonTitles);
-  appendProgressLines_(lines, progressLines);
   lines.push('---業務予定---');
   lines.push('AM');
   appendTitleLines_(lines, nextMorningTitles);
@@ -2413,7 +2415,7 @@ function test22_BusinessDayAcrossMidnight_() {
 }
 
 function test23_SalesProgressInNightReport_() {
-  // 進捗状況は「---業務報告---」の予定のあと、「---業務予定---」の前に入る。
+  // 進捗状況は挨拶の直後、「---業務報告---」の前に入る。
   var progress = [
     '＜進捗状況＞　　実績/目標',
     '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
@@ -2422,11 +2424,11 @@ function test23_SalesProgressInNightReport_() {
   var expected = [
     'お疲れ様です。' + SENDER_NAME + 'です。',
     '2026年9月11日(金)の日報をお送りいたします。',
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
     '---業務報告---',
     'PM',
     '■昼礼',
-    '＜進捗状況＞　　実績/目標',
-    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
     '---業務予定---',
     'AM',
     '■朝礼',
@@ -2435,6 +2437,13 @@ function test23_SalesProgressInNightReport_() {
     '---所感---',
   ].join('\n');
   assertEquals_(expected, actual, '進捗状況つきの夜の日報');
+
+  // 位置がずれると、読む人が数字を探すことになる。並び順そのものを押さえておく。
+  assertTrue_(
+    actual.indexOf('の日報をお送りいたします。') < actual.indexOf('＜進捗状況＞') &&
+      actual.indexOf('＜進捗状況＞') < actual.indexOf('---業務報告---'),
+    '進捗状況は日付の下、業務報告の上にある'
+  );
 
   // 設定していない日は、見出しごと出さない（空の枠を残さない）。
   var without = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], null);

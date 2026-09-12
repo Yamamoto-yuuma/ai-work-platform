@@ -462,7 +462,7 @@ function test22_BusinessDayAcrossMidnight_() {
 }
 
 function test23_SalesProgressInNightReport_() {
-  // 進捗状況は「---業務報告---」の予定のあと、「---業務予定---」の前に入る。
+  // 進捗状況は挨拶の直後、「---業務報告---」の前に入る。
   var progress = [
     '＜進捗状況＞　　実績/目標',
     '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
@@ -471,11 +471,11 @@ function test23_SalesProgressInNightReport_() {
   var expected = [
     'お疲れ様です。' + SENDER_NAME + 'です。',
     '2026年9月11日(金)の日報をお送りいたします。',
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
     '---業務報告---',
     'PM',
     '■昼礼',
-    '＜進捗状況＞　　実績/目標',
-    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
     '---業務予定---',
     'AM',
     '■朝礼',
@@ -484,6 +484,13 @@ function test23_SalesProgressInNightReport_() {
     '---所感---',
   ].join('\n');
   assertEquals_(expected, actual, '進捗状況つきの夜の日報');
+
+  // 位置がずれると、読む人が数字を探すことになる。並び順そのものを押さえておく。
+  assertTrue_(
+    actual.indexOf('の日報をお送りいたします。') < actual.indexOf('＜進捗状況＞') &&
+      actual.indexOf('＜進捗状況＞') < actual.indexOf('---業務報告---'),
+    '進捗状況は日付の下、業務報告の上にある'
+  );
 
   // 設定していない日は、見出しごと出さない（空の枠を残さない）。
   var without = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], null);
