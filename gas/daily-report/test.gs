@@ -33,6 +33,9 @@ function runAllTests() {
     ['Test 20: 合言葉が合わないと API を通さない', test20_ApiRequiresSecret_],
     ['Test 21: 予定名の改行で行が崩れない', test21_TitleWithNewline_],
     ['Test 22: 日付が変わっても前日の日報を扱える', test22_BusinessDayAcrossMidnight_],
+    ['Test 23: 進捗状況を売上管理表から読んで夜の日報へ入れる', test23_SalesProgressInNightReport_],
+    ['Test 24: 売上管理表の数字を計算し直さない', test24_SalesValuesAreNotRecomputed_],
+    ['Test 25: 売上管理表を読めなければ日報に印を残す', test25_SalesReadFailureIsVisible_],
   ];
 
   var failed = 0;
@@ -456,6 +459,76 @@ function test22_BusinessDayAcrossMidnight_() {
     BUSINESS_DAY_START_HOUR > 0 && BUSINESS_DAY_START_HOUR < DAY_REPORT_HOUR,
     '業務日の区切りは、昼のトリガーより前であること'
   );
+}
+
+function test23_SalesProgressInNightReport_() {
+  // 進捗状況は「---業務報告---」の予定のあと、「---業務予定---」の前に入る。
+  var progress = [
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+  ];
+  var actual = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], progress);
+  var expected = [
+    'お疲れ様です。' + SENDER_NAME + 'です。',
+    '2026年9月11日(金)の日報をお送りいたします。',
+    '---業務報告---',
+    'PM',
+    '■昼礼',
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+    '---業務予定---',
+    'AM',
+    '■朝礼',
+    'PM',
+    '■架電',
+    '---所感---',
+  ].join('\n');
+  assertEquals_(expected, actual, '進捗状況つきの夜の日報');
+
+  // 設定していない日は、見出しごと出さない（空の枠を残さない）。
+  var without = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], null);
+  assertTrue_(without.indexOf('＜進捗状況＞') === -1, '進捗状況が無ければ何も足さない');
+  assertTrue_(without.indexOf('---業務予定---') !== -1, '他の見出しはそのまま残る');
+}
+
+function test24_SalesValuesAreNotRecomputed_() {
+  // シートの表示をそのまま使う。全角スペースの桁揃えも崩さない。
+  // ここで計算し直すと、シートの式を直した日に日報だけ古い数字になる。
+  var rows = [
+    ['＜進捗状況＞　　実績/目標', ''],
+    ['★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）', ''],
+    ['', ''],
+    ['前日売上　0万円   /  (新規：0万円　再コール：0万円　メール：0万円　展示会：0万円)', ''],
+    ['改行の\n入ったセル', ''],
+  ];
+  var lines = toProgressLines_(rows);
+
+  assertEquals_(4, lines.length, '空の行は落として、残りを行にする');
+  assertEquals_('＜進捗状況＞　　実績/目標', lines[0], '行末の空白だけを落とす');
+  assertEquals_(
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+    lines[1],
+    '桁を揃えている空白はそのまま残す'
+  );
+  assertTrue_(lines[3].indexOf('\n') === -1, 'セルの中の改行は 1 行に畳む');
+}
+
+function test25_SalesReadFailureIsVisible_() {
+  // 読めなかった日に黙って省くと、進捗状況の無い日報をそのまま送ってしまう。
+  var props = PropertiesService.getScriptProperties();
+  var saved = props.getProperty(PROP_SALES_SPREADSHEET_ID);
+  try {
+    props.deleteProperty(PROP_SALES_SPREADSHEET_ID);
+    assertEquals_(null, getSalesProgressLines_(), '設定していなければ何も返さない');
+
+    props.setProperty(PROP_SALES_SPREADSHEET_ID, '開けない ID');
+    var lines = getSalesProgressLines_();
+    assertEquals_(1, lines.length, '読めなければ 1 行だけ返す');
+    assertEquals_(SALES_READ_FAILED_LINE, lines[0], '読めなかったことが日報に残る');
+  } finally {
+    if (saved === null) props.deleteProperty(PROP_SALES_SPREADSHEET_ID);
+    else props.setProperty(PROP_SALES_SPREADSHEET_ID, saved);
+  }
 }
 
 /* ------------------------------------------------------------------ *

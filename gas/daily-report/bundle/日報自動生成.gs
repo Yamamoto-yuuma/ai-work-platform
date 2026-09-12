@@ -587,6 +587,119 @@ function getEventTitlesByHalf_(date) {
 }
 
 /* ==================================================================
+ * sales.gs
+ * ================================================================== */
+/**
+ * 売上管理表からの進捗状況の読み取り。
+ *
+ * 夜の日報に貼る「＜進捗状況＞」の数行を、売上管理表から取ってくる。
+ *
+ * ここでは金額も進捗率もオンスケも計算しない。すべてシートの数式が出した値を、
+ * 表示されているとおりに読むだけにする。こちらで計算し直すと、シートの式を直した日に
+ * 日報だけ古い計算のまま残り、二つの数字が食い違う。どちらが正しいか分からなくなる。
+ *
+ * 読むのは日報とは別のスプレッドシートなので、ID を Script Properties から受け取る。
+ */
+
+/** Script Properties のキー名。 */
+var PROP_SALES_SPREADSHEET_ID = 'SALES_SPREADSHEET_ID';
+var PROP_SALES_SHEET_NAME = 'SALES_SHEET_NAME';
+var PROP_SALES_RANGE = 'SALES_RANGE';
+
+/**
+ * 読み込む行数の上限。
+ * 範囲を広く指定しすぎたときに、日報が延々と長くなるのを防ぐ。
+ */
+var SALES_MAX_LINES = 30;
+
+/**
+ * 売上管理表を読めなかったときに、日報へ残す行。
+ *
+ * 黙って省くと、進捗状況の無い日報をそのまま送ってしまう。
+ * 目に入る形で残しておき、手で貼るか、設定を直すかを選べるようにする。
+ */
+var SALES_READ_FAILED_LINE = '＜進捗状況＞（売上管理表を読み取れませんでした。手で貼り付けてください）';
+
+/**
+ * 夜の日報に入れる進捗状況の行。
+ *
+ * @return {?Array.<string>} 設定していなければ null。読めなければ案内の 1 行。
+ */
+function getSalesProgressLines_() {
+  if (getProperty_(PROP_SALES_SPREADSHEET_ID) === null) return null;
+
+  try {
+    return readSalesProgressLines_();
+  } catch (e) {
+    Logger.log('売上管理表を読み取れませんでした: ' + e);
+    return [SALES_READ_FAILED_LINE];
+  }
+}
+
+/**
+ * 売上管理表の指定範囲を、表示されているとおりに読む。
+ *
+ * @return {Array.<string>} 空の行を除いた文字列の配列
+ */
+function readSalesProgressLines_() {
+  var spreadsheetId = getRequiredProperty_(PROP_SALES_SPREADSHEET_ID);
+  var sheetName = getRequiredProperty_(PROP_SALES_SHEET_NAME);
+  var rangeText = getRequiredProperty_(PROP_SALES_RANGE);
+
+  if (!/^[A-Za-z]+[0-9]+(:[A-Za-z]+[0-9]+)?$/.test(rangeText)) {
+    throw new Error(
+      'Script Properties の「' + PROP_SALES_RANGE + '」は A1:A6 のような形式で指定してください: ' + rangeText
+    );
+  }
+
+  var spreadsheet;
+  try {
+    spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  } catch (e) {
+    throw new Error(
+      '売上管理表を開けません。「' + PROP_SALES_SPREADSHEET_ID + '」の ID と、' +
+        'このスクリプトを実行するアカウントに閲覧権限があるかを確認してください: ' + e
+    );
+  }
+
+  var sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(
+      '売上管理表に「' + sheetName + '」というシートがありません。' +
+        'Script Properties の「' + PROP_SALES_SHEET_NAME + '」を確認してください。'
+    );
+  }
+
+  // 数式の計算結果ではなく、画面に出ている文字をそのまま取る。
+  // 「69.4万円」のような書式は、シート側の設定で付いている。
+  var rows = sheet.getRange(rangeText).getDisplayValues();
+  return toProgressLines_(rows);
+}
+
+/**
+ * セルの表になったものを、日報へ貼る行に直す。
+ *
+ * 全角スペースで桁を揃えている行があるため、行の中の空白は詰めない。
+ * 落とすのは行末の空白と、空の行だけ。
+ */
+function toProgressLines_(rows) {
+  var lines = [];
+  for (var r = 0; r < rows.length; r++) {
+    var cells = [];
+    for (var c = 0; c < rows[r].length; c++) {
+      var cell = String(rows[r][c] === null || rows[r][c] === undefined ? '' : rows[r][c]).replace(/\s+$/, '');
+      if (cell !== '') cells.push(cell);
+    }
+    if (cells.length === 0) continue; // 空の行は飛ばす（範囲を広めに取っていても伸びない）
+
+    // 予定名と同じ理由で、1 セルの中の改行は行を崩すため 1 行に畳む
+    lines.push(cells.join(' ').replace(/[\r\n\t]+/g, ' '));
+    if (lines.length >= SALES_MAX_LINES) break;
+  }
+  return lines;
+}
+
+/* ==================================================================
  * report.gs
  * ================================================================== */
 /**
@@ -630,6 +743,18 @@ function appendTitleLines_(lines, titles) {
 }
 
 /**
+ * 進捗状況の行を日報へ追加する。
+ * 無い場合は見出しごと出さない（空の「＜進捗状況＞」だけが残らないようにする）。
+ */
+function appendProgressLines_(lines, progressLines) {
+  if (!progressLines || progressLines.length === 0) return;
+  for (var i = 0; i < progressLines.length; i++) {
+    var line = String(progressLines[i] === null || progressLines[i] === undefined ? '' : progressLines[i]);
+    if (line.trim() !== '') lines.push(line);
+  }
+}
+
+/**
  * 昼の日報本文を組み立てる（カレンダーへはアクセスしない純粋な処理）。
  *
  * @param {Array.<string>} morningTitles 当日 AM の予定タイトル
@@ -653,12 +778,15 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
  * 業務報告は当日 PM のみ。業務予定は次営業日の AM と PM。
  * 当日 AM は夜の日報には入れない。所感は空欄のままにする。
  *
+ * 進捗状況は売上管理表から読んだ行をそのまま置く。ここでは数字を作らない。
+ *
  * @param {Date} date 当日（日報の日付として表示する日）
  * @param {Array.<string>} todayAfternoonTitles 当日 PM の予定タイトル
  * @param {Array.<string>} nextMorningTitles 次営業日 AM の予定タイトル
  * @param {Array.<string>} nextAfternoonTitles 次営業日 PM の予定タイトル
+ * @param {Array.<string>=} progressLines 売上管理表から読んだ進捗状況（無ければ省く）
  */
-function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles) {
+function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles, progressLines) {
   assertDate_(date);
   var lines = [];
   lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
@@ -666,6 +794,7 @@ function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, ne
   lines.push('---業務報告---');
   lines.push('PM');
   appendTitleLines_(lines, todayAfternoonTitles);
+  appendProgressLines_(lines, progressLines);
   lines.push('---業務予定---');
   lines.push('AM');
   appendTitleLines_(lines, nextMorningTitles);
@@ -692,7 +821,13 @@ function generateNightReport_(date) {
   var today = getEventTitlesByHalf_(date);
   var nextBusinessDay = getNextBusinessDay_(date);
   var next = getEventTitlesByHalf_(nextBusinessDay);
-  return buildNightReportBody_(date, today.afternoon, next.morning, next.afternoon);
+  return buildNightReportBody_(
+    date,
+    today.afternoon,
+    next.morning,
+    next.afternoon,
+    getSalesProgressLines_()
+  );
 }
 
 /* ==================================================================
@@ -1849,6 +1984,9 @@ function runAllTests() {
     ['Test 20: 合言葉が合わないと API を通さない', test20_ApiRequiresSecret_],
     ['Test 21: 予定名の改行で行が崩れない', test21_TitleWithNewline_],
     ['Test 22: 日付が変わっても前日の日報を扱える', test22_BusinessDayAcrossMidnight_],
+    ['Test 23: 進捗状況を売上管理表から読んで夜の日報へ入れる', test23_SalesProgressInNightReport_],
+    ['Test 24: 売上管理表の数字を計算し直さない', test24_SalesValuesAreNotRecomputed_],
+    ['Test 25: 売上管理表を読めなければ日報に印を残す', test25_SalesReadFailureIsVisible_],
   ];
 
   var failed = 0;
@@ -2272,6 +2410,76 @@ function test22_BusinessDayAcrossMidnight_() {
     BUSINESS_DAY_START_HOUR > 0 && BUSINESS_DAY_START_HOUR < DAY_REPORT_HOUR,
     '業務日の区切りは、昼のトリガーより前であること'
   );
+}
+
+function test23_SalesProgressInNightReport_() {
+  // 進捗状況は「---業務報告---」の予定のあと、「---業務予定---」の前に入る。
+  var progress = [
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+  ];
+  var actual = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], progress);
+  var expected = [
+    'お疲れ様です。' + SENDER_NAME + 'です。',
+    '2026年9月11日(金)の日報をお送りいたします。',
+    '---業務報告---',
+    'PM',
+    '■昼礼',
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+    '---業務予定---',
+    'AM',
+    '■朝礼',
+    'PM',
+    '■架電',
+    '---所感---',
+  ].join('\n');
+  assertEquals_(expected, actual, '進捗状況つきの夜の日報');
+
+  // 設定していない日は、見出しごと出さない（空の枠を残さない）。
+  var without = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], null);
+  assertTrue_(without.indexOf('＜進捗状況＞') === -1, '進捗状況が無ければ何も足さない');
+  assertTrue_(without.indexOf('---業務予定---') !== -1, '他の見出しはそのまま残る');
+}
+
+function test24_SalesValuesAreNotRecomputed_() {
+  // シートの表示をそのまま使う。全角スペースの桁揃えも崩さない。
+  // ここで計算し直すと、シートの式を直した日に日報だけ古い数字になる。
+  var rows = [
+    ['＜進捗状況＞　　実績/目標', ''],
+    ['★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）', ''],
+    ['', ''],
+    ['前日売上　0万円   /  (新規：0万円　再コール：0万円　メール：0万円　展示会：0万円)', ''],
+    ['改行の\n入ったセル', ''],
+  ];
+  var lines = toProgressLines_(rows);
+
+  assertEquals_(4, lines.length, '空の行は落として、残りを行にする');
+  assertEquals_('＜進捗状況＞　　実績/目標', lines[0], '行末の空白だけを落とす');
+  assertEquals_(
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+    lines[1],
+    '桁を揃えている空白はそのまま残す'
+  );
+  assertTrue_(lines[3].indexOf('\n') === -1, 'セルの中の改行は 1 行に畳む');
+}
+
+function test25_SalesReadFailureIsVisible_() {
+  // 読めなかった日に黙って省くと、進捗状況の無い日報をそのまま送ってしまう。
+  var props = PropertiesService.getScriptProperties();
+  var saved = props.getProperty(PROP_SALES_SPREADSHEET_ID);
+  try {
+    props.deleteProperty(PROP_SALES_SPREADSHEET_ID);
+    assertEquals_(null, getSalesProgressLines_(), '設定していなければ何も返さない');
+
+    props.setProperty(PROP_SALES_SPREADSHEET_ID, '開けない ID');
+    var lines = getSalesProgressLines_();
+    assertEquals_(1, lines.length, '読めなければ 1 行だけ返す');
+    assertEquals_(SALES_READ_FAILED_LINE, lines[0], '読めなかったことが日報に残る');
+  } finally {
+    if (saved === null) props.deleteProperty(PROP_SALES_SPREADSHEET_ID);
+    else props.setProperty(PROP_SALES_SPREADSHEET_ID, saved);
+  }
 }
 
 /* ------------------------------------------------------------------ *

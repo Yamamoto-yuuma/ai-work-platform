@@ -39,6 +39,18 @@ function appendTitleLines_(lines, titles) {
 }
 
 /**
+ * 進捗状況の行を日報へ追加する。
+ * 無い場合は見出しごと出さない（空の「＜進捗状況＞」だけが残らないようにする）。
+ */
+function appendProgressLines_(lines, progressLines) {
+  if (!progressLines || progressLines.length === 0) return;
+  for (var i = 0; i < progressLines.length; i++) {
+    var line = String(progressLines[i] === null || progressLines[i] === undefined ? '' : progressLines[i]);
+    if (line.trim() !== '') lines.push(line);
+  }
+}
+
+/**
  * 昼の日報本文を組み立てる（カレンダーへはアクセスしない純粋な処理）。
  *
  * @param {Array.<string>} morningTitles 当日 AM の予定タイトル
@@ -62,12 +74,15 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
  * 業務報告は当日 PM のみ。業務予定は次営業日の AM と PM。
  * 当日 AM は夜の日報には入れない。所感は空欄のままにする。
  *
+ * 進捗状況は売上管理表から読んだ行をそのまま置く。ここでは数字を作らない。
+ *
  * @param {Date} date 当日（日報の日付として表示する日）
  * @param {Array.<string>} todayAfternoonTitles 当日 PM の予定タイトル
  * @param {Array.<string>} nextMorningTitles 次営業日 AM の予定タイトル
  * @param {Array.<string>} nextAfternoonTitles 次営業日 PM の予定タイトル
+ * @param {Array.<string>=} progressLines 売上管理表から読んだ進捗状況（無ければ省く）
  */
-function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles) {
+function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles, progressLines) {
   assertDate_(date);
   var lines = [];
   lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
@@ -75,6 +90,7 @@ function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, ne
   lines.push('---業務報告---');
   lines.push('PM');
   appendTitleLines_(lines, todayAfternoonTitles);
+  appendProgressLines_(lines, progressLines);
   lines.push('---業務予定---');
   lines.push('AM');
   appendTitleLines_(lines, nextMorningTitles);
@@ -101,5 +117,11 @@ function generateNightReport_(date) {
   var today = getEventTitlesByHalf_(date);
   var nextBusinessDay = getNextBusinessDay_(date);
   var next = getEventTitlesByHalf_(nextBusinessDay);
-  return buildNightReportBody_(date, today.afternoon, next.morning, next.afternoon);
+  return buildNightReportBody_(
+    date,
+    today.afternoon,
+    next.morning,
+    next.afternoon,
+    getSalesProgressLines_()
+  );
 }
