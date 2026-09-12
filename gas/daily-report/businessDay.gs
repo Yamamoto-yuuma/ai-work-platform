@@ -110,21 +110,6 @@ function isBusinessDay_(date) {
 }
 
 /**
- * 次の営業日を返す。翌日ではなく、土日祝を飛ばした最初の営業日。
- */
-function getNextBusinessDay_(date) {
-  assertDate_(date);
-  for (var offset = 1; offset <= MAX_BUSINESS_DAY_LOOKAHEAD; offset++) {
-    var candidate = addDays_(date, offset);
-    if (isBusinessDay_(candidate)) return candidate;
-  }
-  throw new Error(
-    MAX_BUSINESS_DAY_LOOKAHEAD + ' 日先まで営業日が見つかりませんでした（起点: ' + formatDateKey_(date) + '）。' +
-      '祝日カレンダーの設定を確認してください。'
-  );
-}
-
-/**
  * 休日と判定した理由をログ用に返す（営業日なら null）。
  */
 function describeNonBusinessDay_(date) {

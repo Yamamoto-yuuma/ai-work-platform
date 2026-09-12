@@ -75,7 +75,7 @@ function rebuildDraft_(reportType) {
     }
 
     var body =
-      reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
+      reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
     saveDraft_(today, reportType, body);
     notify_(label, '最新のカレンダーで下書きを作り直しました。シートの本文をご確認ください。');
   } catch (e) {

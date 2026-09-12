@@ -1,8 +1,11 @@
 /**
- * 日報本文の生成。
+ * 昼の日報本文の生成。
  *
  * フォーマットは固定のため、AI・LLM は使用しない。
  * カレンダーのタイトルをそのまま「■」付きの行にするだけ。
+ *
+ * 夜の日報はここでは作らない。スプレッドシートの「日報」タブがそのまま本文になる
+ * （nightBody.gs）。同じ文面を二か所で組み立てると、片方だけ直した日に食い違う。
  *
  * 出来上がるのは、そのまま Chatwork へ貼れる本文だけにする。
  * 「【昼用】」「【夜用】」のような、どちらの型かを示す見出しは入れない。
@@ -39,18 +42,6 @@ function appendTitleLines_(lines, titles) {
 }
 
 /**
- * 進捗状況の行を日報へ追加する。
- * 無い場合は見出しごと出さない（空の「＜進捗状況＞」だけが残らないようにする）。
- */
-function appendProgressLines_(lines, progressLines) {
-  if (!progressLines || progressLines.length === 0) return;
-  for (var i = 0; i < progressLines.length; i++) {
-    var line = String(progressLines[i] === null || progressLines[i] === undefined ? '' : progressLines[i]);
-    if (line.trim() !== '') lines.push(line);
-  }
-}
-
-/**
  * 昼の日報本文を組み立てる（カレンダーへはアクセスしない純粋な処理）。
  *
  * @param {Array.<string>} morningTitles 当日 AM の予定タイトル
@@ -69,40 +60,6 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
 }
 
 /**
- * 夜の日報本文を組み立てる（カレンダーへはアクセスしない純粋な処理）。
- *
- * 業務報告は当日 PM のみ。業務予定は次営業日の AM と PM。
- * 当日 AM は夜の日報には入れない。所感は空欄のままにする。
- *
- * 進捗状況は挨拶の直後、業務報告の前に置く。売上管理表から読んだ行をそのまま使い、
- * ここでは数字を作らない。
- *
- * @param {Date} date 当日（日報の日付として表示する日）
- * @param {Array.<string>} todayAfternoonTitles 当日 PM の予定タイトル
- * @param {Array.<string>} nextMorningTitles 次営業日 AM の予定タイトル
- * @param {Array.<string>} nextAfternoonTitles 次営業日 PM の予定タイトル
- * @param {Array.<string>=} progressLines 売上管理表から読んだ進捗状況（無ければ省く）
- */
-function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles, progressLines) {
-  assertDate_(date);
-  var lines = [];
-  lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
-  lines.push(formatJapaneseDate_(date) + 'の日報をお送りいたします。');
-  // 進捗状況は挨拶のすぐ下。数字を先に見せて、そのあとに中身を並べる
-  appendProgressLines_(lines, progressLines);
-  lines.push('---業務報告---');
-  lines.push('PM');
-  appendTitleLines_(lines, todayAfternoonTitles);
-  lines.push('---業務予定---');
-  lines.push('AM');
-  appendTitleLines_(lines, nextMorningTitles);
-  lines.push('PM');
-  appendTitleLines_(lines, nextAfternoonTitles);
-  lines.push('---所感---');
-  return lines.join('\n');
-}
-
-/**
  * 指定日の昼の日報本文を生成する（カレンダーを参照する）。
  */
 function generateDayReport_(date) {
@@ -112,18 +69,11 @@ function generateDayReport_(date) {
 }
 
 /**
- * 指定日の夜の日報本文を生成する（カレンダーを参照する）。
+ * 指定日の夜の日報本文を取得する。
+ *
+ * 夜はスプレッドシートの「日報」タブがそのまま本文になる。ここでは文面を作らない。
+ * 日付も挨拶もシート側に入っているため、date は受け取らない。
  */
-function generateNightReport_(date) {
-  assertDate_(date);
-  var today = getEventTitlesByHalf_(date);
-  var nextBusinessDay = getNextBusinessDay_(date);
-  var next = getEventTitlesByHalf_(nextBusinessDay);
-  return buildNightReportBody_(
-    date,
-    today.afternoon,
-    next.morning,
-    next.afternoon,
-    getSalesProgressLines_()
-  );
+function generateNightReport_() {
+  return readNightReportBody_();
 }

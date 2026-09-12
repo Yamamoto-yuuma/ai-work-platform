@@ -110,9 +110,6 @@ var DEFAULT_HOLIDAY_CALENDAR_ID = 'ja.japanese#holiday@group.v.calendar.google.c
  */
 var HOLIDAY_CALENDAR_NON_HOLIDAY_LABELS = ['祭日', '行事', 'Observance', 'Season'];
 
-/** 次営業日を探すときに先読みする最大日数（無限ループ防止）。 */
-var MAX_BUSINESS_DAY_LOOKAHEAD = 14;
-
 /** Script Properties のキー名。 */
 var PROP_CHATWORK_API_TOKEN = 'CHATWORK_API_TOKEN';
 var PROP_CHATWORK_ROOM_ID = 'CHATWORK_ROOM_ID';
@@ -416,21 +413,6 @@ function isBusinessDay_(date) {
 }
 
 /**
- * 次の営業日を返す。翌日ではなく、土日祝を飛ばした最初の営業日。
- */
-function getNextBusinessDay_(date) {
-  assertDate_(date);
-  for (var offset = 1; offset <= MAX_BUSINESS_DAY_LOOKAHEAD; offset++) {
-    var candidate = addDays_(date, offset);
-    if (isBusinessDay_(candidate)) return candidate;
-  }
-  throw new Error(
-    MAX_BUSINESS_DAY_LOOKAHEAD + ' 日先まで営業日が見つかりませんでした（起点: ' + formatDateKey_(date) + '）。' +
-      '祝日カレンダーの設定を確認してください。'
-  );
-}
-
-/**
  * 休日と判定した理由をログ用に返す（営業日なら null）。
  */
 function describeNonBusinessDay_(date) {
@@ -587,68 +569,51 @@ function getEventTitlesByHalf_(date) {
 }
 
 /* ==================================================================
- * sales.gs
+ * nightBody.gs
  * ================================================================== */
 /**
- * 売上管理表からの進捗状況の読み取り。
+ * 夜の日報の本文の取得。
  *
- * 夜の日報に貼る「＜進捗状況＞」の数行を、売上管理表から取ってくる。
+ * 夜の日報は、スプレッドシートの「日報」タブに書かれているものがそのまま本文になる。
+ * 挨拶も日付も進捗状況も業務報告も、すべてシート側で組み立てられている。
  *
- * ここでは金額も進捗率もオンスケも計算しない。すべてシートの数式が出した値を、
- * 表示されているとおりに読むだけにする。こちらで計算し直すと、シートの式を直した日に
- * 日報だけ古い計算のまま残り、二つの数字が食い違う。どちらが正しいか分からなくなる。
+ * ここでは文面を作らない。読むだけにする。
+ * 同じ文面を GAS 側でも組み立てると、シートと二か所に同じ形が存在することになり、
+ * 片方だけ直した日に食い違う。実際に、進捗状況を足したときに見出しが二重になった。
  *
- * 読むのは日報とは別のスプレッドシートなので、ID を Script Properties から受け取る。
+ * 数字も同じ理由で計算しない。売上も進捗率もオンスケもシートの数式が出した値で、
+ * こちらで計算し直すと、シートの式を直した日に日報だけ古い数字が残る。
+ *
+ * 昼の日報はこの仕組みを使わない。今までどおりカレンダーの予定から組み立てる。
  */
 
 /** Script Properties のキー名。 */
-var PROP_SALES_SPREADSHEET_ID = 'SALES_SPREADSHEET_ID';
-var PROP_SALES_SHEET_NAME = 'SALES_SHEET_NAME';
-var PROP_SALES_RANGE = 'SALES_RANGE';
+var PROP_NIGHT_REPORT_SPREADSHEET_ID = 'NIGHT_REPORT_SPREADSHEET_ID';
+var PROP_NIGHT_REPORT_SHEET_NAME = 'NIGHT_REPORT_SHEET_NAME';
+var PROP_NIGHT_REPORT_RANGE = 'NIGHT_REPORT_RANGE';
 
 /**
  * 読み込む行数の上限。
  * 範囲を広く指定しすぎたときに、日報が延々と長くなるのを防ぐ。
  */
-var SALES_MAX_LINES = 30;
+var NIGHT_REPORT_MAX_LINES = 60;
 
 /**
- * 売上管理表を読めなかったときに、日報へ残す行。
+ * 夜の日報の本文を、スプレッドシートから読む。
  *
- * 黙って省くと、進捗状況の無い日報をそのまま送ってしまう。
- * 目に入る形で残しておき、手で貼るか、設定を直すかを選べるようにする。
- */
-var SALES_READ_FAILED_LINE = '＜進捗状況＞（売上管理表を読み取れませんでした。手で貼り付けてください）';
-
-/**
- * 夜の日報に入れる進捗状況の行。
+ * 読めなければエラーにする。空の日報や、途中までの日報を下書きとして残すと、
+ * それに気づかないまま送ってしまう。作らないほうが安全。
  *
- * @return {?Array.<string>} 設定していなければ null。読めなければ案内の 1 行。
+ * @return {string} 日報本文
  */
-function getSalesProgressLines_() {
-  if (getProperty_(PROP_SALES_SPREADSHEET_ID) === null) return null;
-
-  try {
-    return readSalesProgressLines_();
-  } catch (e) {
-    Logger.log('売上管理表を読み取れませんでした: ' + e);
-    return [SALES_READ_FAILED_LINE];
-  }
-}
-
-/**
- * 売上管理表の指定範囲を、表示されているとおりに読む。
- *
- * @return {Array.<string>} 空の行を除いた文字列の配列
- */
-function readSalesProgressLines_() {
-  var spreadsheetId = getRequiredProperty_(PROP_SALES_SPREADSHEET_ID);
-  var sheetName = getRequiredProperty_(PROP_SALES_SHEET_NAME);
-  var rangeText = getRequiredProperty_(PROP_SALES_RANGE);
+function readNightReportBody_() {
+  var spreadsheetId = getRequiredProperty_(PROP_NIGHT_REPORT_SPREADSHEET_ID);
+  var sheetName = getRequiredProperty_(PROP_NIGHT_REPORT_SHEET_NAME);
+  var rangeText = getRequiredProperty_(PROP_NIGHT_REPORT_RANGE);
 
   if (!/^[A-Za-z]+[0-9]+(:[A-Za-z]+[0-9]+)?$/.test(rangeText)) {
     throw new Error(
-      'Script Properties の「' + PROP_SALES_RANGE + '」は A1:A6 のような形式で指定してください: ' + rangeText
+      'Script Properties の「' + PROP_NIGHT_REPORT_RANGE + '」は B1:C30 のような形式で指定してください: ' + rangeText
     );
   }
 
@@ -657,7 +622,7 @@ function readSalesProgressLines_() {
     spreadsheet = SpreadsheetApp.openById(spreadsheetId);
   } catch (e) {
     throw new Error(
-      '売上管理表を開けません。「' + PROP_SALES_SPREADSHEET_ID + '」の ID と、' +
+      '日報のスプレッドシートを開けません。「' + PROP_NIGHT_REPORT_SPREADSHEET_ID + '」の ID と、' +
         'このスクリプトを実行するアカウントに閲覧権限があるかを確認してください: ' + e
     );
   }
@@ -665,19 +630,25 @@ function readSalesProgressLines_() {
   var sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet) {
     throw new Error(
-      '売上管理表に「' + sheetName + '」というシートがありません。' +
-        'Script Properties の「' + PROP_SALES_SHEET_NAME + '」を確認してください。'
+      'スプレッドシートに「' + sheetName + '」というシートがありません。' +
+        'Script Properties の「' + PROP_NIGHT_REPORT_SHEET_NAME + '」を確認してください。'
     );
   }
 
   // 数式の計算結果ではなく、画面に出ている文字をそのまま取る。
   // 「69.4万円」のような書式は、シート側の設定で付いている。
-  var rows = sheet.getRange(rangeText).getDisplayValues();
-  return toProgressLines_(rows);
+  var lines = toReportLines_(sheet.getRange(rangeText).getDisplayValues());
+  if (lines.length === 0) {
+    throw new Error(
+      'シート「' + sheetName + '」の ' + rangeText + ' が空です。' +
+        'Script Properties の「' + PROP_NIGHT_REPORT_RANGE + '」で読む範囲を確認してください。'
+    );
+  }
+  return lines.join('\n');
 }
 
 /**
- * セルの表になったものを、日報へ貼る行に直す。
+ * セルの表になったものを、日報の行に直す。
  *
  * 1 行の中は、左のセルから順につなげて 1 行にする。間に何も入れない。
  * シートは B 列と C 列で 1 つの文をつないで書いているため（「2026年9月12日(土)」＋
@@ -685,9 +656,10 @@ function readSalesProgressLines_() {
  * セルとセルの間を空けたいときは、シート側でセルの中に空白を入れる。
  *
  * 全角スペースで桁を揃えている行があるので、行の中の空白は詰めない。
- * 落とすのは行末の空白と、空の行だけ。
+ * 落とすのは行末の空白と、末尾の空の行だけ。
+ * 途中の空の行は残す（日報の中で段落を分けているため）。
  */
-function toProgressLines_(rows) {
+function toReportLines_(rows) {
   var lines = [];
   for (var r = 0; r < rows.length; r++) {
     var line = '';
@@ -696,13 +668,13 @@ function toProgressLines_(rows) {
       line += String(cell === null || cell === undefined ? '' : cell);
     }
 
-    // 予定名と同じ理由で、1 セルの中の改行は行を崩すため 1 行に畳む
-    line = line.replace(/[\r\n\t]+/g, ' ').replace(/\s+$/, '');
-    if (line === '') continue; // 空の行は飛ばす（範囲を広めに取っていても伸びない）
-
-    lines.push(line);
-    if (lines.length >= SALES_MAX_LINES) break;
+    // 1 セルの中の改行は行を崩すため 1 行に畳む
+    lines.push(line.replace(/[\r\n\t]+/g, ' ').replace(/\s+$/, ''));
+    if (lines.length >= NIGHT_REPORT_MAX_LINES) break;
   }
+
+  // 範囲を広めに取っていても日報が伸びないよう、末尾の空行だけ落とす
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
   return lines;
 }
 
@@ -710,10 +682,13 @@ function toProgressLines_(rows) {
  * report.gs
  * ================================================================== */
 /**
- * 日報本文の生成。
+ * 昼の日報本文の生成。
  *
  * フォーマットは固定のため、AI・LLM は使用しない。
  * カレンダーのタイトルをそのまま「■」付きの行にするだけ。
+ *
+ * 夜の日報はここでは作らない。スプレッドシートの「日報」タブがそのまま本文になる
+ * （nightBody.gs）。同じ文面を二か所で組み立てると、片方だけ直した日に食い違う。
  *
  * 出来上がるのは、そのまま Chatwork へ貼れる本文だけにする。
  * 「【昼用】」「【夜用】」のような、どちらの型かを示す見出しは入れない。
@@ -750,18 +725,6 @@ function appendTitleLines_(lines, titles) {
 }
 
 /**
- * 進捗状況の行を日報へ追加する。
- * 無い場合は見出しごと出さない（空の「＜進捗状況＞」だけが残らないようにする）。
- */
-function appendProgressLines_(lines, progressLines) {
-  if (!progressLines || progressLines.length === 0) return;
-  for (var i = 0; i < progressLines.length; i++) {
-    var line = String(progressLines[i] === null || progressLines[i] === undefined ? '' : progressLines[i]);
-    if (line.trim() !== '') lines.push(line);
-  }
-}
-
-/**
  * 昼の日報本文を組み立てる（カレンダーへはアクセスしない純粋な処理）。
  *
  * @param {Array.<string>} morningTitles 当日 AM の予定タイトル
@@ -780,40 +743,6 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
 }
 
 /**
- * 夜の日報本文を組み立てる（カレンダーへはアクセスしない純粋な処理）。
- *
- * 業務報告は当日 PM のみ。業務予定は次営業日の AM と PM。
- * 当日 AM は夜の日報には入れない。所感は空欄のままにする。
- *
- * 進捗状況は挨拶の直後、業務報告の前に置く。売上管理表から読んだ行をそのまま使い、
- * ここでは数字を作らない。
- *
- * @param {Date} date 当日（日報の日付として表示する日）
- * @param {Array.<string>} todayAfternoonTitles 当日 PM の予定タイトル
- * @param {Array.<string>} nextMorningTitles 次営業日 AM の予定タイトル
- * @param {Array.<string>} nextAfternoonTitles 次営業日 PM の予定タイトル
- * @param {Array.<string>=} progressLines 売上管理表から読んだ進捗状況（無ければ省く）
- */
-function buildNightReportBody_(date, todayAfternoonTitles, nextMorningTitles, nextAfternoonTitles, progressLines) {
-  assertDate_(date);
-  var lines = [];
-  lines.push('お疲れ様です。' + SENDER_NAME + 'です。');
-  lines.push(formatJapaneseDate_(date) + 'の日報をお送りいたします。');
-  // 進捗状況は挨拶のすぐ下。数字を先に見せて、そのあとに中身を並べる
-  appendProgressLines_(lines, progressLines);
-  lines.push('---業務報告---');
-  lines.push('PM');
-  appendTitleLines_(lines, todayAfternoonTitles);
-  lines.push('---業務予定---');
-  lines.push('AM');
-  appendTitleLines_(lines, nextMorningTitles);
-  lines.push('PM');
-  appendTitleLines_(lines, nextAfternoonTitles);
-  lines.push('---所感---');
-  return lines.join('\n');
-}
-
-/**
  * 指定日の昼の日報本文を生成する（カレンダーを参照する）。
  */
 function generateDayReport_(date) {
@@ -823,20 +752,13 @@ function generateDayReport_(date) {
 }
 
 /**
- * 指定日の夜の日報本文を生成する（カレンダーを参照する）。
+ * 指定日の夜の日報本文を取得する。
+ *
+ * 夜はスプレッドシートの「日報」タブがそのまま本文になる。ここでは文面を作らない。
+ * 日付も挨拶もシート側に入っているため、date は受け取らない。
  */
-function generateNightReport_(date) {
-  assertDate_(date);
-  var today = getEventTitlesByHalf_(date);
-  var nextBusinessDay = getNextBusinessDay_(date);
-  var next = getEventTitlesByHalf_(nextBusinessDay);
-  return buildNightReportBody_(
-    date,
-    today.afternoon,
-    next.morning,
-    next.afternoon,
-    getSalesProgressLines_()
-  );
+function generateNightReport_() {
+  return readNightReportBody_();
 }
 
 /* ==================================================================
@@ -1403,7 +1325,7 @@ function prepareDraft_(reportType) {
   var existing = loadDraft_(today, reportType);
   if (existing !== null) return { date: today, record: existing, created: false };
 
-  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
+  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
   return { date: today, record: saveDraft_(today, reportType, body), created: true };
 }
 
@@ -1556,7 +1478,7 @@ function runReport_(reportType) {
       }
 
       var body =
-        reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
+        reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
       var record = saveDraft_(today, reportType, body);
 
       Logger.log(
@@ -1612,12 +1534,10 @@ function testDayReportForDate_(dateText) {
  */
 function testNightReportForDate_(dateText) {
   assertTimeZone_();
+  // 夜の日報はスプレッドシートの内容そのものなので、日付を変えても中身は変わらない
   var date = parseDate_(dateText);
-  var body = generateNightReport_(date);
-  Logger.log(
-    '----- 夜の日報 ' + formatJapaneseDate_(date) +
-      '（次営業日: ' + formatJapaneseDate_(getNextBusinessDay_(date)) + '） -----\n' + body
-  );
+  var body = generateNightReport_();
+  Logger.log('----- 夜の日報（スプレッドシートの内容 / 指定日: ' + formatJapaneseDate_(date) + '） -----\n' + body);
   return body;
 }
 
@@ -1748,7 +1668,7 @@ function rebuildDraft_(reportType) {
     }
 
     var body =
-      reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
+      reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
     saveDraft_(today, reportType, body);
     notify_(label, '最新のカレンダーで下書きを作り直しました。シートの本文をご確認ください。');
   } catch (e) {
@@ -1919,7 +1839,7 @@ function rebuildForApi_(date, reportType) {
   if (hasAlreadySent_(buildReportKey_(date, reportType))) {
     throw new Error('この日報はすでに送信済みです。作り直せません。');
   }
-  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(date) : generateNightReport_(date);
+  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(date) : generateNightReport_();
   saveDraft_(date, reportType, body);
 }
 
@@ -1972,9 +1892,9 @@ function runAllTests() {
   var results = [];
   var tests = [
     ['Test 1: 平日・昼の日報', test1_DayReport_],
-    ['Test 2: 平日・夜の日報', test2_NightReport_],
-    ['Test 3: 金曜日の夜（次営業日は月曜）', test3_FridayNextBusinessDay_],
-    ['Test 4: 祝日前（祝日を飛ばす）', test4_BeforeHolidayNextBusinessDay_],
+    ['Test 2: 夜の日報はスプレッドシートの内容をそのまま使う', test2_NightReportFromSheet_],
+    ['Test 3: 夜の日報を GAS 側で組み立てていないこと', test3_NightFormatNotDuplicated_],
+    ['Test 4: 読めない・空のときは下書きを作らない', test4_NightReportFailsLoudly_],
     ['Test 5: 土曜日は投稿しない', test5_Saturday_],
     ['Test 6: 日曜日は投稿しない', test6_Sunday_],
     ['Test 7: 祝日は投稿しない', test7_Holiday_],
@@ -1993,9 +1913,9 @@ function runAllTests() {
     ['Test 20: 合言葉が合わないと API を通さない', test20_ApiRequiresSecret_],
     ['Test 21: 予定名の改行で行が崩れない', test21_TitleWithNewline_],
     ['Test 22: 日付が変わっても前日の日報を扱える', test22_BusinessDayAcrossMidnight_],
-    ['Test 23: 進捗状況を売上管理表から読んで夜の日報へ入れる', test23_SalesProgressInNightReport_],
-    ['Test 24: 売上管理表の数字を計算し直さない', test24_SalesValuesAreNotRecomputed_],
-    ['Test 25: 売上管理表を読めなければ日報に印を残す', test25_SalesReadFailureIsVisible_],
+    ['Test 23: B 列と C 列を空白なしでつなぐ', test23_ColumnsAreJoinedWithoutGap_],
+    ['Test 24: シートの数字を計算し直さない', test24_SheetValuesAreNotRecomputed_],
+    ['Test 25: 昼の日報はカレンダーだけで作る', test25_DayReportStaysOnCalendar_],
   ];
 
   var failed = 0;
@@ -2035,49 +1955,99 @@ function test1_DayReport_() {
   assertEquals_(expected, actual, '昼の日報本文');
 }
 
-function test2_NightReport_() {
-  var actual = buildNightReportBody_(
-    parseDate_('2026-09-11'),
-    ['昼礼', '計上作業'],
-    ['朝礼', '運営MTG'],
-    ['昼礼', '架電']
-  );
+/** テスト用に、夜の日報のスプレッドシートを差し替える */
+function withNightSheet_(rows, task) {
+  var props = PropertiesService.getScriptProperties();
+  var keys = [PROP_NIGHT_REPORT_SPREADSHEET_ID, PROP_NIGHT_REPORT_SHEET_NAME, PROP_NIGHT_REPORT_RANGE];
+  var saved = [];
+  for (var i = 0; i < keys.length; i++) saved.push(props.getProperty(keys[i]));
+
+  var originalRead = readNightReportBody_;
+  try {
+    // 実際のスプレッドシートには触らず、読み取った結果だけを差し替える
+    readNightReportBody_ = function () {
+      if (rows === null) throw new Error('テスト用: 読めませんでした');
+      var lines = toReportLines_(rows);
+      if (lines.length === 0) throw new Error('テスト用: 範囲が空です');
+      return lines.join('\n');
+    };
+    return task();
+  } finally {
+    readNightReportBody_ = originalRead;
+    for (var j = 0; j < keys.length; j++) {
+      if (saved[j] === null) props.deleteProperty(keys[j]);
+      else props.setProperty(keys[j], saved[j]);
+    }
+  }
+}
+
+function test2_NightReportFromSheet_() {
+  // 夜の日報は、シートに書かれているものがそのまま本文になる。
+  // 挨拶も日付も進捗状況も業務報告も、すべてシート側にある。
+  var rows = [
+    ['お疲れ様です。' + SENDER_NAME + 'です。', ''],
+    ['2026年9月12日(土)', 'の日報をお送りいたします。'],
+    ['', ''],
+    ['＜進捗状況＞　　実績/目標', ''],
+    ['★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）', ''],
+    ['---業務報告---', ''],
+    ['PM', ''],
+    ['■運営MTG', ''],
+    ['---所感---', ''],
+  ];
+  var actual = withNightSheet_(rows, function () {
+    return generateNightReport_();
+  });
   var expected = [
     'お疲れ様です。' + SENDER_NAME + 'です。',
-    '2026年9月11日(金)の日報をお送りいたします。',
+    '2026年9月12日(土)の日報をお送りいたします。',
+    '',
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
     '---業務報告---',
     'PM',
-    '■昼礼',
-    '■計上作業',
-    '---業務予定---',
-    'AM',
-    '■朝礼',
     '■運営MTG',
-    'PM',
-    '■昼礼',
-    '■架電',
     '---所感---',
   ].join('\n');
   assertEquals_(expected, actual, '夜の日報本文');
 }
 
-function test3_FridayNextBusinessDay_() {
-  // 2026-09-11 は金曜日。土日を飛ばして 2026-09-14（月）が次営業日。
-  var friday = parseDate_('2026-09-11');
-  assertEquals_(5, getJstDayOfWeek_(friday), '起点が金曜日であること');
-  assertNextBusinessDayIsValid_(friday);
-  assertEquals_('20260914', formatDateKey_(getNextBusinessDay_(friday)), '金曜日の次営業日');
+function test3_NightFormatNotDuplicated_() {
+  // 同じ文面を GAS 側でも組み立てると、片方だけ直した日に食い違う。
+  // 夜の見出しを作る処理が戻っていないことを、名前で押さえる。
+  assertTrue_(
+    typeof globalThis.buildNightReportBody_ === 'undefined',
+    '夜の日報を GAS 側で組み立てる処理が残っていないこと'
+  );
+  assertTrue_(
+    typeof globalThis.appendProgressLines_ === 'undefined',
+    '進捗状況を差し込む処理が残っていないこと（シートに含まれるため不要）'
+  );
+
+  // 夜の本文にシート以外の行が混ざらないこと。
+  var body = withNightSheet_([['1行だけのシート', '']], function () {
+    return generateNightReport_();
+  });
+  assertEquals_('1行だけのシート', body, 'シートの内容以外は足さない');
 }
 
-function test4_BeforeHolidayNextBusinessDay_() {
-  // 2026-01-01（元日・木曜）を含む週。2025-12-31（水）の次営業日は元日を飛ばす。
-  var beforeHoliday = parseDate_('2025-12-31');
-  assertTrue_(isHoliday_(parseDate_('2026-01-01')), '2026-01-01 が祝日として取得できること');
-  assertNextBusinessDayIsValid_(beforeHoliday);
-  assertTrue_(
-    formatDateKey_(getNextBusinessDay_(beforeHoliday)) !== '20260101',
-    '祝日が次営業日として選ばれないこと'
-  );
+function test4_NightReportFailsLoudly_() {
+  // 空の日報や途中までの日報を下書きとして残すと、気づかずに送ってしまう。
+  var failed = false;
+  try {
+    withNightSheet_(null, function () { return generateNightReport_(); });
+  } catch (e) {
+    failed = true;
+  }
+  assertTrue_(failed, '読めなければ下書きを作らない');
+
+  var emptyFailed = false;
+  try {
+    withNightSheet_([['', ''], ['', '']], function () { return generateNightReport_(); });
+  } catch (e) {
+    emptyFailed = true;
+  }
+  assertTrue_(emptyFailed, '範囲が空なら下書きを作らない');
 }
 
 function test5_Saturday_() {
@@ -2421,98 +2391,48 @@ function test22_BusinessDayAcrossMidnight_() {
   );
 }
 
-function test23_SalesProgressInNightReport_() {
-  // 進捗状況は挨拶の直後、「---業務報告---」の前に入る。
-  var progress = [
-    '＜進捗状況＞　　実績/目標',
-    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
-  ];
-  var actual = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], progress);
-  var expected = [
-    'お疲れ様です。' + SENDER_NAME + 'です。',
-    '2026年9月11日(金)の日報をお送りいたします。',
-    '＜進捗状況＞　　実績/目標',
-    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
-    '---業務報告---',
-    'PM',
-    '■昼礼',
-    '---業務予定---',
-    'AM',
-    '■朝礼',
-    'PM',
-    '■架電',
-    '---所感---',
-  ].join('\n');
-  assertEquals_(expected, actual, '進捗状況つきの夜の日報');
-
-  // 位置がずれると、読む人が数字を探すことになる。並び順そのものを押さえておく。
-  assertTrue_(
-    actual.indexOf('の日報をお送りいたします。') < actual.indexOf('＜進捗状況＞') &&
-      actual.indexOf('＜進捗状況＞') < actual.indexOf('---業務報告---'),
-    '進捗状況は日付の下、業務報告の上にある'
-  );
-
-  // 昼の日報は今までどおり。進捗状況は夜だけに入る。
-  var dayBody = buildDayReportBody_(['朝礼'], ['昼礼']);
-  assertTrue_(dayBody.indexOf('＜進捗状況＞') === -1, '昼の日報には進捗状況を入れない');
-
-  // 設定していない日は、見出しごと出さない（空の枠を残さない）。
-  var without = buildNightReportBody_(parseDate_('2026-09-11'), ['昼礼'], ['朝礼'], ['架電'], null);
-  assertTrue_(without.indexOf('＜進捗状況＞') === -1, '進捗状況が無ければ何も足さない');
-  assertTrue_(without.indexOf('---業務予定---') !== -1, '他の見出しはそのまま残る');
-}
-
-function test24_SalesValuesAreNotRecomputed_() {
-  // シートの表示をそのまま使う。全角スペースの桁揃えも崩さない。
-  // ここで計算し直すと、シートの式を直した日に日報だけ古い数字になる。
-  var rows = [
-    ['＜進捗状況＞　　実績/目標', ''],
-    ['★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）', ''],
-    ['', ''],
-    ['前日売上　0万円   /  (新規：0万円　再コール：0万円　メール：0万円　展示会：0万円)', ''],
-    ['改行の\n入ったセル', ''],
-  ];
-  var lines = toProgressLines_(rows);
-
-  assertEquals_(4, lines.length, '空の行は落として、残りを行にする');
-  assertEquals_('＜進捗状況＞　　実績/目標', lines[0], '行末の空白だけを落とす');
-  assertEquals_(
-    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
-    lines[1],
-    '桁を揃えている空白はそのまま残す'
-  );
-  assertTrue_(lines[3].indexOf('\n') === -1, 'セルの中の改行は 1 行に畳む');
-
-  // B 列と C 列で 1 つの文をつないで書いている行がある。
-  // 間に空白を入れると文が割れるため、そのままつなげる。
+function test23_ColumnsAreJoinedWithoutGap_() {
+  // シートは 1 行を B 列と C 列に分けて書いている。
+  // 間に空白を足すと文が割れるため、そのままつなげる。
   assertEquals_(
     '2026年9月12日(土)の日報をお送りいたします。',
-    toProgressLines_([['2026年9月12日(土)', 'の日報をお送りいたします。']])[0],
+    toReportLines_([['2026年9月12日(土)', 'の日報をお送りいたします。']])[0],
     'B 列と C 列は空白を入れずにつなぐ'
   );
   assertEquals_(
     '架電数実績　　12件',
-    toProgressLines_([['架電数実績　　', '12件']])[0],
+    toReportLines_([['架電数実績　　', '12件']])[0],
     'セルの中の空白で間を空ける（詰めない）'
   );
+
+  // 日報の中の空行は段落の区切りなので残す。末尾の空行だけ落とす。
+  var lines = toReportLines_([['1行目', ''], ['', ''], ['3行目', ''], ['', ''], ['', '']]);
+  assertEquals_(3, lines.length, '末尾の空行だけを落とす');
+  assertEquals_('', lines[1], '途中の空行は残す');
 }
 
-function test25_SalesReadFailureIsVisible_() {
-  // 読めなかった日に黙って省くと、進捗状況の無い日報をそのまま送ってしまう。
-  var props = PropertiesService.getScriptProperties();
-  var saved = props.getProperty(PROP_SALES_SPREADSHEET_ID);
-  try {
-    props.deleteProperty(PROP_SALES_SPREADSHEET_ID);
-    assertEquals_(null, getSalesProgressLines_(), '設定していなければ何も返さない');
+function test24_SheetValuesAreNotRecomputed_() {
+  // 売上も進捗率もオンスケもシートの数式が出した値。ここで計算し直すと、
+  // シートの式を直した日に日報だけ古い数字が残る。表示のまま使う。
+  var lines = toReportLines_([
+    ['★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）', ''],
+    ['改行の\n入ったセル', ''],
+  ]);
+  assertEquals_(
+    '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+    lines[0],
+    '桁を揃えている空白も数字もそのまま残す'
+  );
+  assertTrue_(lines[1].indexOf('\n') === -1, 'セルの中の改行は 1 行に畳む');
+}
 
-    props.setProperty(PROP_SALES_SPREADSHEET_ID, '開けない ID');
-    var lines = getSalesProgressLines_();
-    assertEquals_(1, lines.length, '読めなければ 1 行だけ返す');
-    assertEquals_(SALES_READ_FAILED_LINE, lines[0], '読めなかったことが日報に残る');
-  } finally {
-    if (saved === null) props.deleteProperty(PROP_SALES_SPREADSHEET_ID);
-    else props.setProperty(PROP_SALES_SPREADSHEET_ID, saved);
-  }
+function test25_DayReportStaysOnCalendar_() {
+  // 昼の日報は今までどおり。スプレッドシートは見ない。
+  var actual = buildDayReportBody_(['朝礼'], ['昼礼']);
+  var expected = ['---業務報告---', 'AM', '■朝礼', ' ', '---業務予定---', 'PM', '■昼礼'].join('\n');
+  assertEquals_(expected, actual, '昼の日報本文');
+  assertTrue_(actual.indexOf('＜進捗状況＞') === -1, '昼には進捗状況を入れない');
+  assertTrue_(actual.indexOf('お疲れ様です') === -1, '昼には挨拶を入れない');
 }
 
 /* ------------------------------------------------------------------ *
@@ -2550,25 +2470,6 @@ function makeFakeEvent_(description) {
       return description;
     },
   };
-}
-
-/**
- * 次営業日が「起点より後の最初の営業日」であることを確認する
- * （間の日がすべて土日祝であることを実際のカレンダーで検証する）。
- */
-function assertNextBusinessDayIsValid_(date) {
-  var next = getNextBusinessDay_(date);
-  assertTrue_(next.getTime() > date.getTime(), '次営業日は起点より後');
-  assertTrue_(isBusinessDay_(next), '次営業日は営業日: ' + formatDateKey_(next));
-
-  for (var offset = 1; ; offset++) {
-    var skipped = addDays_(date, offset);
-    if (formatDateKey_(skipped) === formatDateKey_(next)) break;
-    assertTrue_(
-      !isBusinessDay_(skipped),
-      '飛ばした日は営業日ではない: ' + formatDateKey_(skipped)
-    );
-  }
 }
 
 function assertEquals_(expected, actual, label) {

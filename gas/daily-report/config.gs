@@ -53,9 +53,6 @@ var DEFAULT_HOLIDAY_CALENDAR_ID = 'ja.japanese#holiday@group.v.calendar.google.c
  */
 var HOLIDAY_CALENDAR_NON_HOLIDAY_LABELS = ['祭日', '行事', 'Observance', 'Season'];
 
-/** 次営業日を探すときに先読みする最大日数（無限ループ防止）。 */
-var MAX_BUSINESS_DAY_LOOKAHEAD = 14;
-
 /** Script Properties のキー名。 */
 var PROP_CHATWORK_API_TOKEN = 'CHATWORK_API_TOKEN';
 var PROP_CHATWORK_ROOM_ID = 'CHATWORK_ROOM_ID';

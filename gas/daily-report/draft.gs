@@ -159,7 +159,7 @@ function prepareDraft_(reportType) {
   var existing = loadDraft_(today, reportType);
   if (existing !== null) return { date: today, record: existing, created: false };
 
-  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
+  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
   return { date: today, record: saveDraft_(today, reportType, body), created: true };
 }
 
