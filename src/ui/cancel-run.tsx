@@ -186,7 +186,6 @@ export function CanceledRunNotice({ run }: { run: WorkRun }) {
         )}
 
         <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-          <LinkButton href={`/map/${run.id}`} variant="secondary" size="sm">この業務のマップを見る</LinkButton>
           <LinkButton href="/tasks" variant="secondary" size="sm">タスク一覧へ</LinkButton>
           <LinkButton href="/" size="sm">HOMEへ戻る</LinkButton>
         </div>

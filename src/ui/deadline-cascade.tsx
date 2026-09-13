@@ -32,7 +32,7 @@ export function DeadlineProposalRow({
       >
         <input
           type="checkbox" checked={checked} onChange={onToggle}
-          className="h-4 w-4 accent-[#1d5a78]"
+          className="h-4 w-4 accent-brand"
           aria-label={`${proposal.title} の期限を更新する`}
         />
         <span className="min-w-0 flex-1">

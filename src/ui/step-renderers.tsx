@@ -43,7 +43,7 @@ function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
         <input
           type="checkbox" checked={checked}
           onChange={(e) => onCheck({ [item.key]: e.target.checked })}
-          className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
+          className="mt-0.5 h-4 w-4 accent-brand"
         />
         <span className="flex-1 text-[13.5px] leading-relaxed">
           {item.label}
@@ -346,7 +346,7 @@ function TaskCreateRenderer({ step, stepRun, run, onCheck }: StepRendererProps) 
             <input
               type="checkbox" checked={checked}
               onChange={(e) => onCheck({ [key]: e.target.checked })}
-              className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
+              className="mt-0.5 h-4 w-4 accent-brand"
             />
             <span className="min-w-0 flex-1">
               <span className="block text-[13.5px] font-medium">{t.title}</span>
@@ -489,7 +489,7 @@ function ApprovalRenderer({ step, stepRun, run, onCheck }: StepRendererProps) {
       )}
       <ReviewTarget step={step} run={run} />
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-3.5 hover:bg-surface-2">
-        <input type="checkbox" checked={checked} onChange={(e) => onCheck({ approved: e.target.checked })} className="h-4 w-4 accent-[#1d5a78]" />
+        <input type="checkbox" checked={checked} onChange={(e) => onCheck({ approved: e.target.checked })} className="h-4 w-4 accent-brand" />
         <span className="text-[13.5px] font-medium">{label}</span>
       </label>
     </div>
@@ -587,7 +587,7 @@ function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) 
               <input
                 type="checkbox" checked={checked}
                 onChange={(e) => onCheck({ [item.key]: e.target.checked })}
-                className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
+                className="mt-0.5 h-4 w-4 accent-brand"
               />
               <span className="flex-1 text-[13.5px] leading-relaxed">
                 {item.label}

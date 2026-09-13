@@ -216,7 +216,7 @@ export function stepPosition(
   return { index: Math.min(settled + 1, total), total };
 }
 
-/** STEP を並び順（トポロジカル順）に整列する。マップ描画とレール表示に使う */
+/** STEP を並び順（トポロジカル順）に整列する。STEPレールと一覧の並びに使う */
 export function orderedSteps(def: WorkflowDefinition): StepDefinition[] {
   const indeg = new Map<string, number>();
   for (const s of def.steps) indeg.set(s.key, 0);
@@ -238,19 +238,6 @@ export function orderedSteps(def: WorkflowDefinition): StepDefinition[] {
   }
   for (const s of def.steps) if (!seen.has(s.key)) out.push(s.key);
   return out.map((k) => def.steps.find((s) => s.key === k)!).filter(Boolean);
-}
-
-/** 階層（ゴールまでの深さ）を算出する。業務マップのレイアウトに使う */
-export function stepDepths(def: WorkflowDefinition): Map<string, number> {
-  const depth = new Map<string, number>();
-  for (const s of orderedSteps(def)) {
-    const incoming = incomingEdges(def, s.key);
-    const d = incoming.length === 0
-      ? 0
-      : Math.max(...incoming.map((e) => (depth.get(e.from) ?? 0) + 1));
-    depth.set(s.key, d);
-  }
-  return depth;
 }
 
 export function makeEvent(

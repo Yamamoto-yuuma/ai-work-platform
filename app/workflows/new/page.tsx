@@ -4,7 +4,7 @@
  * 業務の登録（仕様 §28-6）。
  *
  * ここで登録した定義は、シードの定義とまったく同じ形でストアに入る。
- * 以降は HOME・業務一覧・ナビゲーター・タスク・マップが同じように扱う。
+ * 以降は HOME・業務一覧・ナビゲーター・タスクが同じように扱う。
  */
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -54,7 +54,7 @@ function NewWorkflowInner() {
           <p className="text-[13.5px] font-bold text-ok">業務を登録しました</p>
           <h1 className="mt-2 text-[23px] font-bold tracking-tight">{saved.name}</h1>
           <p className="mt-2 text-[13.5px] leading-relaxed text-ink-2">
-            この業務は「業務」一覧に並びました。開始すると、HOME・タスク・マップにも現れます。
+            この業務は「業務」一覧に並びました。開始すると、HOME・タスクにも現れます。
           </p>
           {/* 登録した直後だけ。未設定があるなら、後から足せることを伝える */}
           <CatSays

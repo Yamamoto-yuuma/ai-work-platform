@@ -253,14 +253,13 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         {change && (
           <Card className="p-4 sm:col-span-2">
             <p className="mb-2 text-[13.5px] font-bold text-ink-3">このタスクが発生した理由</p>
-            <Link href={`/map/impact/${change.id}`} className="block rounded-lg bg-surface-2 px-3.5 py-3 hover:bg-brand-soft">
+            <div className="rounded-lg bg-surface-2 px-3.5 py-3">
               <p className="text-[13.5px] font-medium">{change.entityLabel}</p>
               <p className="mt-1 text-[13.5px] text-ink-2">
                 {change.fieldLabel}：{new Date(String(change.before)).toLocaleDateString("ja-JP")} → {new Date(String(change.after)).toLocaleDateString("ja-JP")}
               </p>
               {change.reason && <p className="mt-1 text-[12px] text-ink-3">{change.reason}</p>}
-              <p className="mt-2 text-[12px] text-brand">インパクトマップで影響範囲を見る →</p>
-            </Link>
+            </div>
           </Card>
         )}
 

@@ -121,7 +121,6 @@ export function RunCompletion({
       </Link>
 
       <div className="flex flex-wrap gap-2">
-        <LinkButton href={`/map/${run.id}`} variant="secondary">この業務のマップを見る</LinkButton>
         <LinkButton href="/tasks" variant="secondary">タスク一覧へ</LinkButton>
         <LinkButton href="/">HOMEへ戻る</LinkButton>
       </div>

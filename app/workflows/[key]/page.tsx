@@ -334,7 +334,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
               <ul className="flex flex-col gap-1">
                 {closedRuns.slice(0, 5).map((r) => (
                   <li key={r.id}>
-                    <Link href={`/map/${r.id}`} className="flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-surface-2">
+                    <Link href={`/navigator/${r.id}`} className="flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-surface-2">
                       <span className="truncate text-[13.5px]">{runLabel(r)}</span>
                       <Badge tone={r.status === "done" ? "ok" : "neutral"}>{r.status === "done" ? "完了" : "中止"}</Badge>
                     </Link>

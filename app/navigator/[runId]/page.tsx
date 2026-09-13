@@ -38,7 +38,7 @@ const STATUS_MARK: Record<StepRunStatus, { mark: string; cls: string }> = {
 
 export default function NavigatorPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = use(params);
-  const { state, dispatch, users, currentUser } = useStore();
+  const { dispatch, users, currentUser } = useStore();
   const now = useNow();
   const view = useRunView(runId);
 
@@ -75,7 +75,6 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
   // 表示中のSTEPが現在地と違うとき、それを明示する
   const viewingPast = Boolean(activeKey) && !run.currentStepKeys.includes(activeKey!);
   const assignee = users.find((u) => u.id === run.assigneeId);
-  const changeCount = state.changeEvents.filter((c) => c.runId === run.id).length;
 
   function complete() {
     if (!stepView || !activeKey || !view) return;
@@ -189,7 +188,6 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
             <span className="text-[13.5px] font-medium tabular-nums">
               STEP {position.index} / {position.total}
             </span>
-            <LinkButton href={`/map/${run.id}`} variant="secondary" size="sm">業務マップ</LinkButton>
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
@@ -448,8 +446,6 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
             onRequestChange={() => setChangeOpen(true)}
             onWaitRun={() => setWaitOpen(true)}
             onCancelRun={() => setCancelOpen(true)}
-            historyHref={`/map/${run.id}`}
-            historyCount={changeCount}
           />
         ) : (
           /*
@@ -469,11 +465,6 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                   : "STEPの実行はできませんが、後から変更が起きた場合は起票して影響を確認できます。"}
               </p>
               <Button variant="secondary" size="sm" onClick={() => setChangeOpen(true)}>変更を起票</Button>
-              {changeCount > 0 && (
-                <Link href={`/map/${run.id}`} className="mt-2 block text-[12px] text-brand hover:underline">
-                  この業務の変更履歴（{changeCount}件）→
-                </Link>
-              )}
             </div>
           </aside>
         )}

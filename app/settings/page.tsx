@@ -118,7 +118,7 @@ export default function SettingsPage() {
                 <input
                   type="radio" name="user" checked={u.id === state.currentUserId}
                   onChange={() => dispatch({ type: "setUser", userId: u.id })}
-                  className="h-4 w-4 accent-[#1d5a78]"
+                  className="h-4 w-4 accent-brand"
                 />
                 <span className="flex-1 text-[13.5px] font-medium">{u.name}</span>
                 <span className="text-[12px] text-ink-3">{u.team}</span>

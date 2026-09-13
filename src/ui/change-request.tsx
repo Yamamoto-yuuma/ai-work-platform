@@ -203,7 +203,7 @@ export function ChangeRequestPanel({
                       setTargetId(t.id); setAfter(""); setBeforeInput(""); setErrors([]);
                       setEntityLabel(t.kind === "derivation" ? run.subject.label : "");
                     }}
-                    className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
+                    className="mt-0.5 h-4 w-4 accent-brand"
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13.5px] font-medium leading-snug">{t.label}</span>
@@ -445,7 +445,7 @@ function ImpactPreview({
                     <input
                       type="checkbox" checked={checked}
                       onChange={() => toggle(selectedTasks, setSelectedTasks, t.id)}
-                      className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
+                      className="mt-0.5 h-4 w-4 accent-brand"
                       aria-label={`${t.title} を作成する`}
                     />
                     <span className="min-w-0 flex-1">
@@ -590,9 +590,6 @@ function AppliedSummary({
         )}
 
         <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-          <LinkButton href={`/map/impact/${applied.changeId}`} variant="secondary" size="sm">
-            影響を確認
-          </LinkButton>
           <LinkButton href="/tasks" variant="secondary" size="sm">タスクを見る</LinkButton>
           <Button size="sm" onClick={onClose}>業務に戻る</Button>
           <Button variant="ghost" size="sm" onClick={onAgain}>続けて別の変更を起票</Button>

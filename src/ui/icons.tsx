@@ -43,16 +43,6 @@ export const TaskIcon = () => (
   </svg>
 );
 
-/** マップ＝分かれて繋がる関係。点を線で結ぶ */
-export const MapIcon = () => (
-  <svg {...BOX} className="h-[17px] w-[17px]">
-    <circle cx="4.6" cy="10" r="1.9" />
-    <circle cx="15.4" cy="5.4" r="1.9" />
-    <circle cx="15.4" cy="14.6" r="1.9" />
-    <path d="M6.3 9.1 13.7 6.2M6.3 10.9l7.4 2.9" />
-  </svg>
-);
-
 export const KnowledgeIcon = () => (
   <svg {...BOX} className="h-[17px] w-[17px]">
     <path d="M3.6 4.6A1.4 1.4 0 0 1 5 3.2h4.2a1.6 1.6 0 0 1 1.6 1.6v11a1.4 1.4 0 0 0-1.4-1.4H5a1.4 1.4 0 0 1-1.4-1.4Z" />
@@ -87,7 +77,6 @@ export const NAV_ICON: Record<string, ComponentType> = {
   "/workflows": FlowIcon,
   "/tasks": TaskIcon,
   "/daily-report": ReportIcon,
-  "/map": MapIcon,
   "/knowledge": KnowledgeIcon,
   "/settings": SettingsIcon,
 };

@@ -22,7 +22,7 @@ function Section({ title, icon, children }: { title: string; icon: string; child
 }
 
 export function ContextPanel({
-  ctx, onRequestChange, onWaitRun, onCancelRun, historyHref, historyCount,
+  ctx, onRequestChange, onWaitRun, onCancelRun,
 }: {
   ctx: StepContext;
   /** 変更起票の入口。渡されたときだけ表示する */
@@ -31,9 +31,6 @@ export function ContextPanel({
   onWaitRun?: () => void;
   /** 業務中止の入口。進行中の業務にだけ渡す */
   onCancelRun?: () => void;
-  /** 変更履歴への導線。変更が1件以上あるときだけ渡す */
-  historyHref?: string;
-  historyCount?: number;
 }) {
   // 期限はこのパネルに出さないので、中身の有無にも数えない
   const hasAnything =
@@ -206,11 +203,6 @@ export function ContextPanel({
                 </Button>
               )}
             </div>
-            {historyHref && historyCount ? (
-              <Link href={historyHref} className="mt-2 block text-[12px] text-brand hover:underline">
-                変更履歴（{historyCount}件）→
-              </Link>
-            ) : null}
           </div>
         )}
       </div>
