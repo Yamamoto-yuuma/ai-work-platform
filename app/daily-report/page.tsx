@@ -163,10 +163,10 @@ export default function DailyReportPage() {
             日報の連携先がまだ設定されていません。
             <br />
             Apps Script をウェブアプリとして公開し、その URL と合言葉を環境変数
-            <code className="mx-1 break-all rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+            <code className="mx-1 break-all rounded bg-surface px-1 py-0.5 font-mono text-[12px]">
               DAILY_REPORT_GAS_URL
             </code>
-            <code className="mr-1 break-all rounded bg-surface px-1 py-0.5 font-mono text-[11px]">
+            <code className="mr-1 break-all rounded bg-surface px-1 py-0.5 font-mono text-[12px]">
               DAILY_REPORT_SECRET
             </code>
             に設定してください。
@@ -194,20 +194,20 @@ export default function DailyReportPage() {
       />
 
       {failure && (
-        <div className="mb-4 rounded-[5px] bg-danger-soft px-3.5 py-2.5 text-[12px] leading-[1.8] text-danger">
+        <div className="mb-4 rounded-[5px] bg-danger-soft px-3.5 py-2.5 text-[13.5px] leading-[1.8] text-danger">
           {failure.error}
         </div>
       )}
 
       {notice && (
-        <div className="mb-4 rounded-[5px] bg-ok-soft px-3.5 py-2.5 text-[12px] text-ok">
+        <div className="mb-4 rounded-[5px] bg-ok-soft px-3.5 py-2.5 text-[13.5px] text-ok">
           {notice}
         </div>
       )}
 
       {state && (
         <div>
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-[12px] text-ink-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-[13.5px] text-ink-2">
             <span className="font-medium text-ink">{state.todayLabel}</span>
             {state.nonBusinessDayReason !== null && (
               <Badge tone="neutral">
@@ -227,7 +227,7 @@ export default function DailyReportPage() {
                 <Card key={reportType}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-[14px] font-bold">
+                      <h2 className="text-[15px] font-bold">
                         {LABEL[reportType]}
                       </h2>
                       {report.sent ? (
@@ -241,7 +241,7 @@ export default function DailyReportPage() {
                         <Badge tone="neutral">下書きなし</Badge>
                       )}
                     </div>
-                    <span className="text-[11px] text-ink-3">
+                    <span className="text-[12px] text-ink-3">
                       {report.exists && report.generatedAt
                         ? `${timeOf(report.generatedAt)} に作成`
                         : TIME[reportType]}
@@ -252,7 +252,7 @@ export default function DailyReportPage() {
                     <>
                       <textarea
                         id={`daily-report-${reportType}`}
-                        className="mt-3 h-64 w-full resize-y rounded-[5px] border border-line bg-surface px-3 py-2.5 font-mono text-[12px] leading-[1.8] text-ink outline-none focus:border-brand"
+                        className="mt-3 h-64 w-full resize-y rounded-[5px] border border-line bg-surface px-3 py-2.5 font-mono text-[13.5px] leading-[1.8] text-ink outline-none focus:border-brand"
                         value={edited}
                         readOnly={report.sent}
                         onChange={(event) =>
@@ -333,7 +333,7 @@ export default function DailyReportPage() {
                           作り直す
                         </Button>
                         {changed && (
-                          <span className="text-[11px] text-ink-3">
+                          <span className="text-[12px] text-ink-3">
                             未保存の変更があります
                           </span>
                         )}
@@ -366,7 +366,7 @@ export default function DailyReportPage() {
             })}
           </div>
 
-          <p className="mt-5 text-[11px] leading-[1.9] text-ink-3">
+          <p className="mt-5 text-[12px] leading-[1.9] text-ink-3">
             自動で作られるのは下書きまでです。Chatwork
             へ投稿されるのは、ここで送信を押したときだけです。
             送信した日報は取り消せません。

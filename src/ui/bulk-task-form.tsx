@@ -48,8 +48,8 @@ export function BulkTaskForm({
   return (
     <Card className="mb-5 p-5">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-[14px] font-bold">まとめて追加</h2>
-        <span className="text-[11.5px] text-ink-3">1行が1件になります</span>
+        <h2 className="text-[15px] font-bold">まとめて追加</h2>
+        <span className="text-[12px] text-ink-3">1行が1件になります</span>
       </div>
 
       <textarea
@@ -61,7 +61,7 @@ export function BulkTaskForm({
         className="field w-full leading-relaxed"
       />
 
-      <p className="mt-2 text-[11.5px] leading-relaxed text-ink-3">
+      <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
         期限（明日・来週・9/15・15日・月曜）、見積（30分・1時間）、
         急ぎの印（! や 至急）を書いておくと、そのまま読み取ります。
         書かなくても構いません。
@@ -70,12 +70,12 @@ export function BulkTaskForm({
       {parsed.length > 0 && (
         <div className="mt-4">
           <div className="mb-1.5 flex items-baseline justify-between gap-3">
-            <p className="text-[12px] font-medium">
+            <p className="text-[13.5px] font-medium">
               こう入ります
               <span className="ml-1.5 font-normal text-ink-3">{kept.length}件</span>
             </p>
             {ignored > 0 && (
-              <p className="text-[11.5px] text-ink-3">
+              <p className="text-[12px] text-ink-3">
                 名前の無い{ignored}行は入りません
               </p>
             )}
@@ -94,7 +94,7 @@ export function BulkTaskForm({
                     off ? "bg-surface-2" : "bg-surface"
                   }`}
                 >
-                  <span className={`min-w-0 flex-1 truncate text-[12.5px] ${
+                  <span className={`min-w-0 flex-1 truncate text-[13.5px] ${
                     off ? "text-ink-3 line-through" : "font-medium"
                   }`}>
                     {p.title}
@@ -102,19 +102,19 @@ export function BulkTaskForm({
 
                   {/* 読み取ったものだけ出す。読めなかった欄は空けておく */}
                   {p.dueAt && (
-                    <span className="shrink-0 cell-num text-[11.5px] text-ink-2">
+                    <span className="shrink-0 cell-num text-[12px] text-ink-2">
                       {new Date(p.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
                     </span>
                   )}
                   {p.estimatedMinutes !== undefined && (
-                    <span className="shrink-0 text-[11.5px] text-ink-3">{formatMinutes(p.estimatedMinutes)}</span>
+                    <span className="shrink-0 text-[12px] text-ink-3">{formatMinutes(p.estimatedMinutes)}</span>
                   )}
-                  {pri && <span className="shrink-0 text-[11.5px] text-danger">{pri}</span>}
+                  {pri && <span className="shrink-0 text-[12px] text-danger">{pri}</span>}
 
                   <button
                     type="button"
                     onClick={() => toggle(i)}
-                    className="shrink-0 rounded-md px-2 py-0.5 text-[11px] text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+                    className="shrink-0 rounded-md px-2 py-0.5 text-[12px] text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
                     aria-label={off ? `${p.title} を入れる` : `${p.title} を入れない`}
                   >
                     {off ? "戻す" : "外す"}

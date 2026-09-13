@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows, useNow } from "@/ui/use-navigator";
 import { ruleWeight, ruleAppliesToStep } from "@/core/rules/resolver";
-import { Badge, Button, Card, PageHeader } from "@/ui/primitives";
+import { Badge, Button, Card, PageHeader, SubHead } from "@/ui/primitives";
 import type { BusinessRule } from "@/core/model/types";
 
 const TYPE_LABEL = { case: "個別案件ルール", temporary: "期間限定ルール", department: "部署ルール", standard: "標準" } as const;
@@ -62,15 +62,15 @@ export default function RulesPage() {
               {phase === "scheduled" && <Badge tone="brand">開始前</Badge>}
               {phase === "expired" && <Badge tone="neutral">期間終了</Badge>}
             </div>
-            <h3 className="mt-2 text-[14px] font-bold leading-snug">{rule.name}</h3>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">{rule.description}</p>
+            <h3 className="mt-2 text-[15px] font-bold leading-snug">{rule.name}</h3>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{rule.description}</p>
           </div>
           <Button size="sm" variant="ghost" onClick={() => setPreview(preview?.id === rule.id ? null : rule)}>
             {preview?.id === rule.id ? "閉じる" : "影響を確認"}
           </Button>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line-soft pt-3 text-[11.5px] text-ink-3">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line-soft pt-3 text-[12px] text-ink-3">
           <span>
             {new Date(rule.activeFrom).toLocaleDateString("ja-JP")}
             {rule.activeTo ? ` 〜 ${new Date(rule.activeTo).toLocaleDateString("ja-JP")}` : " 〜 （無期限）"}
@@ -84,13 +84,13 @@ export default function RulesPage() {
 
         {preview?.id === rule.id && (
           <div className="mt-3 rounded-lg bg-brand-soft p-3.5">
-            <p className="text-[12px] font-bold text-brand">このルールの影響</p>
+            <p className="text-[13.5px] font-bold text-brand">このルールの影響</p>
             {affected.length === 0 ? (
-              <p className="mt-1.5 text-[12px] text-ink-2">影響するSTEPはありません。</p>
+              <p className="mt-1.5 text-[13.5px] text-ink-2">影響するSTEPはありません。</p>
             ) : (
               <ul className="mt-2 flex flex-col gap-1">
                 {affected.map((a, i) => (
-                  <li key={i} className="text-[12px] text-ink-2">
+                  <li key={i} className="text-[13.5px] text-ink-2">
                     「{a.workflow}」の <span className="font-medium">{a.step}</span> STEP
                   </li>
                 ))}
@@ -98,7 +98,7 @@ export default function RulesPage() {
             )}
             <ul className="mt-2.5 flex flex-col gap-1 border-t border-brand/20 pt-2.5">
               {rule.effects.map((e, i) => (
-                <li key={i} className="text-[12px] text-ink-2">
+                <li key={i} className="text-[13.5px] text-ink-2">
                   {e.type === "addChecklistItems" && `確認項目を${e.items.length}件追加：${e.items.map((x) => x.label).join(" / ")}`}
                   {e.type === "addFields" && `入力項目を${e.fields.length}件追加`}
                   {e.type === "showNotice" && `注意文を表示：${e.text}`}
@@ -122,8 +122,8 @@ export default function RulesPage() {
       />
 
       <Card className="mb-6 p-4">
-        <p className="text-[12.5px] font-bold">ルールの優先順位</p>
-        <ol className="mt-2 flex flex-wrap gap-2 text-[12px]">
+        <p className="text-[13.5px] font-bold">ルールの優先順位</p>
+        <ol className="mt-2 flex flex-wrap gap-2 text-[13.5px]">
           {(["case", "temporary", "department", "standard"] as const).map((t, i) => (
             <li key={t} className="flex items-center gap-1.5">
               <span className="rounded bg-surface-2 px-2 py-1">{i + 1}. {TYPE_LABEL[t]}</span>
@@ -131,16 +131,20 @@ export default function RulesPage() {
             </li>
           ))}
         </ol>
-        <p className="mt-2 text-[11.5px] text-ink-3">競合した場合は上位が優先されます。重要な競合は業務ナビゲーター上で警告します。</p>
+        <p className="mt-2 text-[12px] text-ink-3">競合した場合は上位が優先されます。重要な競合は業務ナビゲーター上で警告します。</p>
       </Card>
 
       {(["active", "scheduled", "expired"] as const).map((key) => {
         const list = grouped[key];
-        const titles = { active: "適用中", scheduled: "開始前（予約）", expired: "期間終了・無効" };
+        const titles = {
+          active: { en: "Active", ja: "適用中" },
+          scheduled: { en: "Scheduled", ja: "開始前（予約）" },
+          expired: { en: "Expired", ja: "期間終了・無効" },
+        };
         if (list.length === 0) return null;
         return (
           <section key={key} className="mb-7">
-            <h2 className="mb-3 text-[13px] font-bold">{titles[key]}（{list.length}）</h2>
+            <SubHead title={titles[key].en} count={list.length} note={titles[key].ja} className="mb-3" />
             <div className="flex flex-col gap-2.5">
               {list.map((r) => <RuleCard key={r.id} rule={r} phase={key} />)}
             </div>
@@ -149,8 +153,8 @@ export default function RulesPage() {
       })}
 
       <Card className="border-dashed p-5 text-center">
-        <p className="text-[13px] font-medium text-ink-2">＋ 新しい一時ルールを追加</p>
-        <p className="mt-1 text-[12px] text-ink-3">ルール作成フォームは Phase 5 で実装します。</p>
+        <p className="text-[13.5px] font-medium text-ink-2">＋ 新しい一時ルールを追加</p>
+        <p className="mt-1 text-[13.5px] text-ink-3">ルール作成フォームは Phase 5 で実装します。</p>
       </Card>
 
       {(() => {
@@ -159,7 +163,7 @@ export default function RulesPage() {
         const wf = target ? workflows.find((w) => w.name === target.workflow) : undefined;
         if (!wf) return null;
         return (
-          <p className="mt-5 text-center text-[12px] text-ink-3">
+          <p className="mt-5 text-center text-[13.5px] text-ink-3">
             ルールが実際に業務へ反映される様子は
             <Link href={`/workflows/${wf.key}`} className="mx-1 text-brand hover:underline">{wf.name}</Link>
             で確認できます。

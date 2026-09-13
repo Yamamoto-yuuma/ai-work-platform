@@ -8,22 +8,22 @@
     青は「面を塗る色」ではなく、いま押すもの・いま見ている場所を
     指すためだけに使う。画面の大半には色を置かない。
   */
-  --color-ink: #14181d;      /* 見出し・本文 */
-  --color-ink-2: #4d5560;    /* 説明文 */
-  --color-ink-3: #858d98;    /* 補助・単位・状態 */
+  --color-ink: #0f1319;      /* 見出し・本文 */
+  --color-ink-2: #4b5462;    /* 説明文 */
+  --color-ink-3: #838c99;    /* 補助・単位・状態 */
 
   /* 紙面。ほんのわずかに沈めた白。カードの白との差だけを作る */
-  --color-paper: #f7f8fa;
+  --color-paper: #f6f7f9;
   /* カードの面。純白 */
   --color-surface: #ffffff;
   /* 一段沈めた面。入れ子の箱・見出し帯・空の状態 */
-  --color-surface-2: #f1f3f6;
+  --color-surface-2: #eef1f5;
   /*
     線。主役にしない。
     line は区切りに使う実線、line-soft は「あるかないか」の淡さ。
   */
-  --color-line: #e3e6ea;
-  --color-line-soft: #edeff2;
+  --color-line: #dee2e9;
+  --color-line-soft: #e9edf2;
   /*
     左レーン。白で通す。
     紙面（paper）よりわずかに明るい純白にして、色ではなく面の違いだけで
@@ -35,7 +35,7 @@
   --color-rail-ink: #14181d;    /* レーン上の文字 */
   --color-rail-ink-2: #4d5560;  /* レーン上の弱い文字 */
   --color-rail-line: #edeff2;   /* レーン上の区切り */
-  --color-rail-danger: #9c3535; /* レーン上で期限超過を示す文字 */
+  --color-rail-danger: #b3261e; /* レーン上で期限超過を示す文字 */
 
   /*
     ── 影 ──────────────────────────────────────────────
@@ -63,7 +63,7 @@
   /* 選択中の面をわずかに沈ませる。押し込まれた感じを線ではなく面で出す */
   --shadow-inset: inset 0 1px 2px rgba(24, 30, 40, 0.05);
   /* 触れているものを示す輪。枠線を太らせる代わりに使う */
-  --ring-focus: 0 0 0 3px rgba(47, 107, 147, 0.15);
+  --ring-focus: 0 0 0 3px rgba(26, 95, 180, 0.16);
 
   /*
     ── 角丸 ────────────────────────────────────────────
@@ -85,19 +85,25 @@
     ── 差し色 ──────────────────────────────────────────
     使うのは、いま押すもの・いま見ている場所・状態を示すところだけ。
     面を広く塗らない。soft 系は白に近づけて、色が主張しないようにする。
+
+    以前は、色そのものを灰色寄りに濁らせて「落ち着かせて」いた。
+    だが濁った色は、落ち着いて見えるのではなく、褪せて見える。
+    面積で抑えるのと、彩度で抑えるのは別のこと。ここは彩度を戻し、
+    そのぶん置く面積を狭いままにして抑える。
+    どの色も白の上で 5.5:1 以上あり、文字として置ける。
   */
-  --color-brand: #2f6b93;
-  --color-brand-soft: #eaf1f6;
-  --color-brand-ink: #1d4c69;
-  /* 状態の色。どれも白に近い面に、落ち着いた文字で置く */
-  --color-signal: #8a5518;
-  --color-signal-soft: #faf0e5;
-  --color-danger: #9c3535;
-  --color-danger-soft: #faecec;
-  --color-ok: #2a6a50;
-  --color-ok-soft: #e8f2ed;
-  --color-ai: #5a4f88;
-  --color-ai-soft: #efedf6;
+  --color-brand: #1a5fb4;
+  --color-brand-soft: #e9f0fb;
+  --color-brand-ink: #144484;
+  /* 状態の色。どれも白に近い面に、はっきりした文字で置く */
+  --color-signal: #9a5a05;
+  --color-signal-soft: #fdf0dd;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fdebe9;
+  --color-ok: #10714f;
+  --color-ok-soft: #e3f2eb;
+  --color-ai: #5b47b8;
+  --color-ai-soft: #eeebfa;
 
   /*
     本文書体。
@@ -123,6 +129,12 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  /*
+    本文の基準。以前は 13px より下に 9 割の文字が固まっていて、
+    どれが見出しでどれが補足かが読み取れなかった。段が見える大きさまで上げる。
+  */
+  font-size: 15px;
+  line-height: 1.75;
   font-feature-settings: "palt" 1;
   -webkit-font-smoothing: antialiased;
 }
@@ -149,8 +161,8 @@ body {
     background: var(--color-surface);
     padding: 0.5625rem 0.8125rem;
     font: inherit;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.7;
     color: var(--color-ink);
     outline: none;
     transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
@@ -165,8 +177,8 @@ body {
   .field { width: 100%; }
   /* 幅を内容に合わせたいもの（日付など）は w-auto を足す */
   .field-sm {
-    padding: 0.375rem 0.625rem;
-    font-size: 12.5px;
+    padding: 0.4375rem 0.6875rem;
+    font-size: 13.5px;
     border-radius: var(--radius-sm);
   }
 
@@ -297,9 +309,9 @@ body {
     padding-top: 0.4375rem;
     padding-bottom: 0.4375rem;
     min-height: 0;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: .02em;
+    letter-spacing: .04em;
     color: var(--color-ink-3);
   }
   /* 表の中の値。数字と日付は右に寄せず、桁だけ揃える */

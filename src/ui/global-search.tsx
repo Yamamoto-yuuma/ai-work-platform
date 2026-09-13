@@ -84,7 +84,7 @@ export function GlobalSearch() {
     <div ref={box} className="relative w-full max-w-[480px]">
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] leading-none text-ink-3"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13.5px] leading-none text-ink-3"
       >
         ⌕
       </span>
@@ -108,7 +108,7 @@ export function GlobalSearch() {
           className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl bg-surface shadow-pop"
         >
           {hits.length === 0 ? (
-            <p className="px-4 py-3.5 text-[12.5px] text-ink-3">見つかりませんでした</p>
+            <p className="px-4 py-3.5 text-[13.5px] text-ink-3">見つかりませんでした</p>
           ) : (
             <ul className="max-h-[60vh] overflow-y-auto py-1">
               {hits.map((h, i) => (
@@ -122,15 +122,15 @@ export function GlobalSearch() {
                     }`}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className={`block truncate text-[13px] ${h.dimmed ? "text-ink-3" : "font-medium"}`}>
+                      <span className={`block truncate text-[13.5px] ${h.dimmed ? "text-ink-3" : "font-medium"}`}>
                         {h.title}
                       </span>
                       {h.hint && (
-                        <span className="mt-0.5 block truncate text-[11.5px] text-ink-3">{h.hint}</span>
+                        <span className="mt-0.5 block truncate text-[12px] text-ink-3">{h.hint}</span>
                       )}
                     </span>
                     {/* 何の話かを、色ではなく言葉で示す */}
-                    <span className="shrink-0 text-[11px] text-ink-3">{HIT_KIND_LABEL[h.kind]}</span>
+                    <span className="shrink-0 text-[12px] text-ink-3">{HIT_KIND_LABEL[h.kind]}</span>
                   </button>
                 </li>
               ))}

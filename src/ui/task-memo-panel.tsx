@@ -28,7 +28,7 @@ import { formatMinutes } from "@/core/model/task-draft";
 import { newTaskId } from "@/lib/id";
 import { useStore } from "@/adapters/memory/store";
 import type { Task } from "@/core/model/types";
-import { Button } from "./primitives";
+import { Button, Eyebrow } from "./primitives";
 
 /**
  * 書きかけの置き場。
@@ -264,7 +264,7 @@ export function TaskMemoPanel({
           id="task-memo-open"
           onClick={openPanel}
           title="タスクメモを開く"
-          className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-[5px] border border-line bg-surface px-3 py-2.5 text-[12.5px] font-medium text-ink shadow-pop transition-colors hover:bg-surface-2 md:bottom-auto md:right-0 md:top-1/2 md:-translate-y-1/2 md:flex-col md:gap-1.5 md:rounded-r-none md:px-2 md:py-4"
+          className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-[5px] border border-line bg-surface px-3 py-2.5 text-[13.5px] font-medium text-ink shadow-pop transition-colors hover:bg-surface-2 md:bottom-auto md:right-0 md:top-1/2 md:-translate-y-1/2 md:flex-col md:gap-1.5 md:rounded-r-none md:px-2 md:py-4"
         >
           <MemoMark />
           <span className="md:[writing-mode:vertical-rl] md:tracking-[0.12em]">タスクメモ</span>
@@ -296,8 +296,11 @@ export function TaskMemoPanel({
           >
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-4">
               <div className="min-w-0">
-                <h2 className="text-[14px] font-bold">タスク化前メモ</h2>
-                <p className="mt-0.5 text-[11.5px] leading-[1.7] text-ink-2">
+                <h2 className="flex items-baseline gap-2">
+                  <Eyebrow>Inbox</Eyebrow>
+                  <span className="truncate text-[12px] text-ink-3">タスク化前メモ</span>
+                </h2>
+                <p className="mt-1 text-[13.5px] leading-[1.7] text-ink-2">
                   {candidates === null
                     ? "整理できていなくてOK。やることをそのまま書いてください。"
                     : "登録する前に確かめてください。直しても消してもかまいません。"}
@@ -308,7 +311,7 @@ export function TaskMemoPanel({
                 onClick={close}
                 aria-label={docked ? "タスクメモを畳む" : "閉じる"}
                 title={docked ? "畳む" : "閉じる"}
-                className="shrink-0 rounded-[5px] px-2 py-1 text-[15px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+                className="shrink-0 rounded-[5px] px-2 py-1 text-[17px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
               >
                 {docked ? "»" : "×"}
               </button>
@@ -318,7 +321,7 @@ export function TaskMemoPanel({
               <>
                 <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
                   {done !== null && (
-                    <div className="rounded-[5px] bg-ok-soft px-3.5 py-2.5 text-[12px] text-ok">
+                    <div className="rounded-[5px] bg-ok-soft px-3.5 py-2.5 text-[13.5px] text-ok">
                       {done}件のタスクを登録しました。
                     </div>
                   )}
@@ -331,7 +334,7 @@ export function TaskMemoPanel({
                     placeholder={PLACEHOLDER}
                     className="field min-h-[220px] flex-1 resize-none leading-[1.9]"
                   />
-                  <p className="text-[11px] leading-[1.8] text-ink-3">
+                  <p className="text-[12px] leading-[1.8] text-ink-3">
                     <span className="text-ink-2">①②③</span> や{" "}
                     <span className="text-ink-2">・</span> を付けた行から、次の印までが1件になります。
                     印の無い行は、その前の件の続きとして扱います。印を使わなければ1行が1件です。
@@ -351,7 +354,7 @@ export function TaskMemoPanel({
               <>
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
                   {candidates.length === 0 ? (
-                    <p className="py-8 text-center text-[12.5px] text-ink-3">
+                    <p className="py-8 text-center text-[13.5px] text-ink-3">
                       候補がなくなりました。前の画面から書き直せます。
                     </p>
                   ) : (
@@ -369,14 +372,14 @@ export function TaskMemoPanel({
                               type="button"
                               onClick={() => remove(c.key)}
                               aria-label={`${c.title} を候補から外す`}
-                              className="shrink-0 rounded-[5px] px-2 py-1.5 text-[13px] leading-none text-ink-3 transition-colors hover:bg-danger-soft hover:text-danger"
+                              className="shrink-0 rounded-[5px] px-2 py-1.5 text-[13.5px] leading-none text-ink-3 transition-colors hover:bg-danger-soft hover:text-danger"
                             >
                               ×
                             </button>
                           </div>
 
                           <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <label className="flex items-center gap-1.5 text-[11px] text-ink-3">
+                            <label className="flex items-center gap-1.5 text-[12px] text-ink-3">
                               期限
                               <input
                                 type="date"
@@ -385,7 +388,7 @@ export function TaskMemoPanel({
                                 className="field field-sm w-auto"
                               />
                             </label>
-                            <label className="flex items-center gap-1.5 text-[11px] text-ink-3">
+                            <label className="flex items-center gap-1.5 text-[12px] text-ink-3">
                               担当
                               <select
                                 value={c.assigneeId}
@@ -398,18 +401,18 @@ export function TaskMemoPanel({
                               </select>
                             </label>
                             {c.estimatedMinutes !== undefined && (
-                              <span className="text-[11px] text-ink-3">{formatMinutes(c.estimatedMinutes)}</span>
+                              <span className="text-[12px] text-ink-3">{formatMinutes(c.estimatedMinutes)}</span>
                             )}
                           </div>
 
                           {c.note !== undefined && (
-                            <p className="mt-2 whitespace-pre-wrap rounded-[3px] bg-surface-2 px-2.5 py-1.5 text-[11.5px] leading-[1.7] text-ink-2">
+                            <p className="mt-2 whitespace-pre-wrap rounded-[3px] bg-surface-2 px-2.5 py-1.5 text-[12px] leading-[1.7] text-ink-2">
                               {c.note}
                             </p>
                           )}
 
                           {c.matched.length > 0 && (
-                            <p className="mt-1.5 text-[10.5px] text-ink-3">
+                            <p className="mt-1.5 text-[12px] text-ink-3">
                               読み取り: {c.matched.join(" / ")}
                             </p>
                           )}

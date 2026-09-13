@@ -13,7 +13,7 @@ import { resolveNextSteps, getStep, isRunComplete } from "@/core/flow/engine";
 import { describeStepActionDetail } from "@/core/context/step-action";
 import { StepRenderer } from "@/ui/step-renderers";
 import { ContextPanel } from "@/ui/context-panel";
-import { Badge, Button, Card, LinkButton } from "@/ui/primitives";
+import { Badge, Button, Card, Eyebrow, LinkButton } from "@/ui/primitives";
 import { getComponentSpec } from "@/components-registry/registry";
 import { generateStepTasks } from "@/core/task/from-step";
 import { generateFollowUpTasks, generateRunFollowUpTasks } from "@/core/task/follow-up";
@@ -56,7 +56,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
   if (!view) {
     return (
       <div className="p-8">
-        <p className="text-[13px] text-ink-2">業務が見つかりません。</p>
+        <p className="text-[13.5px] text-ink-2">業務が見つかりません。</p>
         <LinkButton href="/" variant="secondary">HOMEへ戻る</LinkButton>
       </div>
     );
@@ -150,7 +150,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
     <div className="mx-auto max-w-[1400px] px-6 py-6">
       {/* 業務ヘッダー：対象・業務名・進捗・期限 */}
       <header className="mb-5">
-        <div className="mb-2 flex items-center gap-2 text-[12px] text-ink-3">
+        <div className="mb-2 flex items-center gap-2 text-[13.5px] text-ink-3">
           <Link href="/workflows" className="hover:text-brand">業務</Link>
           <span>/</span>
           <Link href={`/workflows/${def.key}`} className="hover:text-brand">{def.name}</Link>
@@ -159,7 +159,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           <div>
             <h1 className="text-[22px] font-bold tracking-tight">{runLabel(run)}</h1>
             {/* 対象を持たない業務では見出しが業務名なので繰り返さない */}
-            {subjectOf(run) && <p className="mt-0.5 text-[13px] text-ink-2">{def.name}</p>}
+            {subjectOf(run) && <p className="mt-0.5 text-[13.5px] text-ink-2">{def.name}</p>}
           </div>
           <div className="flex items-center gap-3">
             {isCanceled && <Badge tone="neutral">中止</Badge>}
@@ -171,7 +171,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               他人が担当のときだけ、知る必要があるので出す。
             */}
             {(!assignee || assignee.id !== currentUser.id) && (
-              <span className="text-[12.5px] text-ink-2">
+              <span className="text-[13.5px] text-ink-2">
                 担当：{assignee ? assignee.name : "未割当"}
               </span>
             )}
@@ -186,7 +186,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                 </Badge>
               );
             })()}
-            <span className="text-[13px] font-medium tabular-nums">
+            <span className="text-[13.5px] font-medium tabular-nums">
               STEP {position.index} / {position.total}
             </span>
             <LinkButton href={`/map/${run.id}`} variant="secondary" size="sm">業務マップ</LinkButton>
@@ -214,21 +214,21 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                       isCurrent ? "bg-brand-soft" : st === "pending" ? "cursor-default" : "hover:bg-surface-2"
                     }`}
                   >
-                    <span className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border text-[11px] font-bold ${m.cls}`}>
+                    <span className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border text-[12px] font-bold ${m.cls}`}>
                       {m.mark}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className={`block text-[13px] leading-snug ${isCurrent ? "font-bold text-brand-ink" : st === "done" ? "text-ink-3" : "font-medium"}`}>
+                      <span className={`block text-[13.5px] leading-snug ${isCurrent ? "font-bold text-brand-ink" : st === "done" ? "text-ink-3" : "font-medium"}`}>
                         {s.title}
                       </span>
-                      {st === "skipped" && <span className="text-[11px] text-ink-3">条件によりスキップ</span>}
+                      {st === "skipped" && <span className="text-[12px] text-ink-3">条件によりスキップ</span>}
                       {st === "active" && !isCurrent && !isStopped && (
-                        <span className="text-[11px] text-brand">
+                        <span className="text-[12px] text-brand">
                           {run.currentStepKeys.length > 1 ? "並行して進行中" : "現在のSTEP"}
                         </span>
                       )}
                       {st === "active" && isStopped && (
-                        <span className="text-[11px] text-ink-3">
+                        <span className="text-[12px] text-ink-3">
                           {isCanceled ? "中止時点で未完了"
                             : isWaiting ? "ここで待ち中"
                             : "未完了のまま完了"}
@@ -242,7 +242,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           </ol>
 
           {run.currentStepKeys.length > 1 && (
-            <p className="mt-3 rounded-lg bg-brand-soft px-3 py-2 text-[11.5px] leading-relaxed text-brand-ink">
+            <p className="mt-3 rounded-lg bg-brand-soft px-3 py-2 text-[12px] leading-relaxed text-brand-ink">
               このフローは {run.currentStepKeys.length} 件のSTEPが並行して進行中です。両方が完了すると次に進みます。
             </p>
           )}
@@ -279,18 +279,18 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                     <Badge tone="brand">{spec?.icon} {spec?.label}</Badge>
                     {statusOf(stepView.step.key) === "done" && <Badge tone="ok">完了済み（再編集中）</Badge>}
                     {viewingPast && (
-                      <span className="text-[11.5px] text-ink-3">
+                      <span className="text-[12px] text-ink-3">
                         表示中：STEP {ordered.filter((s) => s.componentType !== "branch").findIndex((s) => s.key === stepView.step.key) + 1}
                         （この業務の現在地は STEP {position.index} です）
                       </span>
                     )}
                   </div>
-                  <h2 className="mt-2 text-[17px] font-bold tracking-tight">{stepView.step.title}</h2>
+                  <h2 className="mt-2 text-[19px] font-bold tracking-tight">{stepView.step.title}</h2>
                   {stepView.step.guidance && (
-                    <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
+                    <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
                   )}
                   {stepView.step.preconditions && (
-                    <p className="mt-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-[12px] leading-relaxed text-ink-2">
+                    <p className="mt-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-[13.5px] leading-relaxed text-ink-2">
                       前提：{stepView.step.preconditions}
                     </p>
                   )}
@@ -300,7 +300,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                     いま手を止める話ではないので、注意ではなく予告として置く。
                   */}
                   {(stepView.step.followUps ?? []).length > 0 && (
-                    <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
+                    <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
                       完了すると確認タスクが作られます：
                       {followUpSummary(stepView.step.followUps ?? [])}
                     </p>
@@ -310,13 +310,13 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                     ここで出しておけば、業務を閉じる前に何が残るか分かる。
                   */}
                   {stepView.step.componentType === "complete" && (def.followUps ?? []).length > 0 && (
-                    <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
+                    <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
                       この業務を完了すると確認タスクが作られます：
                       {followUpSummary(def.followUps ?? [])}
                     </p>
                   )}
                   {stepView.context.stepDeadline && (
-                    <p className={`mt-1.5 text-[12.5px] font-medium ${stepView.context.stepDeadline.isOverdue ? "text-danger" : "text-ink-2"}`}>
+                    <p className={`mt-1.5 text-[13.5px] font-medium ${stepView.context.stepDeadline.isOverdue ? "text-danger" : "text-ink-2"}`}>
                       このSTEPの期限：
                       {new Date(stepView.context.stepDeadline.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
                       （{stepView.context.stepDeadline.remainingLabel}）
@@ -350,15 +350,18 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               {/* 分岐の予告：次にどこへ進むかを事前に示す */}
               {preview.branches.length > 1 && (
                 <Card className="mt-4 p-4">
-                  <h3 className="mb-2 text-[12px] font-bold text-ink-3">このSTEPの後の分岐</h3>
+                  <h3 className="mb-2 flex items-baseline gap-2">
+                    <Eyebrow>Branches</Eyebrow>
+                    <span className="text-[12px] text-ink-3">このSTEPの後の分岐</span>
+                  </h3>
                   <ul className="flex flex-col gap-1.5">
                     {preview.branches.map((b, i) => {
                       const target = getStep(def, b.to);
                       return (
-                        <li key={i} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[12.5px] ${b.willTake ? "bg-brand-soft text-brand-ink" : "bg-surface-2 text-ink-3"}`}>
+                        <li key={i} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13.5px] ${b.willTake ? "bg-brand-soft text-brand-ink" : "bg-surface-2 text-ink-3"}`}>
                           <span className="font-medium">{b.willTake ? "→ 進む" : "　条件外"}</span>
                           <span>{target?.title ?? b.to}</span>
-                          {b.label && <span className="ml-auto text-[11.5px]">{b.label}</span>}
+                          {b.label && <span className="ml-auto text-[12px]">{b.label}</span>}
                         </li>
                       );
                     })}
@@ -385,18 +388,18 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                 changeOpen || waitOpen || cancelOpen ? "relative" : "sticky bottom-4"
               }`}>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-bold tracking-wide text-brand">次にやること</p>
+                  <Eyebrow tone="brand">Do this next</Eyebrow>
                   {(() => {
                     const action = describeStepActionDetail(
                       stepView.effective, stepView.stepRun, stepView.completion,
                     );
                     return (
                       <>
-                        <p className="mt-0.5 text-[14px] font-bold leading-snug text-brand-ink">
+                        <p className="mt-0.5 text-[15px] font-bold leading-snug text-brand-ink">
                           {action.text}
                         </p>
                         {action.ruleItems.length > 0 && (
-                          <p className="mt-1 text-[11.5px] text-signal">
+                          <p className="mt-1 text-[12px] text-signal">
                             ＋一時ルールによる確認 {action.ruleItems.length}件
                             （{action.ruleItems.map((m) => m.label).join("・")}）
                           </p>
@@ -435,7 +438,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
               />
             </>
           ) : (
-            <Card className="p-8 text-center text-[13px] text-ink-2">着手できるSTEPがありません。</Card>
+            <Card className="p-8 text-center text-[13.5px] text-ink-2">着手できるSTEPがありません。</Card>
           )}
         </div>
 
@@ -455,19 +458,19 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           */
           <aside className="w-full shrink-0 lg:w-[312px]">
             <div className="sticky top-4 overflow-hidden rounded-xl bg-surface p-4 shadow-card">
-              <p className="text-[12px] font-bold">
+              <p className="text-[13.5px] font-bold">
                 {isCanceled ? "この業務は中止されています"
                   : isWaiting ? "この業務は待ち中です"
                   : "この業務は完了しています"}
               </p>
-              <p className="mt-1 mb-2.5 text-[11.5px] leading-relaxed text-ink-3">
+              <p className="mt-1 mb-2.5 text-[12px] leading-relaxed text-ink-3">
                 {isWaiting
                   ? "確認するまでSTEPは進みません。中央で「作業を再開する」か「まだ待つ」を選べます。"
                   : "STEPの実行はできませんが、後から変更が起きた場合は起票して影響を確認できます。"}
               </p>
               <Button variant="secondary" size="sm" onClick={() => setChangeOpen(true)}>変更を起票</Button>
               {changeCount > 0 && (
-                <Link href={`/map/${run.id}`} className="mt-2 block text-[11.5px] text-brand hover:underline">
+                <Link href={`/map/${run.id}`} className="mt-2 block text-[12px] text-brand hover:underline">
                   この業務の変更履歴（{changeCount}件）→
                 </Link>
               )}

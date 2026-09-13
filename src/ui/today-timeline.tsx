@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 今日の並び。
+ * 今日の予定（Schedule）。
  *
  * 「次にやること」は期限の順で決まる。だが期限だけを見ても、それが今日入るのかは
  * 分からない。予定で埋まっていれば入らないし、空いていれば前倒しできる。
@@ -162,11 +162,11 @@ export function TodayTimeline({ now }: { now: Date }) {
   const showNow = now.getHours() >= START_HOUR && now.getHours() < END_HOUR;
 
   return (
-    <Panel title="今日の並び">
+    <Panel title="Schedule" note="今日の予定と、今日締めのタスク">
       <div className="px-4 py-4">
         {/* 目盛り */}
         <div className="relative">
-          <div className="flex justify-between text-[10.5px] tabular-nums text-ink-3">
+          <div className="flex justify-between text-[12px] tabular-nums text-ink-3">
             {Array.from({ length: HOURS / 2 + 1 }, (_, i) => START_HOUR + i * 2).map((h) => (
               <span key={h}>{h}</span>
             ))}
@@ -175,7 +175,7 @@ export function TodayTimeline({ now }: { now: Date }) {
           {/* 予定の帯。1 本の軸に重ねず、時間の重なりが分かるよう縦に並べる */}
           <div className="relative mt-1.5 rounded-[3px] bg-surface-2 py-1.5">
             {blocks.length === 0 ? (
-              <div className="px-2 py-3 text-center text-[11.5px] text-ink-3">
+              <div className="px-2 py-3 text-center text-[12px] text-ink-3">
                 今日は予定が入っていません
               </div>
             ) : (
@@ -183,15 +183,40 @@ export function TodayTimeline({ now }: { now: Date }) {
                 {blocks.map((b, i) => {
                   const left = positionOf(b.start) * 100;
                   const right = positionOf(b.end) * 100;
+                  const width = Math.max(1.5, right - left);
+                  /*
+                    名前は帯の中に入れない。
+                    12 時間を 1 本に収めているので、1 時間の予定の帯は指2本ぶんしかない。
+                    そこへ文字を入れると「運営…」で切れて、何の予定か分からなくなる。
+                    予定は 1 件ずつ別の行に置いているから、帯の外に出しても重ならない。
+                    右端に近いものだけ、画面からはみ出さないよう帯の左側に出す。
+                  */
+                  const labelOnLeft = left > 62;
                   return (
-                    <div key={`${b.title}-${i}`} className="relative h-[22px]">
+                    <div
+                      key={`${b.title}-${i}`}
+                      className="relative h-[22px]"
+                      title={`${hhmm(b.start)}–${hhmm(b.end)} ${b.title}`}
+                    >
                       <div
-                        className="absolute top-0 flex h-full min-w-[3px] items-center overflow-hidden rounded-[3px] bg-brand/15 px-1.5"
-                        style={{ left: `${left}%`, width: `${Math.max(1.5, right - left)}%` }}
-                        title={`${hhmm(b.start)}–${hhmm(b.end)} ${b.title}`}
+                        className="absolute top-0 h-full min-w-[3px] rounded-r-[3px] border-l-2 border-brand bg-brand/20"
+                        style={{ left: `${left}%`, width: `${width}%` }}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={`absolute top-0 flex h-full items-center overflow-hidden text-[12px] text-ink-2 ${
+                          labelOnLeft ? "justify-end pr-1.5" : "pl-1.5"
+                        }`}
+                        style={
+                          labelOnLeft
+                            ? { right: `${100 - left}%`, maxWidth: `${left}%` }
+                            : { left: `${left + width}%`, maxWidth: `${Math.max(0, 100 - left - width)}%` }
+                        }
                       >
-                        <span className="truncate text-[11px] leading-none text-brand-ink">{b.title}</span>
-                      </div>
+                        <span className="truncate">
+                          <span className="tabular-nums text-ink-3">{hhmm(b.start)}</span> {b.title}
+                        </span>
+                      </span>
                     </div>
                   );
                 })}
@@ -211,7 +236,7 @@ export function TodayTimeline({ now }: { now: Date }) {
 
         {/* 足りているかどうか。ここが「先にどれをやるか」を決める材料になる */}
         <p
-          className={`mt-3 rounded-[5px] px-3 py-2 text-[12px] leading-[1.8] ${
+          className={`mt-3 rounded-[5px] px-3 py-2 text-[13.5px] leading-[1.8] ${
             short ? "bg-signal-soft text-signal" : "bg-surface-2 text-ink-2"
           }`}
         >
@@ -236,15 +261,15 @@ export function TodayTimeline({ now }: { now: Date }) {
         {todayTasks.length > 0 && (
           <ul className="mt-3 flex flex-col gap-1.5">
             {todayTasks.map((t) => (
-              <li key={t.id} className="flex items-center gap-2 text-[12.5px]">
+              <li key={t.id} className="flex items-center gap-2 text-[13.5px]">
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotOf(t, state.tasks)}`} aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate">{t.title}</span>
                 {minutesOf(t) !== undefined && (
-                  <span className="shrink-0 tabular-nums text-[11px] text-ink-3">
+                  <span className="shrink-0 tabular-nums text-[12px] text-ink-3">
                     {formatMinutes(minutesOf(t) as number)}
                   </span>
                 )}
-                <span className="shrink-0 tabular-nums text-[11px] text-ink-3">
+                <span className="shrink-0 tabular-nums text-[12px] text-ink-3">
                   {t.dueAt ? hhmm(new Date(t.dueAt)) : ""}
                 </span>
               </li>

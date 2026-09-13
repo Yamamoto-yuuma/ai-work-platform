@@ -26,7 +26,7 @@ function formatJaDate(value: string): string {
 }
 
 const INPUT =
-  "w-full rounded-lg border bg-surface px-3 py-2 text-[13px] outline-none transition-colors focus:border-brand";
+  "w-full rounded-lg border bg-surface px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-brand";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -38,17 +38,17 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 flex items-baseline gap-1.5 text-[13px] font-medium">
+      <label className="mb-1.5 flex items-baseline gap-1.5 text-[13.5px] font-medium">
         {label}
-        {required && <span className="text-[11px] text-danger">必須</span>}
+        {required && <span className="text-[12px] text-danger">必須</span>}
         {hint && (
-          <span className={`ml-auto text-[11px] font-normal ${hintTone === "over" ? "text-danger" : "text-ink-3"}`}>
+          <span className={`ml-auto text-[12px] font-normal ${hintTone === "over" ? "text-danger" : "text-ink-3"}`}>
             {hint}
           </span>
         )}
       </label>
       {children}
-      {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
+      {error && <p className="mt-1 text-[13.5px] text-danger">{error}</p>}
     </div>
   );
 }
@@ -96,8 +96,8 @@ export function TaskForm({
   return (
     <Card className="mb-5 p-5">
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 className="text-[14px] font-bold">{isEdit ? "タスクを編集" : "タスクを追加"}</h2>
-        <span className="text-[11.5px] text-ink-3">
+        <h2 className="text-[15px] font-bold">{isEdit ? "タスクを編集" : "タスクを追加"}</h2>
+        <span className="text-[12px] text-ink-3">
           {isEdit
             ? "由来・業務との紐付けは変更されません"
             : "手動で作成したタスクとして登録されます"}
@@ -144,8 +144,8 @@ export function TaskForm({
               aria-label="期限"
             />
             {draft.dueAt
-              ? <p className="mt-1 text-[11.5px] text-ink-3">{formatJaDate(draft.dueAt)}</p>
-              : <p className="mt-1 text-[11.5px] text-ink-3">未設定（期限なし）</p>}
+              ? <p className="mt-1 text-[12px] text-ink-3">{formatJaDate(draft.dueAt)}</p>
+              : <p className="mt-1 text-[12px] text-ink-3">未設定（期限なし）</p>}
           </Field>
 
           {/*
@@ -200,7 +200,7 @@ export function TaskForm({
                 aria-label="見積時間"
                 placeholder="30"
               />
-              <span className="shrink-0 text-[12.5px] text-ink-2">分</span>
+              <span className="shrink-0 text-[13.5px] text-ink-2">分</span>
             </div>
           </Field>
         </div>
@@ -229,7 +229,7 @@ export function TaskForm({
                 key={c.value} type="button"
                 aria-pressed={draft.repeatKind === c.value}
                 onClick={() => set("repeatKind", c.value)}
-                className={`px-3 py-1.5 text-left text-[12px] font-medium ${
+                className={`px-3 py-1.5 text-left text-[13.5px] font-medium ${
                   draft.repeatKind === c.value ? "pick-on" : "pick"
                 }`}
               >
@@ -247,7 +247,7 @@ export function TaskForm({
                     key={i} type="button" aria-pressed={on} aria-label={`${w}曜日`}
                     onClick={() => set("repeatWeekdays",
                       on ? draft.repeatWeekdays.filter((x) => x !== i) : [...draft.repeatWeekdays, i])}
-                    className={`h-9 w-9 text-[12.5px] font-medium ${on ? "pick-on" : "pick"}`}
+                    className={`h-9 w-9 text-[13.5px] font-medium ${on ? "pick-on" : "pick"}`}
                   >
                     {w}
                   </button>
@@ -258,7 +258,7 @@ export function TaskForm({
 
           {draft.repeatKind === "monthly-day" && (
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-[12.5px] text-ink-2">毎月</span>
+              <span className="text-[13.5px] text-ink-2">毎月</span>
               <input
                 type="number" min={1} max={31} inputMode="numeric"
                 value={draft.repeatMonthDay}
@@ -266,17 +266,17 @@ export function TaskForm({
                 aria-label="繰り返す日"
                 className="field field-sm w-[72px]"
               />
-              <span className="text-[12.5px] text-ink-2">日</span>
+              <span className="text-[13.5px] text-ink-2">日</span>
               {/* 無い日を指定したときに黙って飛ばさないことを、その場で伝える */}
               {Number(draft.repeatMonthDay) > 28 && (
-                <span className="text-[11.5px] text-ink-3">
+                <span className="text-[12px] text-ink-3">
                   その月に無い日は月末に寄せます
                 </span>
               )}
             </div>
           )}
 
-          <p className="mt-1.5 text-[11.5px] text-ink-3">
+          <p className="mt-1.5 text-[12px] text-ink-3">
             {draft.repeatKind === "none"
               ? "繰り返しません"
               : `${describeTaskRepeat(repeatFromDraft(draft))}。完了にすると、次の1件が作られます`}
@@ -286,10 +286,10 @@ export function TaskForm({
 
       {errors.length > 0 && (
         <div className="mt-4 rounded-lg bg-danger-soft p-3.5">
-          <p className="mb-1.5 text-[12.5px] font-bold text-danger">保存できません</p>
+          <p className="mb-1.5 text-[13.5px] font-bold text-danger">保存できません</p>
           <ul className="flex flex-col gap-0.5">
             {errors.map((e, i) => (
-              <li key={i} className="text-[12px] text-danger">・{e.message}</li>
+              <li key={i} className="text-[13.5px] text-danger">・{e.message}</li>
             ))}
           </ul>
         </div>
@@ -300,7 +300,7 @@ export function TaskForm({
           {isEdit ? "変更を保存" : "タスクを作成"}
         </Button>
         <Button variant="secondary" onClick={onCancel}>キャンセル</Button>
-        {isEdit && !dirty && <span className="text-[12px] text-ink-3">変更はありません</span>}
+        {isEdit && !dirty && <span className="text-[13.5px] text-ink-3">変更はありません</span>}
       </div>
     </Card>
   );
@@ -332,7 +332,7 @@ function DependencyField({
   if (candidates.length === 0) {
     return (
       <Field label="先に終わっているべきタスク">
-        <p className="text-[12.5px] text-ink-3">
+        <p className="text-[13.5px] text-ink-3">
           繋げる相手がいません。抱えているタスクが他にありません。
         </p>
       </Field>
@@ -352,7 +352,7 @@ function DependencyField({
   const line = (t: Task, on: boolean) => (
     <label
       key={t.id}
-      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] hover:bg-surface-2"
+      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13.5px] hover:bg-surface-2"
     >
       <input
         type="checkbox" checked={on} onChange={() => toggle(t.id)}
@@ -367,7 +367,7 @@ function DependencyField({
       label="先に終わっているべきタスク"
       hint={draft.dependsOn.length > 0 ? `${draft.dependsOn.length}件` : "任意"}
     >
-      <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">
+      <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
         繋いだタスクが終わるまで、このタスクは「ブロック中」として出ます。
       </p>
 
@@ -388,7 +388,7 @@ function DependencyField({
 
       <div className="max-h-[168px] overflow-y-auto rounded-lg border border-line-soft p-1">
         {rest.length === 0
-          ? <p className="px-2 py-1.5 text-[12px] text-ink-3">該当するタスクはありません</p>
+          ? <p className="px-2 py-1.5 text-[13.5px] text-ink-3">該当するタスクはありません</p>
           : rest.map((t) => line(t, false))}
       </div>
     </Field>

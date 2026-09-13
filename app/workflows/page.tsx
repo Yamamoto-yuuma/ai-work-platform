@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/adapters/memory/store";
 import { useLatestWorkflows } from "@/ui/use-navigator";
-import { Badge, Card, Cells, LinkButton, Row, RowHead, RowList, Tabs, TopBar } from "@/ui/primitives";
+import { Badge, Card, Cells, LinkButton, Row, RowHead, RowList, SubHead, Tabs, TopBar } from "@/ui/primitives";
 import { runProgress } from "@/core/flow/engine";
 import { WORK_KIND_LABEL, describeStart } from "@/core/workflow/start-trigger";
 import { runLabel, subjectOf } from "@/core/model/run-label";
@@ -58,7 +58,7 @@ export default function WorkflowsPage() {
       {myActiveRuns.length > 0 && (
         <section className="mb-7">
           {/* HOME と同じ語彙にする（仕様 §26-5）。待ち中もここに含まれる */}
-          <h2 className="mb-2 text-[12.5px] font-bold">進行中の業務（{myActiveRuns.length}）</h2>
+          <SubHead title="In progress" count={myActiveRuns.length} note="進行中の業務" />
           <RowList>
             <RowHead template={RUN_TEMPLATE}>
               <span>対象</span>
@@ -75,18 +75,18 @@ export default function WorkflowsPage() {
                     {/* 名前そのものをリンクにし、当たり判定だけ行全体に広げる */}
                     <Link
                       href={`/navigator/${run.id}`}
-                      className="cell-clip text-[13px] font-medium before:absolute before:inset-0"
+                      className="cell-clip text-[13.5px] font-medium before:absolute before:inset-0"
                     >
                       {runLabel(run)}
                     </Link>
                     {/* 対象を持たない業務では業務名が対象と同じになるので繰り返さない */}
-                    <span className="cell-clip text-[12px] text-ink-3">{subjectOf(run) ? def?.name ?? "" : ""}</span>
+                    <span className="cell-clip text-[13.5px] text-ink-3">{subjectOf(run) ? def?.name ?? "" : ""}</span>
                     <span className="relative">
                       {run.status === "paused"
                         ? <Badge tone="signal">待ち中</Badge>
                         : <Badge tone="neutral">進行中</Badge>}
                     </span>
-                    <span className="cell-clip cell-num text-[12px] text-ink-2">STEP {p.index}/{p.total}</span>
+                    <span className="cell-clip cell-num text-[13.5px] text-ink-2">STEP {p.index}/{p.total}</span>
                   </Cells>
                 </Row>
               );
@@ -97,8 +97,8 @@ export default function WorkflowsPage() {
 
       {published.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-[14px] font-bold">業務が未登録です</p>
-          <p className="mx-auto mt-1.5 max-w-[420px] text-[12.5px] leading-relaxed text-ink-2">
+          <p className="text-[15px] font-bold">業務が未登録です</p>
+          <p className="mx-auto mt-1.5 max-w-[420px] text-[13.5px] leading-relaxed text-ink-2">
             名前とSTEPの並びだけで登録できます。
           </p>
           <div className="mt-4 flex justify-center">
@@ -107,6 +107,7 @@ export default function WorkflowsPage() {
         </Card>
       ) : (
         <section>
+          <SubHead title="Workflows" count={published.length} note="登録してある業務" />
           <RowList>
             <RowHead template={WF_TEMPLATE}>
               <span>業務名</span>
@@ -129,7 +130,7 @@ export default function WorkflowsPage() {
                       {/* 名前そのものをリンクにし、当たり判定だけ行全体に広げる */}
                       <Link
                         href={`/workflows/${w.key}`}
-                        className="cell-clip text-[13px] font-medium before:absolute before:inset-0"
+                        className="cell-clip text-[13.5px] font-medium before:absolute before:inset-0"
                       >
                         {w.name}
                       </Link>
@@ -138,15 +139,15 @@ export default function WorkflowsPage() {
                       {w.edges.some((e) => e.condition) && <Badge tone="brand">分岐</Badge>}
                       {w.edges.some((e) => e.joinPolicy === "all") && <Badge tone="brand">並列</Badge>}
                     </span>
-                    <span className="cell-clip cell-num text-[12px] text-ink-2">
+                    <span className="cell-clip cell-num text-[13.5px] text-ink-2">
                       {w.steps.filter((st) => st.componentType !== "branch").length}
                     </span>
-                    <span className="cell-clip cell-num text-[12px] text-ink-3">
+                    <span className="cell-clip cell-num text-[13.5px] text-ink-3">
                       {w.estimatedMinutes ? `${w.estimatedMinutes}分` : "—"}
                     </span>
-                    <span className="cell-clip cell-num text-[12px] text-ink-3">{runCount || "—"}</span>
+                    <span className="cell-clip cell-num text-[13.5px] text-ink-3">{runCount || "—"}</span>
                     {/* 長い条件は切る。全文は業務を開けば読める */}
-                    <span className="cell-clip text-[12px] text-ink-3" title={start}>{start}</span>
+                    <span className="cell-clip text-[13.5px] text-ink-3" title={start}>{start}</span>
                     <span className="relative z-10"><Badge tone="ok">v{w.version}</Badge></span>
                   </Cells>
                 </Row>
@@ -162,8 +163,8 @@ export default function WorkflowsPage() {
       */}
       {stopped.length > 0 && (
         <section className="mt-7">
-          <h2 className="mb-1 text-[12.5px] font-bold">停止中の業務（{stopped.length}）</h2>
-          <p className="mb-2 text-[12px] text-ink-3">
+          <SubHead title="Stopped" count={stopped.length} note="停止中の業務" className="mb-1" />
+          <p className="mb-2 text-[13.5px] text-ink-3">
             新しく開始できません。過去の実行記録はそのまま残っています。
           </p>
           <RowList>
@@ -176,7 +177,7 @@ export default function WorkflowsPage() {
                 <Cells template={STOPPED_TEMPLATE}>
                   <Link
                     href={`/workflows/${w.key}`}
-                    className="cell-clip text-[13px] font-medium text-ink-2 before:absolute before:inset-0"
+                    className="cell-clip text-[13.5px] font-medium text-ink-2 before:absolute before:inset-0"
                   >
                     {w.name}
                   </Link>

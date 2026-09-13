@@ -45,10 +45,10 @@ function ChecklistRenderer({ step, stepRun, onCheck }: StepRendererProps) {
           onChange={(e) => onCheck({ [item.key]: e.target.checked })}
           className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
         />
-        <span className="flex-1 text-[13px] leading-relaxed">
+        <span className="flex-1 text-[13.5px] leading-relaxed">
           {item.label}
-          {item.required !== false && <span className="ml-1.5 text-[11px] text-danger">必須</span>}
-          {ruleId && <span className="ml-2 text-[11px] text-signal">一時ルールにより追加</span>}
+          {item.required !== false && <span className="ml-1.5 text-[12px] text-danger">必須</span>}
+          {ruleId && <span className="ml-2 text-[12px] text-signal">一時ルールにより追加</span>}
         </span>
       </label>
     );
@@ -76,11 +76,11 @@ function FieldsRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
         const recordedLabel = f.options?.find((o) => o.value === recorded)?.label;
         return (
           <div key={f.key}>
-            <label className="mb-1.5 block text-[13px] font-medium">
+            <label className="mb-1.5 block text-[13.5px] font-medium">
               {f.label}
-              {f.required !== false && <span className="ml-1.5 text-[11px] text-danger">必須</span>}
+              {f.required !== false && <span className="ml-1.5 text-[12px] text-danger">必須</span>}
               {recordedLabel && !differs && (
-                <span className="ml-2 text-[11px] font-normal text-ink-3">
+                <span className="ml-2 text-[12px] font-normal text-ink-3">
                   登録内容から初期選択：{recordedLabel}
                 </span>
               )}
@@ -91,7 +91,7 @@ function FieldsRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
                   <button
                     key={String(o.value)} type="button"
                     onClick={() => onOutput({ [f.key]: o.value })}
-                    className={`rounded-lg border px-3.5 py-2 text-[13px] transition-colors ${
+                    className={`rounded-lg border px-3.5 py-2 text-[13.5px] transition-colors ${
                       value === o.value ? "border-brand bg-brand text-white" : "pick"
                     }`}
                   >
@@ -109,7 +109,7 @@ function FieldsRenderer({ step, stepRun, run, onOutput }: StepRendererProps) {
               />
             )}
             {differs && (
-              <p className="mt-1.5 rounded-lg bg-signal-soft px-3 py-2 text-[12px] text-signal">
+              <p className="mt-1.5 rounded-lg bg-signal-soft px-3 py-2 text-[13.5px] text-signal">
                 登録内容（{recordedLabel ?? String(recorded)}）と異なる選択です。
                 この業務ではこちらの内容で進みます。
               </p>
@@ -126,7 +126,7 @@ function CustomerViewRenderer({ run }: StepRendererProps) {
   const { customers } = useStore();
   const customer = customers.find((c) => c.id === run.context.customerId);
   if (!customer) {
-    return <p className="text-[13px] text-ink-3">対象の顧客情報が見つかりません。上部の対象名から再指定してください。</p>;
+    return <p className="text-[13.5px] text-ink-3">対象の顧客情報が見つかりません。上部の対象名から再指定してください。</p>;
   }
   const rows = [
     ["会社名", customer.name],
@@ -142,13 +142,13 @@ function CustomerViewRenderer({ run }: StepRendererProps) {
       <dl className="grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4 border-b border-line-soft pb-2">
-            <dt className="text-[12px] text-ink-3">{k}</dt>
-            <dd className="text-[13px] font-medium">{v}</dd>
+            <dt className="text-[13.5px] text-ink-3">{k}</dt>
+            <dd className="text-[13.5px] font-medium">{v}</dd>
           </div>
         ))}
       </dl>
       {customer.note && (
-        <p className="mt-4 rounded-lg bg-surface-2 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-2">{customer.note}</p>
+        <p className="mt-4 rounded-lg bg-surface-2 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-2">{customer.note}</p>
       )}
     </div>
   );
@@ -174,13 +174,13 @@ function CompanySearchRenderer({ step, stepRun, onOutput }: StepRendererProps) {
   return (
     <div>
       <NotConnected label="企業検索API" phase="Phase 7" />
-      <p className="mt-3 mb-3 text-[12px] text-ink-3">
+      <p className="mt-3 mb-3 text-[13.5px] text-ink-3">
         シードデータ {companies.length} 社を表示しています。
         {isSelect && " 最終的な選定は人が行います（AIは候補整理のみを補助します）。"}
       </p>
       <div className="overflow-x-auto rounded-lg border border-line">
-        <table className="w-full min-w-[640px] text-[13px]">
-          <thead className="bg-surface-2 text-[12px] text-ink-2">
+        <table className="w-full min-w-[640px] text-[13.5px]">
+          <thead className="bg-surface-2 text-[13.5px] text-ink-2">
             <tr>
               <th className="px-3 py-2 text-left font-medium">企業名</th>
               <th className="px-3 py-2 text-left font-medium">業界</th>
@@ -221,8 +221,8 @@ function CompanySearchRenderer({ step, stepRun, onOutput }: StepRendererProps) {
       </div>
       {isSelect && (
         <div className="mt-4">
-          <label className="mb-1.5 block text-[13px] font-medium">
-            選定理由<span className="ml-1.5 text-[11px] text-danger">必須</span>
+          <label className="mb-1.5 block text-[13.5px] font-medium">
+            選定理由<span className="ml-1.5 text-[12px] text-danger">必須</span>
           </label>
           <textarea
             value={String(stepRun.output.reason ?? "")}
@@ -231,7 +231,7 @@ function CompanySearchRenderer({ step, stepRun, onOutput }: StepRendererProps) {
             placeholder="なぜこの企業を選定したかを記録してください（後から判断の根拠を追跡するため）"
             className="field"
           />
-          <p className="mt-2 text-[12px] text-ink-3">選択 {selected.length} 社 ／ 除外 {excluded.length} 社</p>
+          <p className="mt-2 text-[13.5px] text-ink-3">選択 {selected.length} 社 ／ 除外 {excluded.length} 社</p>
         </div>
       )}
     </div>
@@ -245,7 +245,7 @@ function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProp
     workflows.find((w) => w.key === run.workflowKey && w.version === run.workflowVersion) ??
     workflows.find((w) => w.key === run.workflowKey);
   const draft = resolveEmailDraft({ step, stepRun, run, templates: emailTemplates, customers, workflow });
-  if (!draft) return <p className="text-[13px] text-ink-3">利用できるテンプレートがありません。</p>;
+  if (!draft) return <p className="text-[13.5px] text-ink-3">利用できるテンプレートがありません。</p>;
 
   const { subject, body, missingVariables: missing } = draft;
 
@@ -253,38 +253,38 @@ function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProp
     <div className="flex flex-col gap-4">
       <NotConnected label="Gmail" phase="Phase 7" />
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[12px] text-ink-3">テンプレート</span>
+        <span className="text-[13.5px] text-ink-3">テンプレート</span>
         <Badge tone="brand">{draft.templateName}</Badge>
-        <span className="text-[12px] text-ink-3">宛先</span>
+        <span className="text-[13.5px] text-ink-3">宛先</span>
         <Badge>{draft.recipient}</Badge>
       </div>
 
       {missing.length > 0 && (
-        <div className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
+        <div className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13.5px] text-danger">
           <strong className="font-bold">差し込み値が不足しています。</strong>
           <span className="ml-1">{missing.join(" / ")} が未設定のため、本文に〔未設定〕と表示されています。</span>
         </div>
       )}
 
       <div>
-        <label className="mb-1.5 block text-[13px] font-medium">件名</label>
+        <label className="mb-1.5 block text-[13.5px] font-medium">件名</label>
         <input
           value={subject} onChange={(e) => onOutput({ subject: e.target.value })}
           className="field"
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-[13px] font-medium">本文</label>
+        <label className="mb-1.5 block text-[13.5px] font-medium">本文</label>
         <textarea
           value={body} onChange={(e) => onOutput({ body: e.target.value })}
           rows={12}
-          className="field font-mono text-[12.5px] leading-relaxed"
+          className="field font-mono text-[13.5px] leading-relaxed"
         />
       </div>
 
       <div className="flex items-center gap-2 rounded-lg border border-dashed border-ai/40 bg-ai-soft px-3.5 py-2.5">
         <span className="text-ai">✦</span>
-        <span className="text-[12.5px] text-ink-2">AIによる推敲は Phase 8 で接続します。現在はテンプレートをそのまま編集できます。</span>
+        <span className="text-[13.5px] text-ink-2">AIによる推敲は Phase 8 で接続します。現在はテンプレートをそのまま編集できます。</span>
       </div>
     </div>
   );
@@ -299,18 +299,18 @@ function DocumentComposeRenderer({ step, stepRun, run, onOutput }: StepRendererP
     <div className="flex flex-col gap-4">
       {template && (
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-ink-3">テンプレート</span>
+          <span className="text-[13.5px] text-ink-3">テンプレート</span>
           <Badge tone="brand">{template.name}</Badge>
         </div>
       )}
       <textarea
         value={body} onChange={(e) => onOutput({ body: e.target.value })}
         rows={16}
-        className="field font-mono text-[12.5px] leading-relaxed"
+        className="field font-mono text-[13.5px] leading-relaxed"
       />
       <div className="flex items-center gap-2 rounded-lg border border-dashed border-ai/40 bg-ai-soft px-3.5 py-2.5">
         <span className="text-ai">✦</span>
-        <span className="text-[12.5px] text-ink-2">AIによる生成・要約は Phase 8 で接続します。</span>
+        <span className="text-[13.5px] text-ink-2">AIによる生成・要約は Phase 8 で接続します。</span>
       </div>
     </div>
   );
@@ -324,12 +324,12 @@ function TaskCreateRenderer({ step, stepRun, run, onCheck }: StepRendererProps) 
   const now = new Date();
 
   if (templates.length === 0) {
-    return <p className="text-[13px] text-ink-3">このSTEPで作成するタスクは定義されていません。</p>;
+    return <p className="text-[13.5px] text-ink-3">このSTEPで作成するタスクは定義されていません。</p>;
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="mb-1 text-[13px] text-ink-2">
+      <p className="mb-1 text-[13.5px] text-ink-2">
         このSTEPを完了すると、以下のタスクが作成されます。不要なものはチェックを外してください。
       </p>
       {templates.map((t, i) => {
@@ -349,9 +349,9 @@ function TaskCreateRenderer({ step, stepRun, run, onCheck }: StepRendererProps) 
               className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
             />
             <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-medium">{t.title}</span>
-              {t.description && <span className="mt-0.5 block text-[11.5px] text-ink-3">{t.description}</span>}
-              <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-3">
+              <span className="block text-[13.5px] font-medium">{t.title}</span>
+              {t.description && <span className="mt-0.5 block text-[12px] text-ink-3">{t.description}</span>}
+              <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink-3">
                 <span>担当 {assignee?.name ?? run.assigneeId}</span>
                 <span>優先度 {TASK_PRIORITIES.find((p) => p.value === (t.priority ?? "normal"))?.label}</span>
                 {due && (
@@ -376,13 +376,13 @@ function CalendarRenderer({ step, run }: StepRendererProps) {
     <div className="flex flex-col gap-3">
       <NotConnected label="Google Calendar" phase="Phase 7" />
       <div className="rounded-lg border border-line bg-surface-2 p-4">
-        <p className="mb-2 text-[12px] text-ink-3">登録される予定の内容（プレビュー）</p>
-        <dl className="flex flex-col gap-1.5 text-[13px]">
+        <p className="mb-2 text-[13.5px] text-ink-3">登録される予定の内容（プレビュー）</p>
+        <dl className="flex flex-col gap-1.5 text-[13.5px]">
           <div className="flex gap-3"><dt className="w-16 text-ink-3">タイトル</dt><dd className="font-medium">{String(step.config.titleTemplate ?? "").replace("{{customer.name}}", run.subject.label)}</dd></div>
           <div className="flex gap-3"><dt className="w-16 text-ink-3">日時</dt><dd className="font-medium">{date ? new Date(String(date)).toLocaleDateString("ja-JP") : "未設定（前STEPで指定）"}</dd></div>
         </dl>
       </div>
-      <p className="text-[12.5px] text-ink-3">Phase 1 では実際のカレンダーには登録されません。連携失敗時も業務は継続できる設計です。</p>
+      <p className="text-[13.5px] text-ink-3">Phase 1 では実際のカレンダーには登録されません。連携失敗時も業務は継続できる設計です。</p>
     </div>
   );
 }
@@ -418,7 +418,7 @@ function ReviewTarget({ step, run }: { step: EffectiveStep; run: WorkRun }) {
 
   if (!target) {
     return (
-      <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px] text-ink-2">
+      <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13.5px] text-ink-2">
         確認対象の成果物が見つかりませんでした。前のSTEPの内容を確認してください。
       </div>
     );
@@ -435,38 +435,38 @@ function ReviewTarget({ step, run }: { step: EffectiveStep; run: WorkRun }) {
   return (
     <section className="rounded-lg border border-line bg-surface">
       <header className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-2 px-3.5 py-2.5">
-        <span className="text-[12px] font-bold text-ink-2">確認する内容</span>
+        <span className="text-[13.5px] font-bold text-ink-2">確認する内容</span>
         <Badge tone="brand">{target.title}</Badge>
         <Badge>{draft.edited ? "編集済み" : "テンプレートのまま"}</Badge>
       </header>
 
       {draft.missingVariables.length > 0 && (
-        <div className="border-b border-line bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+        <div className="border-b border-line bg-danger-soft px-3.5 py-2.5 text-[13.5px] text-danger">
           <strong className="font-bold">差し込み値が不足しています。</strong>
           <span className="ml-1">{draft.missingVariables.join(" / ")} が未設定のまま本文に残っています。</span>
         </div>
       )}
 
-      <dl className="flex flex-col gap-2.5 px-3.5 py-3 text-[13px]">
+      <dl className="flex flex-col gap-2.5 px-3.5 py-3 text-[13.5px]">
         <div className="flex gap-3">
-          <dt className="w-14 shrink-0 text-[12px] text-ink-3">宛先</dt>
+          <dt className="w-14 shrink-0 text-[13.5px] text-ink-3">宛先</dt>
           <dd className="min-w-0 flex-1 font-medium">{draft.recipient}</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="w-14 shrink-0 text-[12px] text-ink-3">件名</dt>
+          <dt className="w-14 shrink-0 text-[13.5px] text-ink-3">件名</dt>
           <dd className="min-w-0 flex-1 font-medium">{draft.subject}</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="w-14 shrink-0 text-[12px] text-ink-3">本文</dt>
+          <dt className="w-14 shrink-0 text-[13.5px] text-ink-3">本文</dt>
           <dd className="min-w-0 flex-1">
-            <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap rounded-lg bg-surface-2 px-3 py-2.5 font-mono text-[12px] leading-relaxed">
+            <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap rounded-lg bg-surface-2 px-3 py-2.5 font-mono text-[13.5px] leading-relaxed">
               {draft.body}
             </pre>
           </dd>
         </div>
       </dl>
 
-      <p className="border-t border-line px-3.5 py-2 text-[11.5px] text-ink-3">
+      <p className="border-t border-line px-3.5 py-2 text-[12px] text-ink-3">
         内容を直す場合は、左のSTEPレールから「{target.title}」を開いてやり直してください。
       </p>
     </section>
@@ -480,7 +480,7 @@ function ApprovalRenderer({ step, stepRun, run, onCheck }: StepRendererProps) {
   return (
     <div className="flex flex-col gap-3">
       {!selfConfirm && (
-        <div className="rounded-lg bg-signal-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-signal">
+        <div className="rounded-lg bg-signal-soft px-3.5 py-2.5 text-[13.5px] leading-relaxed text-signal">
           このSTEPは、確認を依頼した相手の返事を待つ内容です。
           （確認先の目安：{String(step.config.approverRole ?? "manager")}）
           <br />
@@ -490,7 +490,7 @@ function ApprovalRenderer({ step, stepRun, run, onCheck }: StepRendererProps) {
       <ReviewTarget step={step} run={run} />
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-3.5 hover:bg-surface-2">
         <input type="checkbox" checked={checked} onChange={(e) => onCheck({ approved: e.target.checked })} className="h-4 w-4 accent-[#1d5a78]" />
-        <span className="text-[13px] font-medium">{label}</span>
+        <span className="text-[13.5px] font-medium">{label}</span>
       </label>
     </div>
   );
@@ -504,9 +504,9 @@ function KnowledgeViewRenderer({ step }: StepRendererProps) {
     <div className="flex flex-col gap-3">
       {items.map((k) => (
         <div key={k.id} className="rounded-lg border border-line-soft bg-surface p-4 shadow-card">
-          <h4 className="mb-1.5 text-[13px] font-bold">{k.title}</h4>
+          <h4 className="mb-1.5 text-[13.5px] font-bold">{k.title}</h4>
           {k.body && (
-            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">{k.body}</p>
+            <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-2">{k.body}</p>
           )}
           <div className="mt-2.5"><KnowledgeLocation location={k.location} size="sm" /></div>
         </div>
@@ -518,8 +518,8 @@ function KnowledgeViewRenderer({ step }: StepRendererProps) {
 function AiAssistRenderer() {
   return (
     <div className="rounded-lg border border-dashed border-ai/40 bg-ai-soft p-5 text-center">
-      <p className="text-[13px] font-medium text-ai">AI処理は Phase 8 で接続します</p>
-      <p className="mt-1.5 text-[12.5px] text-ink-2">AIが未接続でも、このSTEPは手動で完了できます。</p>
+      <p className="text-[13.5px] font-medium text-ai">AI処理は Phase 8 で接続します</p>
+      <p className="mt-1.5 text-[13.5px] text-ink-2">AIが未接続でも、このSTEPは手動で完了できます。</p>
     </div>
   );
 }
@@ -527,15 +527,15 @@ function AiAssistRenderer() {
 function CompleteRenderer({ run }: StepRendererProps) {
   return (
     <div className="rounded-lg bg-ok-soft p-6 text-center">
-      <p className="text-[15px] font-bold text-ok">この業務を完了します</p>
-      <p className="mt-2 text-[13px] text-ink-2">{run.subject.label} の対応内容が記録されます。</p>
+      <p className="text-[17px] font-bold text-ok">この業務を完了します</p>
+      <p className="mt-2 text-[13.5px] text-ink-2">{run.subject.label} の対応内容が記録されます。</p>
     </div>
   );
 }
 
 function BranchRenderer({ run }: StepRendererProps) {
   return (
-    <div className="rounded-lg border border-line bg-surface-2 p-5 text-center text-[13px] text-ink-2">
+    <div className="rounded-lg border border-line bg-surface-2 p-5 text-center text-[13.5px] text-ink-2">
       条件を評価して次のSTEPを決定します。{run.title}
     </div>
   );
@@ -571,7 +571,7 @@ function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) 
 
   return (
     <section className="mt-5 rounded-lg bg-signal-soft p-4">
-      <h4 className="mb-3 flex items-center gap-1.5 text-[12px] font-bold text-signal">
+      <h4 className="mb-3 flex items-center gap-1.5 text-[13.5px] font-bold text-signal">
         <span>⚑</span>一時ルールにより追加された確認項目
       </h4>
       <div className="flex flex-col gap-2">
@@ -589,18 +589,18 @@ function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) 
                 onChange={(e) => onCheck({ [item.key]: e.target.checked })}
                 className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
               />
-              <span className="flex-1 text-[13px] leading-relaxed">
+              <span className="flex-1 text-[13.5px] leading-relaxed">
                 {item.label}
-                {item.required && <span className="ml-1.5 text-[11px] text-danger">必須</span>}
+                {item.required && <span className="ml-1.5 text-[12px] text-danger">必須</span>}
               </span>
             </label>
           );
         })}
         {fields.map((f) => (
           <div key={f.key} className="rounded-lg border border-signal/30 bg-surface px-3.5 py-2.5">
-            <label className="mb-1.5 block text-[13px] font-medium">
+            <label className="mb-1.5 block text-[13.5px] font-medium">
               {f.label}
-              {f.required && <span className="ml-1.5 text-[11px] text-danger">必須</span>}
+              {f.required && <span className="ml-1.5 text-[12px] text-danger">必須</span>}
             </label>
             <input
               value={String(stepRun.output[f.key] ?? "")}
@@ -621,7 +621,7 @@ export function StepRenderer(props: StepRendererProps) {
       {Renderer
         ? Renderer(props)
         : (
-          <p className="text-[13px] text-ink-3">
+          <p className="text-[13.5px] text-ink-3">
             部品「{getComponentSpec(props.step.componentType)?.label ?? props.step.componentType}」の表示は未実装です。
           </p>
         )}

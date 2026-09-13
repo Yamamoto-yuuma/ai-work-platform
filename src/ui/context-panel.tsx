@@ -13,8 +13,8 @@ import { Badge, Button } from "./primitives";
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
     <section className="border-b border-line-soft px-4 py-3.5 last:border-b-0">
-      <h3 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-ink-3">
-        <span className="text-[12px]">{icon}</span>{title}
+      <h3 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold tracking-wide text-ink-3">
+        <span className="text-[13.5px]">{icon}</span>{title}
       </h3>
       {children}
     </section>
@@ -45,8 +45,8 @@ export function ContextPanel({
     <aside className="w-full shrink-0 lg:w-[312px]">
       <div className="sticky top-4 overflow-hidden rounded-xl border border-line bg-surface">
         <div className="border-b border-line bg-surface-2 px-4 py-2.5">
-          <h2 className="text-[12px] font-bold">このSTEPの情報</h2>
-          <p className="mt-0.5 text-[11px] text-ink-3">現在の作業に関係するものだけを表示しています</p>
+          <h2 className="text-[13.5px] font-bold">このSTEPの情報</h2>
+          <p className="mt-0.5 text-[12px] text-ink-3">現在の作業に関係するものだけを表示しています</p>
         </div>
 
         {/* 注意を要するものを最上部に固定（仕様 §15-4） */}
@@ -54,7 +54,7 @@ export function ContextPanel({
           <Section title="ルールの競合" icon="⚠">
             <ul className="flex flex-col gap-2">
               {ctx.conflicts.map((c, i) => (
-                <li key={i} className={`rounded-lg px-3 py-2 text-[12px] leading-relaxed ${c.severity === "high" ? "bg-danger-soft text-danger" : "bg-surface-2 text-ink-2"}`}>
+                <li key={i} className={`rounded-lg px-3 py-2 text-[13.5px] leading-relaxed ${c.severity === "high" ? "bg-danger-soft text-danger" : "bg-surface-2 text-ink-2"}`}>
                   {c.message}
                 </li>
               ))}
@@ -70,13 +70,13 @@ export function ContextPanel({
 
         {ctx.missingInfo.length > 0 && (
           <Section title="不足している業務情報" icon="❗">
-            <p className="mb-2 text-[11px] leading-relaxed text-ink-3">
+            <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
               この業務を完遂するために、まだ取得できていない情報です。
             </p>
             <ul className="flex flex-col gap-1.5">
               {ctx.missingInfo.map((m) => (
                 <li key={m.key} className="rounded-lg bg-danger-soft px-3 py-2">
-                  <span className="block text-[12.5px] font-medium text-danger">{m.label}</span>
+                  <span className="block text-[13.5px] font-medium text-danger">{m.label}</span>
                 </li>
               ))}
             </ul>
@@ -88,8 +88,8 @@ export function ContextPanel({
             <ul className="flex flex-col gap-2">
               {ctx.notices.map((n, i) => (
                 <li key={i} className={`rounded-lg px-3 py-2 ${n.level === "warn" ? "bg-danger-soft" : "bg-signal-soft"}`}>
-                  <p className={`text-[12.5px] leading-relaxed ${n.level === "warn" ? "text-danger" : "text-signal"}`}>{n.text}</p>
-                  <p className="mt-1 text-[11px] text-ink-3">{n.ruleName}</p>
+                  <p className={`text-[13.5px] leading-relaxed ${n.level === "warn" ? "text-danger" : "text-signal"}`}>{n.text}</p>
+                  <p className="mt-1 text-[12px] text-ink-3">{n.ruleName}</p>
                 </li>
               ))}
             </ul>
@@ -106,9 +106,9 @@ export function ContextPanel({
                       {{ case: "個別案件", temporary: "期間限定", department: "部署", standard: "標準" }[r.ruleType]}
                     </Badge>
                   </div>
-                  <p className="mt-1.5 text-[12.5px] font-medium leading-snug">{r.name}</p>
+                  <p className="mt-1.5 text-[13.5px] font-medium leading-snug">{r.name}</p>
                   {r.activeTo && (
-                    <p className="mt-0.5 text-[11px] text-ink-3">
+                    <p className="mt-0.5 text-[12px] text-ink-3">
                       〜{new Date(r.activeTo).toLocaleDateString("ja-JP")}まで
                     </p>
                   )}
@@ -124,13 +124,13 @@ export function ContextPanel({
               {ctx.knowledge.map((k) => (
                 <li key={k.id}>
                   <details className="group rounded-lg border border-line bg-surface-2">
-                    <summary className="cursor-pointer list-none px-3 py-2 text-[12.5px] font-medium hover:text-brand">
+                    <summary className="cursor-pointer list-none px-3 py-2 text-[13.5px] font-medium hover:text-brand">
                       {k.title}
-                      <span className="ml-1.5 text-[11px] text-ink-3 group-open:hidden">開く</span>
+                      <span className="ml-1.5 text-[12px] text-ink-3 group-open:hidden">開く</span>
                     </summary>
                     <div className="border-t border-line px-3 py-2">
                       {k.body && (
-                        <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-ink-2">{k.body}</p>
+                        <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-2">{k.body}</p>
                       )}
                       <div className="mt-2"><KnowledgeLocation location={k.location} size="sm" /></div>
                     </div>
@@ -147,7 +147,7 @@ export function ContextPanel({
               {ctx.derivedTasks.slice(0, 5).map((t) => (
                 <li key={t.id}>
                   <Link href={`/tasks/${t.id}`} className="block rounded-lg border border-line-soft bg-surface-2 px-3 py-2 hover:border-brand">
-                    <span className="text-[12.5px]">{t.title}</span>
+                    <span className="text-[13.5px]">{t.title}</span>
                     {t.confirmationState === "proposed" && <Badge tone="signal">提案中</Badge>}
                   </Link>
                 </li>
@@ -160,7 +160,7 @@ export function ContextPanel({
           <Section title="必要なツール" icon="🔧">
             <ul className="flex flex-col gap-1.5">
               {ctx.tools.map((t) => (
-                <li key={t.label} className="flex items-center justify-between gap-2 text-[12.5px]">
+                <li key={t.label} className="flex items-center justify-between gap-2 text-[13.5px]">
                   <span>{t.label}</span>
                   <Badge tone={t.available ? "ok" : "neutral"}>{t.available ? "利用可" : t.reason ?? "未接続"}</Badge>
                 </li>
@@ -170,7 +170,7 @@ export function ContextPanel({
         )}
 
         {!hasAnything && (
-          <div className="px-4 py-6 text-center text-[12px] text-ink-3">このSTEPに固有の注意事項はありません</div>
+          <div className="px-4 py-6 text-center text-[13.5px] text-ink-3">このSTEPに固有の注意事項はありません</div>
         )}
 
         {/*
@@ -179,7 +179,7 @@ export function ContextPanel({
         */}
         {(onRequestChange || onWaitRun || onCancelRun) && (
           <div className="border-t border-line bg-surface-2 px-4 py-3">
-            <p className="mb-2 text-[11px] font-bold tracking-wide text-ink-3">この業務に対して</p>
+            <p className="mb-2 text-[12px] font-bold tracking-wide text-ink-3">この業務に対して</p>
             <div className="flex flex-wrap items-center gap-1.5">
               {onRequestChange && (
                 <Button
@@ -207,7 +207,7 @@ export function ContextPanel({
               )}
             </div>
             {historyHref && historyCount ? (
-              <Link href={historyHref} className="mt-2 block text-[11.5px] text-brand hover:underline">
+              <Link href={historyHref} className="mt-2 block text-[12px] text-brand hover:underline">
                 変更履歴（{historyCount}件）→
               </Link>
             ) : null}

@@ -39,17 +39,17 @@ export function KnowledgeLocation({
         {/* 添えるものが無いときは、名前だけを本文の大きさで出す。空行を作らない */}
         {info.display ? (
           <>
-            <span className="block truncate text-[11px] leading-tight text-ink-3">{info.label}</span>
-            <span className="block truncate text-[12.5px] font-medium leading-snug text-ink">
+            <span className="block truncate text-[12px] leading-tight text-ink-3">{info.label}</span>
+            <span className="block truncate text-[13.5px] font-medium leading-snug text-ink">
               {info.display}
             </span>
           </>
         ) : (
-          <span className="block truncate text-[12.5px] font-medium text-ink">{info.label}</span>
+          <span className="block truncate text-[13.5px] font-medium text-ink">{info.label}</span>
         )}
       </span>
       {info.openable && (
-        <span className="shrink-0 text-[11.5px] text-ink-3 transition-colors group-hover:text-brand">
+        <span className="shrink-0 text-[12px] text-ink-3 transition-colors group-hover:text-brand">
           開く ↗
         </span>
       )}
@@ -67,8 +67,8 @@ export function KnowledgeLocation({
           <Mark />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[11px] leading-tight text-ink-3">{info.label}</span>
-          <span className="block select-all break-all text-[12.5px] font-medium leading-snug text-ink">
+          <span className="block text-[12px] leading-tight text-ink-3">{info.label}</span>
+          <span className="block select-all break-all text-[13.5px] font-medium leading-snug text-ink">
             {info.display}
           </span>
         </span>

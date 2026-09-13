@@ -42,12 +42,12 @@ export function NotebookLauncher({
             <Mark />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-semibold text-ink">Gemini Notebook を開く</span>
-            <span className="block text-[11.5px] text-ink-3">
+            <span className="block text-[15px] font-semibold text-ink">Gemini Notebook を開く</span>
+            <span className="block text-[12px] text-ink-3">
               ノートブックのURLを置き場所に貼ると、ここに大きく並びます
             </span>
           </span>
-          <span className="shrink-0 text-[12.5px] font-medium text-brand">開く ↗</span>
+          <span className="shrink-0 text-[13.5px] font-medium text-brand">開く ↗</span>
         </a>
       </section>
     );
@@ -55,7 +55,7 @@ export function NotebookLauncher({
 
   return (
     <section className="mb-4">
-      <h2 className="mb-2 text-[11px] font-semibold tracking-[.02em] text-ink-3">ノートブック</h2>
+      <h2 className="mb-2 text-[12px] font-semibold tracking-[.02em] text-ink-3">ノートブック</h2>
       <div className="grid gap-2 sm:grid-cols-2">
         {items.map((k) => (
           <div
@@ -72,13 +72,13 @@ export function NotebookLauncher({
               */}
               <a
                 href={k.location} target="_blank" rel="noreferrer"
-                className="block truncate text-[14.5px] font-semibold text-ink before:absolute before:inset-0"
+                className="block truncate text-[15px] font-semibold text-ink before:absolute before:inset-0"
               >
                 {k.title}
               </a>
-              <span className="block truncate text-[11.5px] text-ink-3">Gemini Notebook</span>
+              <span className="block truncate text-[12px] text-ink-3">Gemini Notebook</span>
             </span>
-            <span className="shrink-0 text-[12.5px] font-medium text-brand">開く ↗</span>
+            <span className="shrink-0 text-[13.5px] font-medium text-brand">開く ↗</span>
             {/*
               こちら側に書いた覚書を読むための小さい出口。
               面の当たり判定より上に置く（z-10）。
@@ -87,7 +87,7 @@ export function NotebookLauncher({
               <button
                 type="button"
                 onClick={() => onOpenDetail(k.id)}
-                className="relative z-10 shrink-0 rounded-md border border-line-soft px-2 py-1 text-[11px] text-ink-3 transition-colors hover:border-brand/40 hover:text-brand"
+                className="relative z-10 shrink-0 rounded-md border border-line-soft px-2 py-1 text-[12px] text-ink-3 transition-colors hover:border-brand/40 hover:text-brand"
               >
                 メモ
               </button>

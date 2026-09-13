@@ -166,8 +166,8 @@ export function WaitRunPanel({
     <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-5 py-3">
         <div>
-          <h3 className="text-[14px] font-bold">この業務を待ちにする</h3>
-          <p className="mt-0.5 text-[12px] text-ink-3">
+          <h3 className="text-[15px] font-bold">この業務を待ちにする</h3>
+          <p className="mt-0.5 text-[13.5px] text-ink-3">
             作業を一旦止めます。確定するまで何も変わりません。
           </p>
         </div>
@@ -175,7 +175,7 @@ export function WaitRunPanel({
       </header>
 
       <div className="flex flex-col gap-4 p-5">
-        <section className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px]">
+        <section className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13.5px]">
           <p>
             <span className="text-ink-3">対象：</span>
             <span className="font-medium">{runLabel(run)}</span>{subjectOf(run) ? `（${def.name}）` : ""}
@@ -186,8 +186,8 @@ export function WaitRunPanel({
         </section>
 
         <div>
-          <label className="mb-1.5 block text-[13px] font-medium" htmlFor="wait-for">
-            何を待っていますか<span className="ml-1.5 text-[11px] text-danger">必須</span>
+          <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="wait-for">
+            何を待っていますか<span className="ml-1.5 text-[12px] text-danger">必須</span>
           </label>
           <input
             id="wait-for" type="text" value={waitingFor}
@@ -195,30 +195,30 @@ export function WaitRunPanel({
             placeholder="例：先方からの回答"
             className="field"
           />
-          <p className="mt-1.5 text-[11.5px] text-ink-3">
+          <p className="mt-1.5 text-[12px] text-ink-3">
             例：顧客からの回答／見積システムの処理／上長への確認の返事／自分で後日あらためて確認
           </p>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-[13px] font-medium" htmlFor="wait-until">
-            次回いつ確認しますか<span className="ml-1.5 text-[11px] text-danger">必須</span>
+          <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="wait-until">
+            次回いつ確認しますか<span className="ml-1.5 text-[12px] text-danger">必須</span>
           </label>
           <input
             id="wait-until" type="date" value={until}
             onChange={(e) => change(() => setUntil(e.target.value))}
             className="field w-auto"
           />
-          {until && <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(until)}</p>}
+          {until && <p className="mt-1.5 text-[12px] text-ink-3">{formatJaDate(until)}</p>}
           <QuickCheckDates now={now} onPick={(v) => change(() => setUntil(v))} />
         </div>
 
         {openTasks.length > 0 && (
           <section>
-            <h4 className="mb-1 text-[12px] font-bold text-ink-3">
+            <h4 className="mb-1 text-[13.5px] font-bold text-ink-3">
               この業務に紐づく未完了のタスク（{openTasks.length}件）
             </h4>
-            <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">
+            <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
               待ちにしてもタスクは止まりません。個別に判断してください。
             </p>
             <ul className="flex flex-col gap-1">
@@ -226,7 +226,7 @@ export function WaitRunPanel({
                 <li key={t.id}>
                   <Link
                     href={`/tasks/${t.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px] hover:border-brand"
+                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13.5px] hover:border-brand"
                   >
                     <span className="min-w-0 flex-1 truncate">{t.title}</span>
                     <Badge tone="neutral">{TASK_STATUS_LABEL[effectiveStatus(t, state.tasks)]}</Badge>
@@ -239,13 +239,13 @@ export function WaitRunPanel({
 
         {errors.length > 0 && (
           <ul className="flex flex-col gap-1 rounded-lg bg-danger-soft px-3.5 py-2.5">
-            {errors.map((e, i) => <li key={i} className="text-[12.5px] text-danger">・{e}</li>)}
+            {errors.map((e, i) => <li key={i} className="text-[13.5px] text-danger">・{e}</li>)}
           </ul>
         )}
 
         {confirming ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-signal-soft px-3.5 py-3">
-            <p className="w-full text-[12.5px] leading-relaxed text-ink">
+            <p className="w-full text-[13.5px] leading-relaxed text-ink">
               <strong className="font-bold">{formatJaDate(until)}</strong> まで
               「<strong className="font-bold">{waitingFor.trim()}</strong>」を待ちます。
               確認日になると、HOMEの「要確認」に出ます。
@@ -300,41 +300,41 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
   return (
     <Card className="overflow-hidden">
       <header className={`border-b border-line px-5 py-4 ${status.overdue ? "bg-danger-soft" : "bg-surface-2"}`}>
-        <p className={`text-[11px] font-bold tracking-wide ${status.overdue ? "text-danger" : "text-ink-3"}`}>
+        <p className={`text-[12px] font-bold tracking-wide ${status.overdue ? "text-danger" : "text-ink-3"}`}>
           {status.overdue ? "待ち中・確認期限超過" : status.dueToday ? "待ち中・今日が確認予定日" : "待ち中"}
         </p>
-        <h2 className="mt-1 text-[20px] font-bold tracking-tight">{runLabel(run)}</h2>
-        <p className="mt-1 text-[13px] text-ink-2">
+        <h2 className="mt-1 text-[23px] font-bold tracking-tight">{runLabel(run)}</h2>
+        <p className="mt-1 text-[13.5px] text-ink-2">
           この業務は待ち中です。確認して、まだ待つか作業を再開するかを決めてください。
         </p>
       </header>
 
       <div className="flex flex-col gap-4 p-5">
-        <dl className="flex flex-col gap-2 text-[13px]">
+        <dl className="flex flex-col gap-2 text-[13.5px]">
           <div className="flex gap-3">
-            <dt className="w-24 shrink-0 text-[12px] text-ink-3">待っているもの</dt>
+            <dt className="w-24 shrink-0 text-[13.5px] text-ink-3">待っているもの</dt>
             <dd className="min-w-0 flex-1 font-medium">{run.waitingFor ?? "（未設定）"}</dd>
           </div>
           <div className="flex gap-3">
-            <dt className="w-24 shrink-0 text-[12px] text-ink-3">次回確認</dt>
+            <dt className="w-24 shrink-0 text-[13.5px] text-ink-3">次回確認</dt>
             <dd className="min-w-0 flex-1">
               <span className="font-medium tabular-nums">
                 {run.waitingUntil ? formatJaDate(run.waitingUntil) : "（未設定）"}
               </span>
-              <span className={`ml-2 text-[12px] ${status.overdue ? "font-bold text-danger" : "text-ink-2"}`}>
+              <span className={`ml-2 text-[13.5px] ${status.overdue ? "font-bold text-danger" : "text-ink-2"}`}>
                 {status.headline ? `${status.headline}・${status.label}` : status.label}
               </span>
             </dd>
           </div>
           {stoppedAt && (
             <div className="flex gap-3">
-              <dt className="w-24 shrink-0 text-[12px] text-ink-3">止めたSTEP</dt>
+              <dt className="w-24 shrink-0 text-[13.5px] text-ink-3">止めたSTEP</dt>
               <dd className="min-w-0 flex-1">{stoppedAt}</dd>
             </div>
           )}
           {event && (
             <div className="flex gap-3">
-              <dt className="w-24 shrink-0 text-[12px] text-ink-3">待ち開始</dt>
+              <dt className="w-24 shrink-0 text-[13.5px] text-ink-3">待ち開始</dt>
               <dd className="min-w-0 flex-1 tabular-nums text-ink-2">
                 {new Date(event.createdAt).toLocaleString("ja-JP", {
                   month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -349,22 +349,22 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
 
         {editing ? (
           <section className="rounded-lg bg-signal-soft p-4">
-            <p className="mb-3 text-[12.5px] font-bold text-signal">まだ待つ：次回確認日を決め直します</p>
-            <label className="mb-1.5 block text-[12.5px] font-medium" htmlFor="wait-for-edit">何を待っているか</label>
+            <p className="mb-3 text-[13.5px] font-bold text-signal">まだ待つ：次回確認日を決め直します</p>
+            <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="wait-for-edit">何を待っているか</label>
             <input
               id="wait-for-edit" type="text" value={waitingFor}
               onChange={(e) => { setWaitingFor(e.target.value); setError(null); }}
               className="mb-3 field"
             />
-            <label className="mb-1.5 block text-[12.5px] font-medium" htmlFor="wait-until-edit">次回いつ確認するか</label>
+            <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="wait-until-edit">次回いつ確認するか</label>
             <input
               id="wait-until-edit" type="date" value={until}
               onChange={(e) => { setUntil(e.target.value); setError(null); }}
               className="field w-auto"
             />
-            {until && <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(until)}</p>}
+            {until && <p className="mt-1.5 text-[12px] text-ink-3">{formatJaDate(until)}</p>}
             <QuickCheckDates now={now} onPick={(v) => { setUntil(v); setError(null); }} />
-            {error && <p className="mt-2 text-[12.5px] text-danger">{error}</p>}
+            {error && <p className="mt-2 text-[13.5px] text-danger">{error}</p>}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={keepWaiting}>この内容で待ち続ける</Button>
               <Button variant="secondary" onClick={() => { setEditing(false); setError(null); }}>やめる</Button>

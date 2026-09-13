@@ -51,9 +51,9 @@ function NewWorkflowInner() {
     return (
       <div className="mx-auto max-w-[720px] px-6 py-10">
         <div className="rounded-xl bg-ok-soft p-6 text-center">
-          <p className="text-[13px] font-bold text-ok">業務を登録しました</p>
-          <h1 className="mt-2 text-[20px] font-bold tracking-tight">{saved.name}</h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
+          <p className="text-[13.5px] font-bold text-ok">業務を登録しました</p>
+          <h1 className="mt-2 text-[23px] font-bold tracking-tight">{saved.name}</h1>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-ink-2">
             この業務は「業務」一覧に並びました。開始すると、HOME・タスク・マップにも現れます。
           </p>
           {/* 登録した直後だけ。未設定があるなら、後から足せることを伝える */}
@@ -82,7 +82,7 @@ function NewWorkflowInner() {
 
   return (
     <div className="mx-auto max-w-[900px] px-6 py-6">
-      <div className="mb-2 text-[12px] text-ink-3">
+      <div className="mb-2 text-[13.5px] text-ink-3">
         <Link href="/workflows" className="hover:text-brand">業務</Link> / 業務を登録
       </div>
       <PageHeader
@@ -105,7 +105,7 @@ function NewWorkflowInner() {
 
 export default function NewWorkflowPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-[13px] text-ink-3">読み込み中…</div>}>
+    <Suspense fallback={<div className="p-8 text-[13.5px] text-ink-3">読み込み中…</div>}>
       <NewWorkflowInner />
     </Suspense>
   );

@@ -52,12 +52,12 @@ export function Drawer({
       >
         <div className="flex items-start gap-3 border-b border-line-soft px-5 py-3.5">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[14.5px] font-bold leading-snug">{title}</h2>
-            {subtitle && <div className="mt-1 text-[11.5px] text-ink-3">{subtitle}</div>}
+            <h2 className="text-[15px] font-bold leading-snug">{title}</h2>
+            {subtitle && <div className="mt-1 text-[12px] text-ink-3">{subtitle}</div>}
           </div>
           <button
             type="button" onClick={onClose} aria-label="閉じる" title="閉じる（Esc）"
-            className="shrink-0 rounded-[5px] px-2 py-1 text-[15px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
+            className="shrink-0 rounded-[5px] px-2 py-1 text-[17px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
           >
             ×
           </button>

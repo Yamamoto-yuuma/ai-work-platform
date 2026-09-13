@@ -33,8 +33,8 @@ export function ChangeHistory({ run }: { run: WorkRun }) {
   return (
     <Card className="overflow-hidden">
       <header className="border-b border-line bg-surface-2 px-4 py-2.5">
-        <h2 className="text-[12px] font-bold">この業務の変更履歴（{changes.length}件）</h2>
-        <p className="mt-0.5 text-[11px] text-ink-3">起票された変更と、そこから生まれた対応です</p>
+        <h2 className="text-[13.5px] font-bold">この業務の変更履歴（{changes.length}件）</h2>
+        <p className="mt-0.5 text-[12px] text-ink-3">起票された変更と、そこから生まれた対応です</p>
       </header>
       <ul className="flex flex-col">
         {changes.map((c) => (
@@ -62,32 +62,32 @@ function ChangeRow({
   return (
     <li className="border-b border-line-soft px-4 py-3 last:border-b-0">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-[11.5px] tabular-nums text-ink-3">
+        <span className="text-[12px] tabular-nums text-ink-3">
           {new Date(change.occurredAt).toLocaleString("ja-JP", {
             month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
           })}
         </span>
-        {actorName && <span className="text-[11.5px] text-ink-3">{actorName}</span>}
+        {actorName && <span className="text-[12px] text-ink-3">{actorName}</span>}
       </div>
 
-      <p className="mt-1 text-[12.5px]">
+      <p className="mt-1 text-[13.5px]">
         <span className="font-medium">{change.entityLabel}</span>
         <span className="mx-1 text-ink-3">の</span>
         <span className="font-medium">{change.fieldLabel}</span>
       </p>
-      <p className="mt-0.5 text-[12.5px] tabular-nums">
+      <p className="mt-0.5 text-[13.5px] tabular-nums">
         <span className="text-ink-3 line-through">{before || "（未登録）"}</span>
         <span className="mx-1.5 text-ink-3">→</span>
         <span className="font-bold">{after}</span>
       </p>
 
       {change.reason && (
-        <p className="mt-1 text-[11.5px] leading-relaxed text-ink-2">理由：{change.reason}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-2">理由：{change.reason}</p>
       )}
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         {derived.length > 0 && <Badge tone="signal">この変更から {derived.length}件</Badge>}
-        <Link href={`/map/impact/${change.id}`} className="text-[11.5px] text-brand hover:underline">
+        <Link href={`/map/impact/${change.id}`} className="text-[12px] text-brand hover:underline">
           影響を見る →
         </Link>
       </div>
@@ -98,7 +98,7 @@ function ChangeRow({
             <li key={t.id}>
               <Link
                 href={`/tasks/${t.id}`}
-                className="block truncate rounded-lg bg-surface-2 px-2.5 py-1.5 text-[11.5px] hover:text-brand"
+                className="block truncate rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12px] hover:text-brand"
               >
                 {t.title}
               </Link>

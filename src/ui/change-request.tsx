@@ -172,8 +172,8 @@ export function ChangeRequestPanel({
     <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-5 py-3">
         <div>
-          <h3 className="text-[14px] font-bold">業務途中の変更を起票する</h3>
-          <p className="mt-0.5 text-[12px] text-ink-3">
+          <h3 className="text-[15px] font-bold">業務途中の変更を起票する</h3>
+          <p className="mt-0.5 text-[13.5px] text-ink-3">
             {phase === "input"
               ? "変更内容を入力すると、影響を確認できます。この時点では何も変更されません"
               : "内容を確認してください。確定するまでタスクも期限も変わりません"}
@@ -186,8 +186,8 @@ export function ChangeRequestPanel({
         <div className="flex flex-col gap-4 p-5">
           {/* 変更対象 */}
           <div>
-            <label className="mb-1.5 block text-[13px] font-medium">
-              何が変わりましたか<span className="ml-1.5 text-[11px] text-danger">必須</span>
+            <label className="mb-1.5 block text-[13.5px] font-medium">
+              何が変わりましたか<span className="ml-1.5 text-[12px] text-danger">必須</span>
             </label>
             <div className="flex flex-col gap-1.5">
               {targets.map((t) => (
@@ -206,8 +206,8 @@ export function ChangeRequestPanel({
                     className="mt-0.5 h-4 w-4 accent-[#1d5a78]"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium leading-snug">{t.label}</span>
-                    <span className="mt-0.5 block text-[11.5px] leading-relaxed text-ink-3">{t.hint}</span>
+                    <span className="block text-[13.5px] font-medium leading-snug">{t.label}</span>
+                    <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-3">{t.hint}</span>
                   </span>
                 </label>
               ))}
@@ -219,9 +219,9 @@ export function ChangeRequestPanel({
               {/* 変更されたものの名称（派生ルール由来のときだけ） */}
               {target.kind === "derivation" && (
                 <div>
-                  <label className="mb-1.5 block text-[13px] font-medium" htmlFor="change-entity">
+                  <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="change-entity">
                     何の{target.fieldLabel}が変わりましたか
-                    <span className="ml-1.5 text-[11px] text-danger">必須</span>
+                    <span className="ml-1.5 text-[12px] text-danger">必須</span>
                   </label>
                   <input
                     id="change-entity" type="text" value={entityLabel}
@@ -234,9 +234,9 @@ export function ChangeRequestPanel({
 
               {/* 変更前 */}
               <div>
-                <label className="mb-1.5 block text-[13px] font-medium">変更前</label>
+                <label className="mb-1.5 block text-[13.5px] font-medium">変更前</label>
                 {target.currentValue ? (
-                  <p className="rounded-lg border border-line-soft bg-surface-2 px-3 py-2 text-[13px] tabular-nums">
+                  <p className="rounded-lg border border-line-soft bg-surface-2 px-3 py-2 text-[13.5px] tabular-nums">
                     {target.valueType === "date" ? fmtDate(target.currentValue) : target.currentValue}
                   </p>
                 ) : (
@@ -256,7 +256,7 @@ export function ChangeRequestPanel({
                         className="field"
                       />
                     )}
-                    <p className="mt-1.5 text-[11.5px] text-ink-3">
+                    <p className="mt-1.5 text-[12px] text-ink-3">
                       この値はシステムに登録されていないため、分かる場合は入力してください（任意）。
                     </p>
                   </>
@@ -265,8 +265,8 @@ export function ChangeRequestPanel({
 
               {/* 変更後 */}
               <div>
-                <label className="mb-1.5 block text-[13px] font-medium" htmlFor="change-after">
-                  変更後<span className="ml-1.5 text-[11px] text-danger">必須</span>
+                <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="change-after">
+                  変更後<span className="ml-1.5 text-[12px] text-danger">必須</span>
                 </label>
                 {target.valueType === "date" ? (
                   <>
@@ -276,7 +276,7 @@ export function ChangeRequestPanel({
                       className="field w-auto"
                     />
                     {after && (
-                      <p className="mt-1.5 text-[11.5px] text-ink-3">{formatJaDate(after)}</p>
+                      <p className="mt-1.5 text-[12px] text-ink-3">{formatJaDate(after)}</p>
                     )}
                   </>
                 ) : (
@@ -291,8 +291,8 @@ export function ChangeRequestPanel({
 
               {/* 理由（ChangeEvent.reason に保存される） */}
               <div>
-                <label className="mb-1.5 block text-[13px] font-medium" htmlFor="change-reason">
-                  変更理由<span className="ml-1.5 text-[11px] text-ink-3">任意</span>
+                <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="change-reason">
+                  変更理由<span className="ml-1.5 text-[12px] text-ink-3">任意</span>
                 </label>
                 <textarea
                   id="change-reason" rows={2} value={reason}
@@ -307,7 +307,7 @@ export function ChangeRequestPanel({
           {errors.length > 0 && (
             <ul className="flex flex-col gap-1 rounded-lg bg-danger-soft px-3.5 py-2.5">
               {errors.map((e, i) => (
-                <li key={i} className="text-[12.5px] text-danger">・{e}</li>
+                <li key={i} className="text-[13.5px] text-danger">・{e}</li>
               ))}
             </ul>
           )}
@@ -315,7 +315,7 @@ export function ChangeRequestPanel({
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={analyze}>影響を確認する</Button>
             <Button variant="secondary" onClick={onClose}>やめる</Button>
-            <span className="text-[11.5px] text-ink-3">確認しても、まだ何も変更されません</span>
+            <span className="text-[12px] text-ink-3">確認しても、まだ何も変更されません</span>
           </div>
         </div>
       )}
@@ -374,28 +374,28 @@ function ImpactPreview({
     <div className="flex flex-col gap-4 p-5">
       {/* 変更内容 */}
       <section className="rounded-lg bg-brand-soft px-4 py-3">
-        <p className="text-[11px] font-bold tracking-wide text-brand">変更内容</p>
-        <p className="mt-1 text-[14px] font-bold text-brand-ink">{impact.change.entityLabel}</p>
-        <p className="mt-0.5 text-[13px]">
+        <p className="text-[12px] font-bold tracking-wide text-brand">変更内容</p>
+        <p className="mt-1 text-[15px] font-bold text-brand-ink">{impact.change.entityLabel}</p>
+        <p className="mt-0.5 text-[13.5px]">
           {impact.change.fieldLabel}：
           <span className="mx-1.5 line-through opacity-60">{describeValue(impact.change.before) || "（未登録）"}</span>
           →
           <span className="mx-1.5 font-bold">{describeValue(impact.change.after)}</span>
         </p>
         {impact.change.reason && (
-          <p className="mt-1.5 text-[12.5px] text-ink-2">理由：{impact.change.reason}</p>
+          <p className="mt-1.5 text-[13.5px] text-ink-2">理由：{impact.change.reason}</p>
         )}
       </section>
 
       {/* 業務の期限そのものの更新 */}
       {target.kind === "run-deadline" && (
         <section>
-          <h4 className="mb-2 text-[12px] font-bold text-ink-3">この業務の期限</h4>
-          <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2.5 shadow-card text-[13px]">
+          <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">この業務の期限</h4>
+          <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2.5 shadow-card text-[13.5px]">
             <span className="text-ink-3 line-through tabular-nums">{describeValue(impact.change.before)}</span>
             <span className="mx-2 text-ink-3">→</span>
             <span className="font-bold tabular-nums">{describeValue(impact.change.after)}</span>
-            <span className="ml-2 text-[11.5px] text-ink-3">確定すると業務の期限が更新されます</span>
+            <span className="ml-2 text-[12px] text-ink-3">確定すると業務の期限が更新されます</span>
           </p>
         </section>
       )}
@@ -403,10 +403,10 @@ function ImpactPreview({
       {/* 期限が変わる既存タスク */}
       {impact.deadlineProposals.length > 0 && (
         <section>
-          <h4 className="mb-1 text-[12px] font-bold text-ink-3">
+          <h4 className="mb-1 text-[13.5px] font-bold text-ink-3">
             期限が変わるタスク（{impact.deadlineProposals.length}件）
           </h4>
-          <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">
+          <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
             動いた営業日数だけ後ろ／前へ動かす提案です。必要なものだけ選んでください。
           </p>
           <ul className="flex flex-col gap-1.5">
@@ -424,10 +424,10 @@ function ImpactPreview({
       {/* 新しく発生するタスク */}
       {creatable.length > 0 && (
         <section>
-          <h4 className="mb-1 text-[12px] font-bold text-ink-3">
+          <h4 className="mb-1 text-[13.5px] font-bold text-ink-3">
             新しく発生するタスク（{creatable.length}件）
           </h4>
-          <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">
+          <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
             登録された派生ルール
             {impact.matchedRules.length > 0 && `「${impact.matchedRules.map((r) => r.name).join("・")}」`}
             により機械的に洗い出したものです。
@@ -449,9 +449,9 @@ function ImpactPreview({
                       aria-label={`${t.title} を作成する`}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-medium leading-snug">{t.title}</span>
+                      <span className="block text-[13.5px] font-medium leading-snug">{t.title}</span>
                       {t.description && (
-                        <span className="mt-0.5 block text-[11.5px] leading-relaxed text-ink-3">{t.description}</span>
+                        <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-3">{t.description}</span>
                       )}
                       <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {t.impactLayer && (
@@ -471,14 +471,14 @@ function ImpactPreview({
       )}
 
       {already > 0 && (
-        <p className="rounded-lg bg-ok-soft px-3.5 py-2.5 text-[12.5px] text-ok">
+        <p className="rounded-lg bg-ok-soft px-3.5 py-2.5 text-[13.5px] text-ok">
           この変更による派生タスク {already} 件は作成済みです。重複しては作られません。
         </p>
       )}
 
       {/* 影響が出せない場合は、正直にそう言う */}
       {impact.isEmpty && (
-        <p className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-2">
+        <p className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-2">
           {target.kind === "run-deadline"
             ? "この業務には期限を持つ未完了タスクがまだ無いため、動かす対象はありません。業務の期限だけを更新します。"
             : impact.matchedRules.length === 0
@@ -488,7 +488,7 @@ function ImpactPreview({
       )}
 
       {impact.cycle && (
-        <p className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[12.5px] text-danger">
+        <p className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13.5px] text-danger">
           依存関係に循環があります：{impact.cycle.join(" → ")}
         </p>
       )}
@@ -498,7 +498,7 @@ function ImpactPreview({
         <Button size="lg" onClick={onConfirm}>変更を確定</Button>
         <Button variant="secondary" onClick={onCancel}>今は確定しない</Button>
         <Button variant="ghost" onClick={onBack}>入力へ戻る</Button>
-        <span className="text-[11.5px] text-ink-3">
+        <span className="text-[12px] text-ink-3">
           {nothingChosen
             ? "変更履歴だけが記録されます"
             : `タスク作成 ${chosenTasks}件・期限変更 ${chosenDeadlines}件を反映します`}
@@ -521,9 +521,9 @@ function AppliedSummary({
   return (
     <Card className="mt-4 shadow-pop">
       <header className="border-b border-line bg-ok-soft px-5 py-3">
-        <p className="text-[11px] font-bold tracking-wide text-ok">変更を確定しました</p>
-        <p className="mt-0.5 text-[14px] font-bold">{applied.changeLabel}</p>
-        <p className="mt-1 text-[12px] text-ink-2">
+        <p className="text-[12px] font-bold tracking-wide text-ok">変更を確定しました</p>
+        <p className="mt-0.5 text-[15px] font-bold">{applied.changeLabel}</p>
+        <p className="mt-1 text-[13.5px] text-ink-2">
           影響 {total} 件
           （{applied.runDeadline && "業務の期限 1 件／"}
           タスクの期限変更 {applied.updatedDeadlines.length} 件／新しく発生したタスク {applied.createdTasks.length} 件）
@@ -533,8 +533,8 @@ function AppliedSummary({
       <div className="flex flex-col gap-4 p-5">
         {applied.runDeadline && (
           <section>
-            <h4 className="mb-2 text-[12px] font-bold text-ink-3">この業務の期限</h4>
-            <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px]">
+            <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">この業務の期限</h4>
+            <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13.5px]">
               <span className="tabular-nums text-ink-3 line-through">{fmtDate(applied.runDeadline.from)}</span>
               <span className="mx-2 text-ink-3">→</span>
               <Badge tone="brand">{fmtDate(applied.runDeadline.to)}</Badge>
@@ -544,10 +544,10 @@ function AppliedSummary({
 
         {applied.updatedDeadlines.length > 0 && (
           <section>
-            <h4 className="mb-2 text-[12px] font-bold text-ink-3">期限が変わったタスク</h4>
+            <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">期限が変わったタスク</h4>
             <ul className="flex flex-col gap-1">
               {applied.updatedDeadlines.map((d, i) => (
-                <li key={i} className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px]">
+                <li key={i} className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13.5px]">
                   <span className="min-w-0 flex-1 truncate">{d.title}</span>
                   <span className="shrink-0 tabular-nums text-ink-3 line-through">{fmtDate(d.from)}</span>
                   <span className="text-ink-3">→</span>
@@ -560,13 +560,13 @@ function AppliedSummary({
 
         {applied.createdTasks.length > 0 && (
           <section>
-            <h4 className="mb-2 text-[12px] font-bold text-ink-3">新しく発生したタスク</h4>
+            <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">新しく発生したタスク</h4>
             <ul className="flex flex-col gap-1">
               {applied.createdTasks.map((t) => (
                 <li key={t.id}>
                   <Link
                     href={`/tasks/${t.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[12.5px] hover:border-brand hover:bg-brand-soft"
+                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13.5px] hover:border-brand hover:bg-brand-soft"
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
                     {t.impactLayer && <Badge tone={IMPACT_TONE[t.impactLayer]}>{IMPACT_LABEL[t.impactLayer]}</Badge>}
@@ -579,12 +579,12 @@ function AppliedSummary({
         )}
 
         {total === 0 && (
-          <p className="text-[12.5px] text-ink-2">
+          <p className="text-[13.5px] text-ink-2">
             変更履歴として記録しました。作成されたタスクや期限の変更はありません。
           </p>
         )}
         {total > 0 && applied.createdTasks.length === 0 && applied.updatedDeadlines.length === 0 && (
-          <p className="text-[12.5px] text-ink-2">
+          <p className="text-[13.5px] text-ink-2">
             期限を持つ未完了タスクが無いため、動いたタスクはありません。
           </p>
         )}

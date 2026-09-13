@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useStore, clearStorage, hasSampleData } from "@/adapters/memory/store";
 import { allComponentSpecs } from "@/components-registry/registry";
 import { isRuleActive } from "@/core/rules/resolver";
-import { Badge, Button, Card, PageHeader } from "@/ui/primitives";
+import { Badge, Button, Card, PageHeader, SubHead } from "@/ui/primitives";
 import { GoogleTasksPanel } from "@/ui/google-tasks-panel";
 
 const ROLE_LABEL = { executor: "実行者", designer: "業務設計者", admin: "管理者", viewer: "閲覧者" } as const;
@@ -33,9 +33,9 @@ export default function SettingsPage() {
 
       {/* デモ用の業務日 — 一時ルールの自動適用・自動失効を確認するためのもの */}
       <section className="mb-7">
-        <h2 className="mb-3 text-[13px] font-bold">業務日（デモ用）</h2>
+        <SubHead title="Business date" note="業務日（デモ用）" className="mb-3" />
         <Card className="p-5">
-          <p className="mb-3 text-[12px] text-ink-2">
+          <p className="mb-3 text-[13.5px] text-ink-2">
             一時ルールは期間で自動的に有効・無効が切り替わります（定期処理は不要）。
             業務日を切り替えると、同じルールが適用されたり外れたりすることを確認できます。
           </p>
@@ -61,8 +61,8 @@ export default function SettingsPage() {
                     : "pick"
                 }`}
               >
-                <span className="block text-[13px] font-medium">{o.label}</span>
-                <span className="block text-[11px] text-ink-3">{o.note}</span>
+                <span className="block text-[13.5px] font-medium">{o.label}</span>
+                <span className="block text-[12px] text-ink-3">{o.note}</span>
               </button>
               );
             })}
@@ -79,8 +79,8 @@ export default function SettingsPage() {
         ].map((x) => (
           <Link key={x.href} href={x.href}>
             <Card className="h-full p-4 transition-colors hover:border-brand">
-              <p className="text-[13.5px] font-bold">{x.title}</p>
-              <p className="mt-1 text-[12px] text-ink-2">{x.desc}</p>
+              <p className="text-[15px] font-bold">{x.title}</p>
+              <p className="mt-1 text-[13.5px] text-ink-2">{x.desc}</p>
             </Card>
           </Link>
         ))}
@@ -92,16 +92,16 @@ export default function SettingsPage() {
         常に選ばれている選択肢を1つ置いても、選ぶ操作にはならない。
       */}
       <section id="users" className="mb-7 scroll-mt-6">
-        <h2 className="mb-3 text-[13px] font-bold">ユーザー</h2>
+        <SubHead title="Users" note="ユーザー" className="mb-3" />
         <Card className="p-5">
-          <p className="mb-3 text-[12px] text-ink-3">
+          <p className="mb-3 text-[13.5px] text-ink-3">
             {users.length > 1
               ? "認証は Phase 7 で接続します。現在はモックユーザーを切り替えて権限の違いを確認できます。"
               : "認証は Phase 7 で接続します。"}
           </p>
           {users.length === 1 ? (
             <div className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2 px-3.5 py-2.5">
-              <span className="flex-1 text-[13px] font-medium">{users[0].name}</span>
+              <span className="flex-1 text-[13.5px] font-medium">{users[0].name}</span>
               <span className="flex gap-1">
                 {users[0].roles.map((r) => <Badge key={r} tone="neutral">{ROLE_LABEL[r]}</Badge>)}
               </span>
@@ -120,8 +120,8 @@ export default function SettingsPage() {
                   onChange={() => dispatch({ type: "setUser", userId: u.id })}
                   className="h-4 w-4 accent-[#1d5a78]"
                 />
-                <span className="flex-1 text-[13px] font-medium">{u.name}</span>
-                <span className="text-[11.5px] text-ink-3">{u.team}</span>
+                <span className="flex-1 text-[13.5px] font-medium">{u.name}</span>
+                <span className="text-[12px] text-ink-3">{u.team}</span>
                 <span className="flex gap-1">
                   {u.roles.map((r) => <Badge key={r} tone="neutral">{ROLE_LABEL[r]}</Badge>)}
                 </span>
@@ -134,10 +134,10 @@ export default function SettingsPage() {
 
       {/* 権限マトリクス */}
       <section className="mb-7">
-        <h2 className="mb-3 text-[13px] font-bold">権限</h2>
+        <SubHead title="Permissions" note="権限" className="mb-3" />
         <div className="overflow-x-auto rounded-xl border border-line">
-          <table className="w-full min-w-[560px] bg-surface text-[12.5px]">
-            <thead className="bg-surface-2 text-[11.5px] text-ink-2">
+          <table className="w-full min-w-[560px] bg-surface text-[13.5px]">
+            <thead className="bg-surface-2 text-[12px] text-ink-2">
               <tr>
                 <th className="px-3 py-2.5 text-left font-medium">操作</th>
                 <th className="px-3 py-2.5 text-center font-medium">実行者</th>
@@ -160,7 +160,7 @@ export default function SettingsPage() {
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-[11.5px] text-ink-3">
+        <p className="mt-2 text-[12px] text-ink-3">
           現在のユーザー「{currentUser.name}」の権限：{currentUser.roles.map((r) => ROLE_LABEL[r]).join(" / ")}
           （権限による操作制限の実装は Phase 7）
         </p>
@@ -168,7 +168,7 @@ export default function SettingsPage() {
 
       {/* 外部連携 */}
       <section className="mb-7">
-        <h2 className="mb-3 text-[13px] font-bold">外部連携</h2>
+        <SubHead title="Integrations" note="外部連携" className="mb-3" />
         <div className="flex flex-col gap-2">
           {/* 実際に繋がるものを先に置く。予定のものと同じ並びに埋めない */}
           <GoogleTasksPanel />
@@ -176,11 +176,11 @@ export default function SettingsPage() {
             <Card key={i.key} className="flex flex-wrap items-center gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[13px] font-medium">{i.label}</p>
+                  <p className="text-[13.5px] font-medium">{i.label}</p>
                   <Badge tone={i.connected ? "ok" : "neutral"}>{i.connected ? "接続済み" : "未接続"}</Badge>
                   <Badge tone="brand">{i.plannedPhase}</Badge>
                 </div>
-                <p className="mt-1 text-[12px] text-ink-2">{i.note}</p>
+                <p className="mt-1 text-[13.5px] text-ink-2">{i.note}</p>
               </div>
               <Button variant="secondary" size="sm" disabled>接続する</Button>
             </Card>
@@ -190,17 +190,17 @@ export default function SettingsPage() {
 
       {/* 業務部品 */}
       <section className="mb-7">
-        <h2 className="mb-3 text-[13px] font-bold">業務部品（{allComponentSpecs().length}種）</h2>
+        <SubHead title="Step components" count={allComponentSpecs().length} note="STEPで使える業務部品" className="mb-3" />
         <Card className="p-5">
-          <p className="mb-3 text-[12px] text-ink-3">
+          <p className="mb-3 text-[13.5px] text-ink-3">
             STEPで使える部品の一覧です。部品はレジストリに登録されており、追加してもフローエンジンや既存の業務定義には影響しません。
           </p>
           <div className="flex flex-wrap gap-1.5">
             {allComponentSpecs().map((s) => (
-              <span key={s.type} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-[12px]">
+              <span key={s.type} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-[13.5px]">
                 <span>{s.icon}</span>
                 <span className="font-medium">{s.label}</span>
-                {s.requiredPorts.length > 0 && <span className="text-[10.5px] text-ink-3">要連携</span>}
+                {s.requiredPorts.length > 0 && <span className="text-[12px] text-ink-3">要連携</span>}
               </span>
             ))}
           </div>
@@ -213,9 +213,9 @@ export default function SettingsPage() {
         使い始めるときに片付けられるようにする。
       */}
       <section id="sample" className="mb-7 scroll-mt-6">
-        <h2 className="mb-3 text-[13px] font-bold">サンプルデータ</h2>
+        <SubHead title="Sample data" note="サンプルデータ" className="mb-3" />
         <Card className="p-5">
-          <p className="text-[12.5px] leading-relaxed text-ink-2">
+          <p className="text-[13.5px] leading-relaxed text-ink-2">
             動きを確かめるための業務・タスク・ナレッジの一式です。
             初期状態では入っていません。片付けても、自分で登録したものは残ります。
           </p>
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                 サンプルデータを読み込む
               </Button>
             )}
-            <span className="text-[11.5px] text-ink-3">
+            <span className="text-[12px] text-ink-3">
               {sampleShown ? "いまサンプルが入っています" : "いまは自分のデータだけです"}
             </span>
           </div>
@@ -238,9 +238,9 @@ export default function SettingsPage() {
 
       {/* データ */}
       <section>
-        <h2 className="mb-3 text-[13px] font-bold">データ</h2>
+        <SubHead title="Data" note="このブラウザに保存しているもの" className="mb-3" />
         <Card className="p-5">
-          <p className="text-[12.5px] leading-relaxed text-ink-2">
+          <p className="text-[13.5px] leading-relaxed text-ink-2">
             データはこのブラウザの中だけに保存されています。
             初期化すると、登録した業務・進行中の業務・タスク・ナレッジがすべて消えます。元に戻せません。
           </p>

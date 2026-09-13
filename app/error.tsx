@@ -24,8 +24,8 @@ export default function GlobalError({
 
   return (
     <div className="mx-auto max-w-[560px] px-6 py-16">
-      <h1 className="text-[17px] font-bold">画面を表示できませんでした</h1>
-      <p className="mt-3 text-[13px] leading-[1.9] text-ink-2">
+      <h1 className="text-[19px] font-bold">画面を表示できませんでした</h1>
+      <p className="mt-3 text-[13.5px] leading-[1.9] text-ink-2">
         処理の途中で問題が起きました。多くの場合は、もう一度開き直すと表示できます。
         繰り返し出る場合は、この端末に保存した内容が古くなっている可能性があります。
       </p>
@@ -34,7 +34,7 @@ export default function GlobalError({
         <button
           type="button"
           onClick={reset}
-          className="inline-flex items-center rounded-[5px] border border-transparent bg-brand px-4 py-2 text-[13px] font-medium text-white hover:bg-brand-ink"
+          className="inline-flex items-center rounded-[5px] border border-transparent bg-brand px-4 py-2 text-[13.5px] font-medium text-white hover:bg-brand-ink"
         >
           もう一度開く
         </button>
@@ -48,19 +48,19 @@ export default function GlobalError({
             }
             window.location.href = "/";
           }}
-          className="inline-flex items-center rounded-[5px] border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink hover:border-ink-3 hover:bg-surface-2"
+          className="inline-flex items-center rounded-[5px] border border-line bg-surface px-4 py-2 text-[13.5px] font-medium text-ink hover:border-ink-3 hover:bg-surface-2"
         >
           この端末の保存内容を消して開き直す
         </button>
       </div>
 
-      <p className="mt-5 text-[11px] leading-[1.9] text-ink-3">
+      <p className="mt-5 text-[12px] leading-[1.9] text-ink-3">
         「保存内容を消して開き直す」を押すと、この端末で作った業務・タスク・ナレッジは消えます。
         日報はスプレッドシート側にあるため消えません。
       </p>
 
       {error.digest && (
-        <p className="mt-4 font-mono text-[11px] text-ink-3">識別子: {error.digest}</p>
+        <p className="mt-4 font-mono text-[12px] text-ink-3">識別子: {error.digest}</p>
       )}
     </div>
   );

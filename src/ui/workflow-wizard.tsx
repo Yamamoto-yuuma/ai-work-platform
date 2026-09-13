@@ -78,7 +78,7 @@ function ScheduleRow({
   return (
     <div className={`rounded-[5px] bg-surface-2 p-4 ${off ? "opacity-60" : ""}`}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-[11.5px] font-bold text-ink-3">スケジュール {index + 1}</span>
+        <span className="text-[12px] font-bold text-ink-3">スケジュール {index + 1}</span>
         <input
           className="field field-sm w-auto flex-1 min-w-[140px]"
           placeholder="呼び名（任意）"
@@ -111,7 +111,7 @@ function ScheduleRow({
             onClick={() => set({ repeatKind: c.kind })}
             className={`px-3 py-1.5 text-left ${schedule.repeatKind === c.kind ? "pick-on" : "pick"}`}
           >
-            <span className="block text-[12px] font-medium">{c.label}</span>
+            <span className="block text-[13.5px] font-medium">{c.label}</span>
           </button>
         ))}
       </div>
@@ -129,7 +129,7 @@ function ScheduleRow({
                     ? schedule.weekdays.filter((x) => x !== i)
                     : [...schedule.weekdays, i],
                 })}
-                className={`h-9 w-9 text-[12.5px] font-medium ${
+                className={`h-9 w-9 text-[13.5px] font-medium ${
                   on ? "pick-on" : "pick"
                 }`}
               >
@@ -141,7 +141,7 @@ function ScheduleRow({
       )}
 
       {schedule.repeatKind === "monthly-day" && (
-        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12.5px] text-ink-2">
+        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[13.5px] text-ink-2">
           <span>毎月</span>
           <input
             type="number" min={1} max={31}
@@ -151,19 +151,19 @@ function ScheduleRow({
             onChange={(e) => set({ monthDay: e.target.value })}
           />
           <span>日</span>
-          <span className="text-[11.5px] text-ink-3">その月に無い日は月末に寄せます</span>
+          <span className="text-[12px] text-ink-3">その月に無い日は月末に寄せます</span>
         </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="text-[12.5px] text-ink-2" htmlFor={`time-${schedule.id}`}>開始時刻</label>
+        <label className="text-[13.5px] text-ink-2" htmlFor={`time-${schedule.id}`}>開始時刻</label>
         <input
           id={`time-${schedule.id}`} type="time"
           className="field field-sm w-auto"
           value={schedule.time}
           onChange={(e) => set({ time: e.target.value })}
         />
-        <span className="ml-auto text-[11.5px] text-ink-3">
+        <span className="ml-auto text-[12px] text-ink-3">
           {preview} {schedule.time || "--:--"} 以降に出ます
         </span>
       </div>
@@ -187,10 +187,10 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 flex items-baseline gap-1.5 text-[13px] font-medium">
+      <label className="mb-1.5 flex items-baseline gap-1.5 text-[13.5px] font-medium">
         {label}
-        {required && <span className="text-[11px] text-danger">必須</span>}
-        {hint && <span className="ml-auto text-[11px] font-normal text-ink-3">{hint}</span>}
+        {required && <span className="text-[12px] text-danger">必須</span>}
+        {hint && <span className="ml-auto text-[12px] font-normal text-ink-3">{hint}</span>}
       </label>
       {children}
     </div>
@@ -201,10 +201,10 @@ function ErrorList({ errors }: { errors: DraftError[] }) {
   if (errors.length === 0) return null;
   return (
     <div className="rounded-lg bg-danger-soft px-3.5 py-2.5">
-      <p className="text-[12.5px] font-bold text-danger">入力を確認してください</p>
+      <p className="text-[13.5px] font-bold text-danger">入力を確認してください</p>
       <ul className="mt-1 flex flex-col gap-0.5">
         {errors.map((e, i) => (
-          <li key={i} className="text-[12.5px] text-danger">・{e.message}</li>
+          <li key={i} className="text-[13.5px] text-danger">・{e.message}</li>
         ))}
       </ul>
     </div>
@@ -336,11 +336,11 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                       : "rounded-lg border border-line-soft bg-surface-2 text-ink-3"
                 }`}
               >
-                <p className={`text-[11px] tabular-nums ${state === "todo" ? "text-ink-3" : "text-brand"}`}>
+                <p className={`text-[12px] tabular-nums ${state === "todo" ? "text-ink-3" : "text-brand"}`}>
                   STEP {s.n}
                 </p>
-                <p className={`text-[12.5px] font-bold ${state === "todo" ? "text-ink-3" : ""}`}>{s.label}</p>
-                <p className="text-[11px] text-ink-3">{s.hint}</p>
+                <p className={`text-[13.5px] font-bold ${state === "todo" ? "text-ink-3" : ""}`}>{s.label}</p>
+                <p className="text-[12px] text-ink-3">{s.hint}</p>
               </button>
             </li>
           );
@@ -348,7 +348,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
       </ol>
 
       {mode === "edit" && runCount > 0 && (
-        <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-2">
+        <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-2">
           この業務はすでに <span className="font-bold">{runCount}件</span> 実行されています。
           保存すると新しいバージョンとして登録され、
           <span className="font-medium">進行中の実行はいまのバージョンのまま進みます</span>。
@@ -397,8 +397,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     draft.workKind === k.value ? "pick-on" : "pick"
                   }`}
                 >
-                  <p className="text-[13px] font-bold">{k.label}</p>
-                  <p className="mt-0.5 text-[11.5px] text-ink-3">{k.hint}</p>
+                  <p className="text-[13.5px] font-bold">{k.label}</p>
+                  <p className="mt-0.5 text-[12px] text-ink-3">{k.hint}</p>
                 </button>
               ))}
             </div>
@@ -410,15 +410,15 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
       {stage === 2 && (
         <Card className="flex flex-col gap-4 p-5">
           <div>
-            <h3 className="text-[13.5px] font-bold">この業務でやることを、順に並べます</h3>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+            <h3 className="text-[15px] font-bold">この業務でやることを、順に並べます</h3>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
               名前だけで構いません。<span className="font-medium">この画面まででも登録できます。</span>
               中身は後から足せます。並び順がそのまま進む順になります。
             </p>
           </div>
 
           {draft.flowLocked && (
-            <p className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-2">
+            <p className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-2">
               この業務は、登録画面では組み立てられない流れ（条件分岐ノード）を持っています。
               <span className="font-medium">STEPの並びと分岐はそのまま引き継ぎます。</span>
               各STEPの中身・期限・優先度・開始条件は次の画面から編集できます。
@@ -428,11 +428,11 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           <ol className="flex flex-col gap-2">
             {draft.steps.map((s, i) => (
               <li key={s.key} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-[11px] font-bold tabular-nums text-ink-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-[12px] font-bold tabular-nums text-ink-3">
                   {i + 1}
                 </span>
                 <input
-                  className="min-w-0 flex-1 border-0 bg-transparent text-[13px] outline-none"
+                  className="min-w-0 flex-1 border-0 bg-transparent text-[13.5px] outline-none"
                   value={s.title}
                   onChange={(e) => patchStep(s.key, { title: e.target.value })}
                   placeholder="STEP名"
@@ -451,7 +451,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           {!draft.flowLocked && (
             <>
               <Button variant="secondary" onClick={addStep} className="self-start">＋ STEPを追加</Button>
-              <p className="rounded-lg bg-surface-2 px-3.5 py-2.5 text-[12px] leading-relaxed text-ink-3">
+              <p className="rounded-lg bg-surface-2 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-3">
                 最後の「完了」は自動で付きます。自分で追加する必要はありません。
               </p>
             </>
@@ -471,7 +471,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     <button
                       type="button"
                       onClick={() => setDetailKey(s.key)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors ${
+                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13.5px] transition-colors ${
                         detailKey === s.key ? "bg-brand-soft text-brand-ink" : "hover:bg-surface-2"
                       }`}
                     >
@@ -491,7 +491,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                 <button
                   type="button"
                   onClick={() => setDetailKey(RUN_DETAIL_KEY)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors ${
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13.5px] transition-colors ${
                     detailKey === RUN_DETAIL_KEY ? "bg-brand-soft text-brand-ink" : "hover:bg-surface-2"
                   }`}
                 >
@@ -505,8 +505,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           {detailKey === RUN_DETAIL_KEY ? (
             <Card className="flex flex-col gap-4 p-5">
               <div>
-                <h3 className="text-[13px] font-semibold">完了</h3>
-                <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
+                <h3 className="text-[13.5px] font-semibold">完了</h3>
+                <p className="mt-1 text-[13.5px] leading-relaxed text-ink-3">
                   最後に自動で付くSTEPです。中身は編集できません。
                 </p>
               </div>
@@ -524,7 +524,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
               onChange={(next) => patchStep(detail.key, next)}
             />
           ) : (
-            <Card className="p-5 text-[13px] text-ink-3">左のSTEPを選んでください。</Card>
+            <Card className="p-5 text-[13.5px] text-ink-3">左のSTEPを選んでください。</Card>
           )}
         </div>
       )}
@@ -534,8 +534,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-4 p-5">
             <div>
-              <h3 className="text-[13.5px] font-bold">STEPを終えたあと、どう進むか</h3>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+              <h3 className="text-[15px] font-bold">STEPを終えたあと、どう進むか</h3>
+              <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
                 {draft.flowLocked
                   ? "この業務の分岐・並列は、いまの構成をそのまま引き継ぎます。ここでは変更しません。"
                   : "既定は上から順の一本道です。分かれる場所・同時に進める場所だけ変えてください。"}
@@ -558,7 +558,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           </Card>
 
           <Card className="flex flex-col gap-4 p-5">
-            <h3 className="text-[13.5px] font-bold">期限・所要時間・優先度</h3>
+            <h3 className="text-[15px] font-bold">期限・所要時間・優先度</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="業務の期限" hint="開始日からの日数。空欄なら期限なし">
                 <div className="flex items-center gap-2">
@@ -566,8 +566,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     className={`${INPUT} w-24`} value={draft.deadlineDays} inputMode="numeric"
                     onChange={(e) => patch({ deadlineDays: e.target.value })}
                   />
-                  <span className="text-[12.5px] text-ink-2">日以内</span>
-                  <label className="ml-1 flex items-center gap-1.5 text-[12px] text-ink-2">
+                  <span className="text-[13.5px] text-ink-2">日以内</span>
+                  <label className="ml-1 flex items-center gap-1.5 text-[13.5px] text-ink-2">
                     <input
                       type="checkbox" checked={draft.deadlineBusinessDaysOnly}
                       onChange={(e) => patch({ deadlineBusinessDaysOnly: e.target.checked })}
@@ -582,7 +582,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     className={`${INPUT} w-24`} value={draft.estimatedMinutes} inputMode="numeric"
                     onChange={(e) => patch({ estimatedMinutes: e.target.value })}
                   />
-                  <span className="text-[12.5px] text-ink-2">分</span>
+                  <span className="text-[13.5px] text-ink-2">分</span>
                 </div>
               </Field>
             </div>
@@ -592,7 +592,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   <button
                     key={p.value} type="button"
                     onClick={() => patch({ defaultPriority: p.value as TaskPriority })}
-                    className={`rounded-lg border px-3 py-1.5 text-[12.5px] transition-colors ${
+                    className={`rounded-lg border px-3 py-1.5 text-[13.5px] transition-colors ${
                       draft.defaultPriority === p.value ? "pick-on font-bold" : "pick"
                     }`}
                   >
@@ -600,7 +600,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                   </button>
                 ))}
               </div>
-              <p className="mt-1.5 text-[11.5px] text-ink-3">
+              <p className="mt-1.5 text-[12px] text-ink-3">
                 期限の2日前になると「高」、期限を過ぎると「緊急」として扱われます。
               </p>
             </Field>
@@ -613,8 +613,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           <Card className="flex flex-col gap-4 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-[13.5px] font-bold">開始スケジュール</h3>
-                <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+                <h3 className="text-[15px] font-bold">開始スケジュール</h3>
+                <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
                   繰り返し始める業務は、ここに予定を並べます。1つの業務にいくつでも足せます。
                   同じ日に複数が重なっても、案内は1回にまとまります。
                 </p>
@@ -633,7 +633,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
             </div>
 
             {draft.startSchedules.length === 0 ? (
-              <p className="rounded-[5px] bg-surface-2 px-4 py-5 text-center text-[12.5px] leading-relaxed text-ink-3">
+              <p className="rounded-[5px] bg-surface-2 px-4 py-5 text-center text-[13.5px] leading-relaxed text-ink-3">
                 繰り返しの予定はまだありません。
                 <br />
                 決まった曜日や月末に始める業務なら、ここに足しておくとHOMEに出ます。
@@ -660,8 +660,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
 
           <Card className="flex flex-col gap-4 p-5">
             <div>
-              <h3 className="text-[13.5px] font-bold">いつ始める業務か</h3>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
+              <h3 className="text-[15px] font-bold">いつ始める業務か</h3>
+              <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
                 条件が来たらHOMEの「開始待ち」に出ます。勝手には始まりません。
               </p>
             </div>
@@ -674,8 +674,8 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     draft.startTrigger.kind === c.kind ? "pick-on" : "pick"
                   }`}
                 >
-                  <p className="text-[12.5px] font-bold">{c.label}</p>
-                  <p className="mt-0.5 text-[11px] text-ink-3">{c.hint}</p>
+                  <p className="text-[13.5px] font-bold">{c.label}</p>
+                  <p className="mt-0.5 text-[12px] text-ink-3">{c.hint}</p>
                 </button>
               ))}
             </div>
@@ -730,7 +730,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           </Card>
 
           <Card className="flex flex-col gap-3 p-5">
-            <label className="flex items-center gap-2 text-[13.5px] font-bold">
+            <label className="flex items-center gap-2 text-[15px] font-bold">
               <input
                 type="checkbox" checked={draft.quota.enabled}
                 onChange={(e) => patch({ quota: { ...draft.quota, enabled: e.target.checked } })}
@@ -738,7 +738,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
               この業務に目標・ノルマを置く
             </label>
             {draft.quota.enabled && (
-              <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+              <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
                 <select
                   className={SMALL_INPUT} value={draft.quota.period}
                   onChange={(e) => patch({ quota: { ...draft.quota, period: e.target.value as typeof draft.quota.period } })}
@@ -780,13 +780,13 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           <ErrorList errors={allErrors} />
           {allErrors.length === 0 && unset.length > 0 && (
             <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">
-              <p className="text-[12.5px] font-bold">詳細は後から設定できます</p>
+              <p className="text-[13.5px] font-bold">詳細は後から設定できます</p>
               <ul className="mt-1 flex flex-col gap-0.5">
                 {unset.map((h, i) => (
-                  <li key={i} className="text-[12.5px] text-ink-2">・{h}</li>
+                  <li key={i} className="text-[13.5px] text-ink-2">・{h}</li>
                 ))}
               </ul>
-              <p className="mt-1.5 text-[11.5px] text-ink-3">
+              <p className="mt-1.5 text-[12px] text-ink-3">
                 このまま登録して、使いながら足していけます。
               </p>
             </div>
@@ -798,9 +798,9 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
               <Badge tone="neutral">{draft.category || "カテゴリ未設定"}</Badge>
             </div>
             {draft.description && (
-              <p className="mt-2 text-[12.5px] leading-relaxed text-ink-2">{draft.description}</p>
+              <p className="mt-2 text-[13.5px] leading-relaxed text-ink-2">{draft.description}</p>
             )}
-            <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-[12.5px] sm:grid-cols-2">
+            <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-[13.5px] sm:grid-cols-2">
               <div className="flex justify-between gap-3 border-b border-line-soft pb-1.5">
                 <dt className="text-ink-3">STEP数</dt><dd>{draft.steps.length}（＋完了）</dd>
               </div>
@@ -863,7 +863,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           </Card>
 
           <Card className="p-5">
-            <h4 className="mb-3 text-[13px] font-bold">STEPの流れ</h4>
+            <h4 className="mb-3 text-[13.5px] font-bold">STEPの流れ</h4>
             <ol className="flex flex-col gap-1.5">
               {draft.steps.map((s, i) => {
                 const f = draft.flow[s.key] ?? { kind: "next" as const };
@@ -871,30 +871,30 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                 return (
                   <li key={s.key} className="rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="tabular-nums text-[11px] text-ink-3">{i + 1}</span>
-                      <span className="text-[13px] font-medium">{s.title || "（名称未設定）"}</span>
+                      <span className="tabular-nums text-[12px] text-ink-3">{i + 1}</span>
+                      <span className="text-[13.5px] font-medium">{s.title || "（名称未設定）"}</span>
                       <Badge tone="brand">{spec.icon} {spec.label}</Badge>
                       {!s.required && <Badge tone="neutral">任意</Badge>}
-                      {s.estimatedMinutes && <span className="text-[11px] text-ink-3">{s.estimatedMinutes}分</span>}
+                      {s.estimatedMinutes && <span className="text-[12px] text-ink-3">{s.estimatedMinutes}分</span>}
                     </div>
                     {f.kind === "branch" && (
-                      <p className="mt-1 text-[11.5px] text-brand">
+                      <p className="mt-1 text-[12px] text-brand">
                         ⑂ 選んだ内容で {f.paths.length} 通りに分かれます
                       </p>
                     )}
                     {f.kind === "parallel" && (
-                      <p className="mt-1 text-[11.5px] text-brand">
+                      <p className="mt-1 text-[12px] text-brand">
                         ⇉ {f.toStepKeys.length} 件を同時に進め、そろってから合流します
                       </p>
                     )}
                   </li>
                 );
               })}
-              <li className="rounded-lg bg-ok-soft px-3.5 py-2 text-[13px] font-medium text-ok">
+              <li className="rounded-lg bg-ok-soft px-3.5 py-2 text-[13.5px] font-medium text-ok">
                 完了
               </li>
               {draft.flowLocked && (
-                <li className="px-1 pt-1 text-[11.5px] text-ink-3">
+                <li className="px-1 pt-1 text-[12px] text-ink-3">
                   分岐・並列はいまの構成のまま引き継がれます
                 </li>
               )}
@@ -908,10 +908,10 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
               className="flex w-full items-center justify-between text-left"
             >
               <span>
-                <span className="text-[13px] font-bold">後から追加できる項目</span>
-                <span className="ml-2 text-[11.5px] text-ink-3">すべて任意。あとで編集からでも足せます</span>
+                <span className="text-[13.5px] font-bold">後から追加できる項目</span>
+                <span className="ml-2 text-[12px] text-ink-3">すべて任意。あとで編集からでも足せます</span>
               </span>
-              <span className="text-[12px] text-ink-3">{openNotes ? "閉じる" : "開く"}</span>
+              <span className="text-[13.5px] text-ink-3">{openNotes ? "閉じる" : "開く"}</span>
             </button>
             {openNotes && (
               <NotesEditor notes={draft.notes} onChange={(notes) => patch({ notes })} />
@@ -960,7 +960,7 @@ function FollowUpEditor({
   return (
     <Field label={label} hint="任意">
       {items.length === 0 ? (
-        <p className="mb-2 text-[11.5px] leading-relaxed text-ink-3">{empty}</p>
+        <p className="mb-2 text-[12px] leading-relaxed text-ink-3">{empty}</p>
       ) : (
         <ul className="mb-2 flex flex-col gap-2">
           {items.map((f, i) => (
@@ -972,7 +972,7 @@ function FollowUpEditor({
                 placeholder="例：エラーが出ていないか確認する"
                 onChange={(e) => patch(i, { label: e.target.value })}
               />
-              <span className="flex items-center gap-1.5 text-[12px] text-ink-2">
+              <span className="flex items-center gap-1.5 text-[13.5px] text-ink-2">
                 <input
                   type="number" min={0} max={365} inputMode="numeric"
                   className="field field-sm w-[68px]"
@@ -982,7 +982,7 @@ function FollowUpEditor({
                 />
                 日後
               </span>
-              <label className="flex items-center gap-1.5 text-[12px] text-ink-2">
+              <label className="flex items-center gap-1.5 text-[13.5px] text-ink-2">
                 <input
                   type="checkbox" checked={f.businessDaysOnly}
                   aria-label={`営業日で数える ${i + 1}`}
@@ -1071,10 +1071,10 @@ function StepDetailEditor({
       <Field label="STEPの種類" required>
         {step.locked ? (
           <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">
-            <p className="text-[12.5px] font-bold">
+            <p className="text-[13.5px] font-bold">
               {getComponentSpec(step.componentType).icon} {getComponentSpec(step.componentType).label}
             </p>
-            <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
+            <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
               この種類は登録画面では設定を組み立てられません。種類と設定はそのまま引き継ぎ、
               STEP名・説明・所要時間・必須／任意だけをここで編集できます。
             </p>
@@ -1089,8 +1089,8 @@ function StepDetailEditor({
                   step.componentType === c.type ? "pick-on" : "pick"
                 }`}
               >
-                <p className="text-[12.5px] font-bold">{getComponentSpec(c.type).icon} {c.label}</p>
-                <p className="mt-0.5 text-[11px] text-ink-3">{c.hint}</p>
+                <p className="text-[13.5px] font-bold">{getComponentSpec(c.type).icon} {c.label}</p>
+                <p className="mt-0.5 text-[12px] text-ink-3">{c.hint}</p>
               </button>
             ))}
           </div>
@@ -1104,10 +1104,10 @@ function StepDetailEditor({
               className={`${INPUT} w-24`} value={step.estimatedMinutes} inputMode="numeric"
               onChange={(e) => onChange({ estimatedMinutes: e.target.value })}
             />
-            <span className="text-[12.5px] text-ink-2">分</span>
+            <span className="text-[13.5px] text-ink-2">分</span>
           </div>
         </Field>
-        <label className="flex items-center gap-2 pb-2 text-[13px]">
+        <label className="flex items-center gap-2 pb-2 text-[13.5px]">
           <input
             type="checkbox" checked={step.required}
             onChange={(e) => onChange({ required: e.target.checked })}
@@ -1157,7 +1157,7 @@ function StepDetailEditor({
                     onChange={(e) => patchField(f.key, { label: e.target.value })}
                     placeholder="項目名"
                   />
-                  <label className="flex shrink-0 items-center gap-1.5 text-[12px] text-ink-2">
+                  <label className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-ink-2">
                     <input
                       type="checkbox" checked={f.required}
                       onChange={(e) => patchField(f.key, { required: e.target.checked })}
@@ -1171,7 +1171,7 @@ function StepDetailEditor({
 
                 {step.componentType === "select" && (
                   <div className="mt-2.5 border-t border-line pt-2.5">
-                    <p className="mb-1.5 text-[11.5px] text-ink-3">選択肢（この選択は分岐の判定に使えます）</p>
+                    <p className="mb-1.5 text-[12px] text-ink-3">選択肢（この選択は分岐の判定に使えます）</p>
                     <ul className="flex flex-col gap-1.5">
                       {f.options.map((o, j) => (
                         <li key={j} className="flex items-center gap-2">
@@ -1222,13 +1222,13 @@ function StepDetailEditor({
                       onChange={(e) => patchTpl({ title: e.target.value })}
                       placeholder="タスク名"
                     />
-                    <span className="text-[12px] text-ink-3">完了から</span>
+                    <span className="text-[13.5px] text-ink-3">完了から</span>
                     <input
                       className={`${SMALL_INPUT} w-16`} value={t.offsetDays} inputMode="numeric"
                       aria-label={`${t.title || `タスク ${i + 1}`} の期限（営業日）`}
                       onChange={(e) => patchTpl({ offsetDays: e.target.value })}
                     />
-                    <span className="text-[12px] text-ink-3">営業日後</span>
+                    <span className="text-[13.5px] text-ink-3">営業日後</span>
                     <Button variant="ghost" size="sm" onClick={() => onChange({ templates: step.templates.filter((_, k) => k !== i) })}>
                       削除
                     </Button>
@@ -1241,14 +1241,14 @@ function StepDetailEditor({
                   */}
                   <div className="mt-2 border-t border-line-soft pt-2 pl-3">
                     {(t.subtasks ?? []).length === 0 ? (
-                      <p className="mb-1.5 text-[11.5px] text-ink-3">
+                      <p className="mb-1.5 text-[12px] text-ink-3">
                         細かい手順があれば、このタスクの中にぶら下げられます。
                       </p>
                     ) : (
                       <ul className="mb-1.5 flex flex-col gap-1.5">
                         {(t.subtasks ?? []).map((sub, j) => (
                           <li key={j} className="flex items-center gap-2">
-                            <span className="shrink-0 text-[12px] text-ink-3">└</span>
+                            <span className="shrink-0 text-[13.5px] text-ink-3">└</span>
                             <input
                               className={INPUT} value={sub}
                               aria-label={`細目 ${i + 1}-${j + 1}`}
@@ -1290,12 +1290,12 @@ function StepDetailEditor({
       {!step.locked && step.componentType === "knowledge-view" && (
         <Field label="このSTEPで見る資料">
           {knowledge.length === 0 ? (
-            <p className="text-[12.5px] text-ink-3">登録されているナレッジがありません。</p>
+            <p className="text-[13.5px] text-ink-3">登録されているナレッジがありません。</p>
           ) : (
             <ul className="flex flex-col gap-1">
               {knowledge.map((k) => (
                 <li key={k.id}>
-                  <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] hover:bg-surface-2">
+                  <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13.5px] hover:bg-surface-2">
                     <input
                       type="checkbox" checked={step.knowledgeRefs.includes(k.id)}
                       onChange={(e) => onChange({
@@ -1360,9 +1360,9 @@ function FlowEditor({
   return (
     <li className="rounded-lg border border-line bg-surface p-3.5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="tabular-nums text-[11px] text-ink-3">{index + 1}</span>
-        <span className="text-[13px] font-medium">{step.title || "（名称未設定）"}</span>
-        <span className="text-[11.5px] text-ink-3">のあと</span>
+        <span className="tabular-nums text-[12px] text-ink-3">{index + 1}</span>
+        <span className="text-[13.5px] font-medium">{step.title || "（名称未設定）"}</span>
+        <span className="text-[12px] text-ink-3">のあと</span>
         <select
           className={`${SMALL_INPUT} ml-auto`}
           value={flow.kind}
@@ -1388,7 +1388,7 @@ function FlowEditor({
 
       {flow.kind === "branch" && (
         <div className="mt-3 border-t border-line pt-3">
-          <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+          <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
             <span className="text-ink-3">判定に使う項目</span>
             <select
               className={SMALL_INPUT} value={flow.fieldKey}
@@ -1406,7 +1406,7 @@ function FlowEditor({
               {branchField.options.map((o) => {
                 const path = flow.paths.find((p) => p.value === o.value);
                 return (
-                  <li key={o.value} className="flex flex-wrap items-center gap-2 text-[12.5px]">
+                  <li key={o.value} className="flex flex-wrap items-center gap-2 text-[13.5px]">
                     <span className="min-w-[140px] rounded bg-surface-2 px-2 py-1">{nameOf(o.label)}</span>
                     <span className="text-ink-3">なら</span>
                     <select
@@ -1435,12 +1435,12 @@ function FlowEditor({
           )}
 
           {branchField && branchField.options.length === 0 && (
-            <p className="mt-2 text-[12px] text-ink-3">
+            <p className="mt-2 text-[13.5px] text-ink-3">
               この項目には選択肢がありません。STEP3で選択肢を追加してください。
             </p>
           )}
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12.5px]">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[13.5px]">
             <span className="text-ink-3">どれにも当てはまらないとき</span>
             <select
               className={SMALL_INPUT} value={flow.elseToStepKey}
@@ -1462,7 +1462,7 @@ function FlowEditor({
             </select>
           </div>
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-line pt-2.5 text-[12.5px]">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-line pt-2.5 text-[13.5px]">
             <span className="text-ink-3">どのルートを通っても、そのあとは</span>
             <select
               className={SMALL_INPUT} value={flow.joinStepKey}
@@ -1476,7 +1476,7 @@ function FlowEditor({
             <span className="text-ink-3">へ合流</span>
           </div>
           {flow.joinStepKey && (
-            <p className="mt-1.5 text-[11.5px] text-ink-3">
+            <p className="mt-1.5 text-[12px] text-ink-3">
               選んだルートだけを通り、そのあと必ず
               「{steps.find((x) => x.key === flow.joinStepKey)?.title || "合流先"}」へ進みます。
             </p>
@@ -1486,7 +1486,7 @@ function FlowEditor({
 
       {flow.kind === "parallel" && (
         <div className="mt-3 border-t border-line pt-3">
-          <p className="mb-1.5 text-[12px] text-ink-3">同時に進めるSTEP（2つ以上）</p>
+          <p className="mb-1.5 text-[13.5px] text-ink-3">同時に進めるSTEP（2つ以上）</p>
           <ul className="flex flex-wrap gap-1.5">
             {later.filter((s) => s.key !== flow.joinStepKey).map((s) => {
               const on = flow.toStepKeys.includes(s.key);
@@ -1500,7 +1500,7 @@ function FlowEditor({
                         ? flow.toStepKeys.filter((x) => x !== s.key)
                         : [...flow.toStepKeys, s.key],
                     })}
-                    className={`rounded-lg border px-2.5 py-1 text-[12px] transition-colors ${
+                    className={`rounded-lg border px-2.5 py-1 text-[13.5px] transition-colors ${
                       on ? "pick-on font-medium" : "pick"
                     }`}
                   >
@@ -1510,7 +1510,7 @@ function FlowEditor({
               );
             })}
           </ul>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12.5px]">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[13.5px]">
             <span className="text-ink-3">全部そろったら</span>
             <select
               className={SMALL_INPUT} value={flow.joinStepKey}

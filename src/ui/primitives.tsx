@@ -68,9 +68,19 @@ export function RowList({
  * 見出しを面の中に入れて線で仕切ると、目が塊を1つずつ拾える。
  */
 export function Panel({
-  title, count, action, children, className = "",
+  title, note, count, action, children, className = "",
 }: {
+  /**
+   * 塊の名前。短い英字で置く。
+   *
+   * 日本語で名前を付けると、どうしても「今日の並び」「次の候補」のような
+   * 説明めいた言い回しになり、名前ではなく短い文が並ぶ。塊の名前は
+   * 覚えて呼ぶためのもので、読ませるものではない。英字を小さく組めば、
+   * 中身の日本語と字面がはっきり分かれて、見出しだと一目で分かる。
+   */
   title: string;
+  /** 名前だけでは分からないときの補足。日本語で短く添える */
+  note?: string;
   /** 件数。見出しの一部として、控えめに添える */
   count?: number;
   action?: ReactNode;
@@ -81,14 +91,40 @@ export function Panel({
     <section className={`overflow-hidden rounded-xl border border-line-soft bg-surface shadow-card ${className}`}>
       {/* 見出しの帯は、本文の白と見分けがつく程度に沈める */}
       <div className="flex items-center justify-between gap-3 border-b border-line-soft bg-surface-2 px-4 py-2">
-        <h2 className="text-[12.5px] font-bold">
-          {title}
-          {count !== undefined && <span className="ml-1.5 font-medium text-ink-3">{count}</span>}
+        <h2 className="flex min-w-0 items-baseline gap-2">
+          <Eyebrow>{title}</Eyebrow>
+          {count !== undefined && (
+            <span className="shrink-0 text-[12px] font-semibold tabular-nums text-ink-3">{count}</span>
+          )}
+          {note !== undefined && <span className="truncate text-[12px] text-ink-3">{note}</span>}
         </h2>
         {action}
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * 小さな英字ラベル。
+ *
+ * 塊の名前・いま注目してほしい一言に使う。大文字にして字間を空け、
+ * 本文より一段小さくする。大きさで目立たせるのではなく、
+ * 字面を本文と変えることで「これは中身ではなく名前だ」と分からせる。
+ */
+export function Eyebrow({
+  children, tone = "muted",
+}: {
+  children: ReactNode;
+  /** muted=ふつうの塊の名前 / brand=いま見てほしいもの / danger=手遅れになりかけているもの */
+  tone?: "muted" | "brand" | "danger";
+}) {
+  const color =
+    tone === "brand" ? "text-brand" : tone === "danger" ? "text-danger" : "text-ink-2";
+  return (
+    <span className={`shrink-0 text-[12px] font-semibold uppercase tracking-[0.11em] ${color}`}>
+      {children}
+    </span>
   );
 }
 
@@ -173,10 +209,40 @@ export function Check({
   );
 }
 
+/**
+ * 囲いを持たない塊の見出し。
+ *
+ * Panel は白い面で囲うが、一覧をそのまま紙面に置く画面では囲いを増やしたくない。
+ * その場合の見出し。付け方は Panel と揃える（英字の名前・件数・日本語の補足）。
+ * 画面ごとに見出しの作りが違うと、移るたびに目が置き場所を探し直すことになる。
+ */
+export function SubHead({
+  title, count, note, action, className = "",
+}: {
+  title: string;
+  count?: number;
+  note?: string;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 ${className}`}>
+      <h2 className="flex min-w-0 items-baseline gap-2">
+        <Eyebrow>{title}</Eyebrow>
+        {count !== undefined && (
+          <span className="shrink-0 text-[12px] font-semibold tabular-nums text-ink-3">{count}</span>
+        )}
+        {note !== undefined && <span className="min-w-0 text-[12px] text-ink-3">{note}</span>}
+      </h2>
+      {action}
+    </div>
+  );
+}
+
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-3.5 flex items-baseline justify-between gap-3">
-      <h2 className="text-[15px] font-semibold tracking-tight">{children}</h2>
+      <h2 className="text-[17px] font-semibold tracking-tight">{children}</h2>
       {action}
     </div>
   );
@@ -200,7 +266,7 @@ const TONE: Record<Tone, string> = {
 
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 rounded-[3px] px-2 py-0.5 text-[11px] font-medium leading-5 ${TONE[tone]}`}>
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-[3px] px-2 py-0.5 text-[12px] font-medium leading-5 ${TONE[tone]}`}>
       {children}
     </span>
   );
@@ -249,7 +315,7 @@ const BTN_VARIANTS = {
 
 const BTN_SIZES = {
   sm: "px-2.5 py-1.5 text-xs",
-  md: "px-4 py-2 text-[13px]",
+  md: "px-4 py-2 text-[13.5px]",
   lg: "px-5 py-2.5 text-sm",
 } as const;
 
@@ -293,7 +359,7 @@ export function LinkButton({
 export function Empty({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="rounded-xl bg-surface-2 px-6 py-12 text-center">
-      <p className="text-[13px] leading-[1.9] text-ink-2">{children}</p>
+      <p className="text-[13.5px] leading-[1.9] text-ink-2">{children}</p>
       {action && <div className="mt-5 flex flex-wrap justify-center gap-2.5">{action}</div>}
     </div>
   );
@@ -320,9 +386,9 @@ export function TopBar({
     <div className="sticky top-12 z-20 -mx-6 mb-5 border-b border-line bg-paper/95 px-6 pt-4 backdrop-blur-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[17px] font-bold leading-tight tracking-tight">{title}</h1>
+          <h1 className="text-[19px] font-bold leading-tight tracking-tight">{title}</h1>
           {description && (
-            <p className="mt-1 max-w-2xl text-[12px] leading-[1.75] text-ink-2">{description}</p>
+            <p className="mt-1 max-w-2xl text-[13.5px] leading-[1.75] text-ink-2">{description}</p>
           )}
         </div>
         {action}
@@ -352,7 +418,7 @@ export function Tabs<T extends string>({
           <button
             key={it.key} type="button" role="tab" aria-selected={on}
             onClick={() => onChange(it.key)}
-            className={`relative border-b-2 px-2.5 pb-2 text-[12.5px] transition-colors ${
+            className={`relative border-b-2 px-2.5 pb-2 text-[13.5px] transition-colors ${
               on
                 ? "border-brand font-semibold text-brand-ink"
                 : "border-transparent font-medium text-ink-2 hover:text-ink"
@@ -360,7 +426,7 @@ export function Tabs<T extends string>({
           >
             {it.label}
             {it.count !== undefined && it.count > 0 && (
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[12px] font-bold ${
                 on ? "bg-brand-soft text-brand-ink" : "bg-surface-2 text-ink-3"
               }`}>
                 {it.count}
@@ -385,7 +451,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
 /** 未接続の外部連携を明示するバナー。仕様 §22-3 */
 export function NotConnected({ label, phase }: { label: string; phase: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-[5px] bg-surface-2 px-3.5 py-2.5 text-[12px] text-ink-3">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-[5px] bg-surface-2 px-3.5 py-2.5 text-[13.5px] text-ink-3">
       <span className="font-medium text-ink-2">{label} は未接続です</span>
       <span>（{phase} で接続予定。業務の進行は妨げません）</span>
     </div>

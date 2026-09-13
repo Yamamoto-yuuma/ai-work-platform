@@ -47,10 +47,10 @@ export function RunCompletion({
     <div className="flex flex-col gap-4">
       {/* 完了したこと */}
       <Card className="bg-ok-soft p-6">
-        <p className="text-[11px] font-bold tracking-wide text-ok">業務完了</p>
-        <h2 className="mt-1.5 text-[19px] font-bold">{runLabel(run)}</h2>
-        <p className="mt-1 text-[13px] text-ink-2">{def.name}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-2">
+        <p className="text-[12px] font-bold tracking-wide text-ok">業務完了</p>
+        <h2 className="mt-1.5 text-[23px] font-bold">{runLabel(run)}</h2>
+        <p className="mt-1 text-[13.5px] text-ink-2">{def.name}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px] text-ink-2">
           <span>{executed} ステップを実施{skipped > 0 && `（条件により ${skipped} 件をスキップ）`}</span>
           {run.completedAt && (
             <span>完了 {new Date(run.completedAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
@@ -63,11 +63,11 @@ export function RunCompletion({
 
       {/* この業務から残った仕事 */}
       <Card className="p-5">
-        <h3 className="text-[13px] font-bold">
+        <h3 className="text-[13.5px] font-bold">
           この業務から残った仕事（{open.length}）
         </h3>
         {produced.length === 0 ? (
-          <p className="mt-2 text-[12.5px] text-ink-3">この業務から作成されたタスクはありません。</p>
+          <p className="mt-2 text-[13.5px] text-ink-3">この業務から作成されたタスクはありません。</p>
         ) : (
           <ul className="mt-3 flex flex-col gap-1.5">
             {produced.map((t) => {
@@ -81,10 +81,10 @@ export function RunCompletion({
                     className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5 transition-colors hover:border-brand"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className={`block text-[13px] ${t.status === "done" ? "text-ink-3 line-through" : "font-medium"}`}>
+                      <span className={`block text-[13.5px] ${t.status === "done" ? "text-ink-3 line-through" : "font-medium"}`}>
                         {t.title}
                       </span>
-                      <span className="mt-0.5 block text-[11.5px] text-ink-3">
+                      <span className="mt-0.5 block text-[12px] text-ink-3">
                         {TASK_STATUS_LABEL[shown]}
                         {waiting.length > 0 && ` — 待機中：${waiting.map((x) => x.title).join(" / ")}`}
                       </span>
@@ -110,13 +110,13 @@ export function RunCompletion({
           next.urgency === "overdue" ? "bg-danger-soft hover:shadow-lift"
           : "bg-brand-soft hover:shadow-lift"
         }`}>
-          <p className={`text-[11px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
+          <p className={`text-[12px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
             次に着手すること
           </p>
-          <p className={`mt-1.5 text-[15px] font-bold leading-snug ${next.urgency === "overdue" ? "text-danger" : "text-brand-ink"}`}>
+          <p className={`mt-1.5 text-[17px] font-bold leading-snug ${next.urgency === "overdue" ? "text-danger" : "text-brand-ink"}`}>
             {next.headline}
           </p>
-          <p className="mt-1 text-[12.5px] text-ink-2">{next.reason}</p>
+          <p className="mt-1 text-[13.5px] text-ink-2">{next.reason}</p>
         </Card>
       </Link>
 

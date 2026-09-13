@@ -29,13 +29,13 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 flex items-baseline gap-1.5 text-[12.5px] font-medium">
+      <label className="mb-1.5 flex items-baseline gap-1.5 text-[13.5px] font-medium">
         {label}
-        {required && <span className="text-[11px] text-danger">必須</span>}
-        {hint && <span className="ml-auto text-[11px] font-normal text-ink-3">{hint}</span>}
+        {required && <span className="text-[12px] text-danger">必須</span>}
+        {hint && <span className="ml-auto text-[12px] font-normal text-ink-3">{hint}</span>}
       </label>
       {children}
-      {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
+      {error && <p className="mt-1 text-[13.5px] text-danger">{error}</p>}
     </div>
   );
 }
@@ -147,7 +147,7 @@ export function KnowledgeForm({
                   onClick={() => set("linkedWorkflowKeys",
                     on ? draft.linkedWorkflowKeys.filter((k) => k !== w.key)
                        : [...draft.linkedWorkflowKeys, w.key])}
-                  className={`px-3 py-1.5 text-[12px] ${on ? "pick-on" : "pick"}`}
+                  className={`px-3 py-1.5 text-[13.5px] ${on ? "pick-on" : "pick"}`}
                 >
                   {w.name}
                 </button>
@@ -159,9 +159,9 @@ export function KnowledgeForm({
 
       {errors.length > 0 && (
         <div className="rounded-lg bg-danger-soft p-3.5">
-          <p className="mb-1.5 text-[12.5px] font-bold text-danger">保存できません</p>
+          <p className="mb-1.5 text-[13.5px] font-bold text-danger">保存できません</p>
           <ul className="flex flex-col gap-0.5">
-            {errors.map((e, i) => <li key={i} className="text-[12px] text-danger">・{e.message}</li>)}
+            {errors.map((e, i) => <li key={i} className="text-[13.5px] text-danger">・{e.message}</li>)}
           </ul>
         </div>
       )}

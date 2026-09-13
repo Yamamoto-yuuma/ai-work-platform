@@ -224,7 +224,7 @@ function TasksInner() {
 
           <span className="cell-clip flex items-center gap-1.5">
             {/* 細目は親の下に、少し下げて並べる。どこにぶら下がっているか見えるように */}
-            {child && <span className="shrink-0 pl-2 text-[12px] leading-none text-ink-3" aria-hidden>└</span>}
+            {child && <span className="shrink-0 pl-2 text-[13.5px] leading-none text-ink-3" aria-hidden>└</span>}
 
             {/*
               付いてくる細目の開閉。押すとその場で下に出る。
@@ -240,7 +240,7 @@ function TasksInner() {
                 })}
                 aria-expanded={openedSubs.has(t.id)}
                 aria-label={`${t.title} の細目を${openedSubs.has(t.id) ? "閉じる" : "開く"}`}
-                className="relative z-10 shrink-0 rounded px-1 text-[11px] leading-none text-ink-3 transition-colors hover:text-brand"
+                className="relative z-10 shrink-0 rounded px-1 text-[12px] leading-none text-ink-3 transition-colors hover:text-brand"
               >
                 {openedSubs.has(t.id) ? "▾" : "▸"}
               </button>
@@ -261,7 +261,7 @@ function TasksInner() {
                 e.preventDefault();
                 setOpenId(t.id);
               }}
-              className={`cell-clip text-[13px] before:absolute before:inset-0 ${
+              className={`cell-clip text-[13.5px] before:absolute before:inset-0 ${
                 done ? "text-ink-3 line-through" : "font-medium"
               }`}
             >
@@ -274,13 +274,13 @@ function TasksInner() {
             {t.impactLayer === "check" && <Badge tone="brand">確認事項</Badge>}
             {/* 細目の進み具合。列は増やさず、名前の後ろに添える */}
             {progress && (
-              <span className="shrink-0 cell-num text-[11px] text-ink-3">
+              <span className="shrink-0 cell-num text-[12px] text-ink-3">
                 細目 {progress.done}/{progress.total}
               </span>
             )}
             {/* 見積は列にしない。名前の後ろに添えて、行の高さも列幅も増やさない */}
             {t.estimatedMinutes !== undefined && (
-              <span className="shrink-0 text-[11px] text-ink-3">
+              <span className="shrink-0 text-[12px] text-ink-3">
                 ・{formatMinutes(t.estimatedMinutes)}
               </span>
             )}
@@ -289,7 +289,7 @@ function TasksInner() {
               <span
                 aria-label={`繰り返し：${describeTaskRepeat(t.repeat)}`}
                 title={`${describeTaskRepeat(t.repeat)}に繰り返します`}
-                className="shrink-0 text-[12px] leading-none text-ink-3"
+                className="shrink-0 text-[13.5px] leading-none text-ink-3"
               >
                 ↻
               </span>
@@ -300,7 +300,7 @@ function TasksInner() {
             期限は日付そのものより「あとどれだけか」を出す。急ぎだけ色を差す。
             終わったものは、いつ終えたかを出す。「あと何日」は意味を失う。
           */}
-          <span className={`cell-clip cell-num text-[12px] ${
+          <span className={`cell-clip cell-num text-[13.5px] ${
             done ? "text-ink-3"
             : u === "overdue" ? "font-medium text-danger"
             : u === "today" ? "text-signal" : "text-ink-3"
@@ -317,7 +317,7 @@ function TasksInner() {
             矢印1つで「上がっている」ことだけを示し、理由は指を置けば読める。
           */}
           <span
-            className={`cell-clip text-[12px] ${raised ? "font-medium text-danger" : "text-ink-2"}`}
+            className={`cell-clip text-[13.5px] ${raised ? "font-medium text-danger" : "text-ink-2"}`}
             title={raised ? "期限が近いため引き上げています" : undefined}
           >
             {priorityLabel}
@@ -330,7 +330,7 @@ function TasksInner() {
             全文は行を開けば出る。
           */}
           <span
-            className={`cell-clip flex items-center gap-1.5 text-[12px] ${
+            className={`cell-clip flex items-center gap-1.5 text-[13.5px] ${
               shownStatus === "blocked" ? "font-medium text-danger" : "text-ink-2"
             }`}
             title={blockedBy.length > 0 ? `待機中：${blockedBy.map((x) => x.title).join(" / ")}` : undefined}
@@ -340,7 +340,7 @@ function TasksInner() {
           </span>
 
           {showAssignee && (
-            <span className="cell-clip text-[12px] text-ink-3">
+            <span className="cell-clip text-[13.5px] text-ink-3">
               {/* 自分が担当の行は空けておく。自分の名前を読ませる意味がない */}
               {t.assigneeId === state.currentUserId ? "" : assignee?.name ?? "未割当"}
             </span>
@@ -396,7 +396,7 @@ function TasksInner() {
             選んでも何も変わらないものを置かない。
           */}
           {users.length > 1 && (
-          <label className="mb-2 flex shrink-0 items-center gap-2 whitespace-nowrap text-[12px] text-ink-3">
+          <label className="mb-2 flex shrink-0 items-center gap-2 whitespace-nowrap text-[13.5px] text-ink-3">
             担当者
             <select
               value={assigneeFilter}
@@ -469,7 +469,7 @@ function TasksInner() {
       {/* 完了にした直後だけ出す。押し間違えても1回で戻せるようにする */}
       {justDone && (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg bg-ok-soft px-4 py-2.5">
-          <span className="text-[12.5px] font-medium text-ok">
+          <span className="text-[13.5px] font-medium text-ok">
             「{justDone.title}」を完了にしました
             {/* 繰り返しなら、次がいつ来るかまで言う。黙って湧かせない */}
             {justDone.nextDueAt && (
@@ -487,14 +487,14 @@ function TasksInner() {
               if (t) reopen(t);
               else setJustDone(null);
             }}
-            className="text-[12.5px] text-brand hover:underline"
+            className="text-[13.5px] text-brand hover:underline"
           >
             元に戻す
           </button>
           <button
             type="button"
             onClick={() => setView("done")}
-            className="text-[12.5px] text-ink-3 hover:text-ink hover:underline"
+            className="text-[13.5px] text-ink-3 hover:text-ink hover:underline"
           >
             完了したタスクを見る →
           </button>
@@ -503,8 +503,8 @@ function TasksInner() {
 
       {createdId && !creating && (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg bg-ok-soft px-4 py-2.5">
-          <span className="text-[12.5px] font-medium text-ok">タスクを作成しました</span>
-          <Link href={`/tasks/${createdId}`} className="text-[12.5px] text-brand hover:underline">
+          <span className="text-[13.5px] font-medium text-ok">タスクを作成しました</span>
+          <Link href={`/tasks/${createdId}`} className="text-[13.5px] text-brand hover:underline">
             作成したタスクを開く →
           </Link>
         </div>
@@ -514,8 +514,8 @@ function TasksInner() {
         <Card className="mb-5 bg-signal-soft p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[13px] font-bold text-signal">{proposed.length}件の派生タスクが未確認です</p>
-              <p className="mt-0.5 text-[12px] text-ink-2">変更によって提案されたタスクです。確認して確定してください。</p>
+              <p className="text-[13.5px] font-bold text-signal">{proposed.length}件の派生タスクが未確認です</p>
+              <p className="mt-0.5 text-[13.5px] text-ink-2">変更によって提案されたタスクです。確認して確定してください。</p>
             </div>
             <Button variant="secondary" onClick={() => setView("proposed")}>内容を確認する</Button>
           </div>
@@ -539,7 +539,7 @@ function TasksInner() {
         grouped.map(([groupKey, list]) => (
           <section key={groupKey} className="mb-6">
             {groupKey && (
-              <h2 className="mb-2 text-[12.5px] font-bold text-ink-3">
+              <h2 className="mb-2 text-[13.5px] font-bold text-ink-3">
                 {state.runs.find((r) => r.id === groupKey)?.subject.label ?? groupKey}
                 <span className="ml-2 font-normal">
                   {workflows.find((w) => w.key === state.runs.find((r) => r.id === groupKey)?.workflowKey)?.name}
@@ -596,8 +596,8 @@ function TasksInner() {
 
     const Line = ({ k, children }: { k: string; children: React.ReactNode }) => (
       <div className="flex gap-3 py-1.5">
-        <dt className="w-20 shrink-0 text-[11.5px] text-ink-3">{k}</dt>
-        <dd className="min-w-0 flex-1 text-[12.5px]">{children}</dd>
+        <dt className="w-20 shrink-0 text-[12px] text-ink-3">{k}</dt>
+        <dd className="min-w-0 flex-1 text-[13.5px]">{children}</dd>
       </div>
     );
 
@@ -619,7 +619,7 @@ function TasksInner() {
               </Button>
               {/* 直すためだけに画面を移らせない（提案中でも文言は直せる。仕様 §10-6） */}
               <Button variant="secondary" onClick={() => setEditing(true)}>編集</Button>
-              <Link href={`/tasks/${task.id}`} className="text-[12.5px] text-brand hover:underline">
+              <Link href={`/tasks/${task.id}`} className="text-[13.5px] text-brand hover:underline">
                 詳細ページを開く →
               </Link>
               <span className="ml-auto">
@@ -677,8 +677,8 @@ function TasksInner() {
 
         {task.confirmationState === "proposed" && (
           <div className="mb-4 rounded-lg bg-signal-soft p-3.5">
-            <p className="text-[12.5px] font-bold text-signal">このタスクは提案中です</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-ink-2">
+            <p className="text-[13.5px] font-bold text-signal">このタスクは提案中です</p>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
               変更によって自動生成されたタスクです。内容を確認して確定してください。
             </p>
             <div className="mt-2.5 flex gap-2">
@@ -721,7 +721,7 @@ function TasksInner() {
           {task.repeat && (
             <Line k="繰り返し">
               {describeTaskRepeat(task.repeat)}
-              <span className="ml-1.5 text-[11.5px] text-ink-3">完了にすると次の1件が作られます</span>
+              <span className="ml-1.5 text-[12px] text-ink-3">完了にすると次の1件が作られます</span>
             </Line>
           )}
           {task.assigneeId !== state.currentUserId && (
@@ -781,7 +781,7 @@ function TasksInner() {
                 })}
               </ul>
               {blockedBy.length > 0 && (
-                <span className="mt-1 block text-[11.5px] text-danger">
+                <span className="mt-1 block text-[12px] text-danger">
                   終わるまで着手できません
                 </span>
               )}
@@ -802,20 +802,20 @@ function TasksInner() {
         */}
         {change && (
           <div className="mt-4 border-t border-line-soft pt-3.5">
-            <p className="mb-2 text-[11.5px] text-ink-3">このタスクが発生した理由</p>
+            <p className="mb-2 text-[12px] text-ink-3">このタスクが発生した理由</p>
             <Link
               href={`/map/impact/${change.id}`}
               className="block rounded-lg bg-surface-2 px-3.5 py-3 transition-colors hover:bg-brand-soft"
             >
-              <span className="block text-[12.5px] font-medium">{change.entityLabel}</span>
-              <span className="mt-1 block text-[12px] text-ink-2">
+              <span className="block text-[13.5px] font-medium">{change.entityLabel}</span>
+              <span className="mt-1 block text-[13.5px] text-ink-2">
                 {change.fieldLabel}：
                 {new Date(String(change.before)).toLocaleDateString("ja-JP")}
                 {" → "}
                 {new Date(String(change.after)).toLocaleDateString("ja-JP")}
               </span>
-              {change.reason && <span className="mt-1 block text-[11.5px] text-ink-3">{change.reason}</span>}
-              <span className="mt-2 block text-[11.5px] text-brand">インパクトマップで影響範囲を見る →</span>
+              {change.reason && <span className="mt-1 block text-[12px] text-ink-3">{change.reason}</span>}
+              <span className="mt-2 block text-[12px] text-brand">インパクトマップで影響範囲を見る →</span>
             </Link>
           </div>
         )}
@@ -828,7 +828,7 @@ function TasksInner() {
 
 export default function TasksPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-[13px] text-ink-3">読み込み中…</div>}>
+    <Suspense fallback={<div className="p-8 text-[13.5px] text-ink-3">読み込み中…</div>}>
       <TasksInner />
     </Suspense>
   );

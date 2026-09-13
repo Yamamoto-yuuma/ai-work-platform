@@ -33,7 +33,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const [cascadeApplied, setCascadeApplied] = useState<number | null>(null);
 
   const task = state.tasks.find((t) => t.id === taskId);
-  if (!task) return <div className="p-8 text-[13px]">タスクが見つかりません。</div>;
+  if (!task) return <div className="p-8 text-[13.5px]">タスクが見つかりません。</div>;
 
   const run = task.runId ? state.runs.find((r) => r.id === task.runId) : undefined;
   const def = run ? workflows.find((w) => w.key === run.workflowKey) : undefined;
@@ -63,7 +63,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
   return (
     <div className="mx-auto max-w-[860px] px-6 py-6">
-      <div className="mb-2 text-[12px] text-ink-3">
+      <div className="mb-2 text-[13.5px] text-ink-3">
         <Link href="/tasks" className="hover:text-brand">タスク</Link> / 詳細
       </div>
 
@@ -119,7 +119,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
       </div>
 
       {saved && !editing && (
-        <div className="mb-5 rounded-lg bg-ok-soft px-4 py-2.5 text-[12.5px] font-medium text-ok">
+        <div className="mb-5 rounded-lg bg-ok-soft px-4 py-2.5 text-[13.5px] font-medium text-ok">
           変更を保存しました
         </div>
       )}
@@ -141,7 +141,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
       )}
 
       {cascadeApplied !== null && (
-        <div className="mb-5 rounded-lg bg-ok-soft px-4 py-2.5 text-[12.5px] font-medium text-ok">
+        <div className="mb-5 rounded-lg bg-ok-soft px-4 py-2.5 text-[13.5px] font-medium text-ok">
           {cascadeApplied} 件の後続タスクの期限を更新しました
         </div>
       )}
@@ -179,8 +179,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
       {task.confirmationState === "proposed" && (
         <Card className="mb-5 bg-signal-soft p-4">
-          <p className="text-[13px] font-bold text-signal">このタスクは提案中です</p>
-          <p className="mt-1 text-[12.5px] text-ink-2">
+          <p className="text-[13.5px] font-bold text-signal">このタスクは提案中です</p>
+          <p className="mt-1 text-[13.5px] text-ink-2">
             変更によって自動生成されたタスクです。内容を確認して確定してください。
           </p>
           <div className="mt-3 flex gap-2">
@@ -192,7 +192,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
       {blockedBy.length > 0 && (
         <Card className="mb-5 bg-danger-soft p-4">
-          <p className="text-[13px] font-bold text-danger">
+          <p className="text-[13.5px] font-bold text-danger">
             このタスクはブロック中です — {blockedBy.length}件の先行タスクの完了を待っています
           </p>
           <ul className="mt-2.5 flex flex-col gap-1">
@@ -202,8 +202,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                   href={`/tasks/${d.id}`}
                   className="flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2 hover:bg-brand-soft"
                 >
-                  <span className="text-[12.5px] font-medium">{d.title}</span>
-                  <span className="shrink-0 text-[11.5px] text-ink-3">
+                  <span className="text-[13.5px] font-medium">{d.title}</span>
+                  <span className="shrink-0 text-[12px] text-ink-3">
                     {TASK_STATUS_LABEL[effectiveStatus(d, state.tasks)]}
                   </span>
                 </Link>
@@ -215,7 +215,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
       {waitingOnThis.length > 0 && (
         <Card className="mb-5 p-5">
-          <p className="text-[12.5px] font-bold text-ink-3">
+          <p className="text-[13.5px] font-bold text-ink-3">
             このタスクの完了を待っているタスク（{waitingOnThis.length}）
           </p>
           <ul className="mt-2.5 flex flex-col gap-1">
@@ -227,7 +227,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                     href={`/tasks/${d.id}`}
                     className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft"
                   >
-                    <span className="min-w-0 text-[12.5px] font-medium">{d.title}</span>
+                    <span className="min-w-0 text-[13.5px] font-medium">{d.title}</span>
                     <span className="shrink-0">
                       {willBeReleased ? (
                         <Badge tone="ok">完了すると着手可能</Badge>
@@ -241,7 +241,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             })}
           </ul>
           {task.status !== "done" && released.length > 0 && (
-            <p className="mt-2.5 text-[11.5px] text-ink-3">
+            <p className="mt-2.5 text-[12px] text-ink-3">
               このタスクを完了すると {released.length} 件が着手可能になります
             </p>
           )}
@@ -252,56 +252,56 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         {/* 派生の系譜 */}
         {change && (
           <Card className="p-4 sm:col-span-2">
-            <p className="mb-2 text-[12px] font-bold text-ink-3">このタスクが発生した理由</p>
+            <p className="mb-2 text-[13.5px] font-bold text-ink-3">このタスクが発生した理由</p>
             <Link href={`/map/impact/${change.id}`} className="block rounded-lg bg-surface-2 px-3.5 py-3 hover:bg-brand-soft">
-              <p className="text-[13px] font-medium">{change.entityLabel}</p>
-              <p className="mt-1 text-[12.5px] text-ink-2">
+              <p className="text-[13.5px] font-medium">{change.entityLabel}</p>
+              <p className="mt-1 text-[13.5px] text-ink-2">
                 {change.fieldLabel}：{new Date(String(change.before)).toLocaleDateString("ja-JP")} → {new Date(String(change.after)).toLocaleDateString("ja-JP")}
               </p>
-              {change.reason && <p className="mt-1 text-[11.5px] text-ink-3">{change.reason}</p>}
-              <p className="mt-2 text-[11.5px] text-brand">インパクトマップで影響範囲を見る →</p>
+              {change.reason && <p className="mt-1 text-[12px] text-ink-3">{change.reason}</p>}
+              <p className="mt-2 text-[12px] text-brand">インパクトマップで影響範囲を見る →</p>
             </Link>
           </Card>
         )}
 
         <Card className="p-5">
-          <p className="mb-2 text-[12px] font-bold text-ink-3">担当者</p>
+          <p className="mb-2 text-[13.5px] font-bold text-ink-3">担当者</p>
           {(() => {
             const assignee = users.find((u) => u.id === task.assigneeId);
             const isMine = task.assigneeId === state.currentUserId;
             if (!assignee) {
-              return <p className="text-[12px] text-ink-3">担当者が見つかりません（{task.assigneeId}）</p>;
+              return <p className="text-[13.5px] text-ink-3">担当者が見つかりません（{task.assigneeId}）</p>;
             }
             return (
               <div className={`rounded-lg px-3 py-2.5 ${isMine ? "bg-brand-soft" : "bg-surface-2"}`}>
-                <p className={`text-[13px] font-medium ${isMine ? "text-brand-ink" : ""}`}>
+                <p className={`text-[13.5px] font-medium ${isMine ? "text-brand-ink" : ""}`}>
                   {assignee.name}
-                  {isMine && <span className="ml-1.5 text-[11.5px] font-normal text-brand">自分が担当</span>}
+                  {isMine && <span className="ml-1.5 text-[12px] font-normal text-brand">自分が担当</span>}
                 </p>
-                <p className="mt-0.5 text-[11.5px] text-ink-3">{assignee.team}</p>
+                <p className="mt-0.5 text-[12px] text-ink-3">{assignee.team}</p>
               </div>
             );
           })()}
-          <p className="mt-2 text-[11.5px] text-ink-3">担当者は「編集」から変更できます</p>
+          <p className="mt-2 text-[12px] text-ink-3">担当者は「編集」から変更できます</p>
         </Card>
 
         <Card className="p-5">
-          <p className="mb-2 text-[12px] font-bold text-ink-3">紐付く業務</p>
+          <p className="mb-2 text-[13.5px] font-bold text-ink-3">紐付く業務</p>
           {run && def ? (
             <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2.5 hover:bg-brand-soft">
-              <span className="block text-[12.5px] font-medium">{run.subject.label}</span>
-              <span className="text-[11.5px] text-ink-3">{def.name}{task.stepKey && ` ／ ${def.steps.find((s) => s.key === task.stepKey)?.title}`}</span>
+              <span className="block text-[13.5px] font-medium">{run.subject.label}</span>
+              <span className="text-[12px] text-ink-3">{def.name}{task.stepKey && ` ／ ${def.steps.find((s) => s.key === task.stepKey)?.title}`}</span>
             </Link>
           ) : (
-            <p className="text-[12px] text-ink-3">紐付く業務はありません</p>
+            <p className="text-[13.5px] text-ink-3">紐付く業務はありません</p>
           )}
         </Card>
 
         {/* 開始できる業務が無いときは見出しごと出さない（仕様 §15-4） */}
         {startable && (
           <Card className="p-5">
-            <p className="mb-2 text-[12px] font-bold text-ink-3">この場から業務を開始</p>
-            <p className="mb-2 text-[12.5px] text-ink-2">「{startable.name}」を開始できます。</p>
+            <p className="mb-2 text-[13.5px] font-bold text-ink-3">この場から業務を開始</p>
+            <p className="mb-2 text-[13.5px] text-ink-2">「{startable.name}」を開始できます。</p>
             <Button onClick={startWorkflow} disabled={blockedBy.length > 0}>この業務を開始する</Button>
           </Card>
         )}

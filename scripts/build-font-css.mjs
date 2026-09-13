@@ -20,14 +20,22 @@ import { join } from "node:path";
   引き締めると全体が締まる。--font-sans で Inter を先に並べるので、
   英数字は Inter、かなと漢字は Inter に無いので IBM Plex Sans JP が拾う。
 
-  太さは 400 と 700 の2種類。500（font-medium）は 400、
-  600（font-semibold）は 700 で表示される。
+  太さは 400 / 500 / 600 / 700 の4種類。見出しと本文の差を、太字だけに
+  頼らずに付けられるようにする。
 */
 const FAMILIES = [
   { family: "IBM Plex Sans JP", slug: "plex", prefix: "plex" },
   { family: "Inter", slug: "inter", prefix: "inter" },
 ];
-const WEIGHTS = [400, 700];
+/*
+  太さは 4 種類。
+
+  400 と 700 だけだと、文字は「ふつう」か「太い」のどちらかにしかならない。
+  見出しと本文の差を付けようとするたびに太字にすることになり、画面じゅうが
+  太字だらけになるか、逆にのっぺりする。500 と 600 があると、太らせずに
+  ひとつ上げる、という段が作れる。
+*/
+const WEIGHTS = [400, 500, 600, 700];
 const FONT_ROOT = "public/fonts";
 const OUT_CSS = "app/fonts.css";
 // woff2 の URL は、ブラウザの User-Agent で出し分けられる
@@ -48,8 +56,7 @@ const header = `/*
  * unicode-range で字ごとに分けてあるので、ブラウザは画面に出る字の分
  * だけを読む。全体では数MB あるが、1画面あたりは数十KB で済む。
  *
- * 太さは 400 と 700 の2種類。500（font-medium）は 400、
- * 600（font-semibold）は 700 で表示される。
+ * 太さは 400 / 500 / 600 / 700 の4種類。
  *
  * このファイルは scripts/build-font-css.mjs が作る。手で書き換えない。
  */

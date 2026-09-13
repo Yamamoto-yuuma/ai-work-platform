@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useWorkflows } from "@/ui/use-navigator";
-import { Badge, Button, Card, Cells, Empty, Row, RowHead, RowList, Tabs, TopBar } from "@/ui/primitives";
+import { Badge, Button, Card, Cells, Empty, Row, RowHead, RowList, SubHead, Tabs, TopBar } from "@/ui/primitives";
 import { Drawer } from "@/ui/drawer";
 import { KnowledgeForm } from "@/ui/knowledge-form";
 import { DeleteKnowledgeButton } from "@/ui/delete-knowledge";
@@ -104,7 +104,7 @@ function KnowledgeInner() {
       */}
       {creating && (
         <Card className="mb-4">
-          <h2 className="mb-4 text-[13px] font-semibold">ナレッジを追加</h2>
+          <SubHead title="New entry" note="ナレッジを追加" className="mb-4" />
           <KnowledgeForm
             mode={{ kind: "create" }}
             workflows={workflows}
@@ -169,7 +169,7 @@ function KnowledgeInner() {
                     <button
                       type="button"
                       onClick={() => setOpenId(k.id)}
-                      className="cell-clip text-left text-[13px] font-medium before:absolute before:inset-0"
+                      className="cell-clip text-left text-[13.5px] font-medium before:absolute before:inset-0"
                     >
                       {k.title}
                     </button>
@@ -180,20 +180,20 @@ function KnowledgeInner() {
                     {k.location && (
                       <span
                         role="img" aria-label="置き場所あり" title={k.location}
-                        className="relative z-10 shrink-0 text-[11px] leading-none text-ink-3"
+                        className="relative z-10 shrink-0 text-[12px] leading-none text-ink-3"
                       >
                         ↗
                       </span>
                     )}
                     {linked.length > 0 && (
-                      <span className="shrink-0 text-[11px] text-ink-3">・{linked.length}業務</span>
+                      <span className="shrink-0 text-[12px] text-ink-3">・{linked.length}業務</span>
                     )}
                   </span>
                   <span className="relative z-10"><Badge tone="neutral">{KIND_LABEL[k.kind]}</Badge></span>
                   <span className="relative z-10">
                     <Badge tone={k.source === "internal" ? "neutral" : "brand"}>{SOURCE_LABEL[k.source]}</Badge>
                   </span>
-                  <span className="cell-clip cell-num text-[12px] text-ink-3">
+                  <span className="cell-clip cell-num text-[13.5px] text-ink-3">
                     {new Date(k.updatedAt).toLocaleDateString("ja-JP", { year: "2-digit", month: "numeric", day: "numeric" })}
                   </span>
                 </Cells>
@@ -238,7 +238,7 @@ function KnowledgeInner() {
               )}
 
               {opened.body && (
-                <p className="whitespace-pre-wrap text-[12.5px] leading-[1.9] text-ink">{opened.body}</p>
+                <p className="whitespace-pre-wrap text-[13.5px] leading-[1.9] text-ink">{opened.body}</p>
               )}
 
               {opened.tags.length > 0 && (
@@ -249,11 +249,11 @@ function KnowledgeInner() {
 
               {openedLinks.length > 0 && (
                 <div className="mt-5 border-t border-line-soft pt-3.5">
-                  <p className="mb-2 text-[11.5px] text-ink-3">このナレッジが出てくる業務</p>
+                  <p className="mb-2 text-[12px] text-ink-3">このナレッジが出てくる業務</p>
                   <ul className="flex flex-col gap-1">
                     {openedLinks.map((w) => (
                       <li key={w.key}>
-                        <Link href={`/workflows/${w.key}`} className="text-[12.5px] text-brand hover:underline">
+                        <Link href={`/workflows/${w.key}`} className="text-[13.5px] text-brand hover:underline">
                           {w.name} →
                         </Link>
                       </li>
@@ -296,7 +296,7 @@ function KnowledgeGuide() {
         JSX は改行を空白1つに畳む。英文では要る空白だが、
         日本語では文の途中に穴が空いて見える。改行しない。
       */}
-      <p className="text-[12.5px] leading-relaxed text-ink-2">
+      <p className="text-[13.5px] leading-relaxed text-ink-2">
         ナレッジは業務のSTEPに紐付けておくと、該当のSTEPで自動的に出てきます。
         <br />
         <span className="font-medium text-ink">置き場所</span>
@@ -308,7 +308,7 @@ function KnowledgeGuide() {
           const Mark = LOCATION_MARK[service];
           return (
             /* min-w-0 が無いと、URL の例が縮まずに列ごと広がる */
-            <li key={service} className="flex min-w-0 items-center gap-2 text-[11.5px]">
+            <li key={service} className="flex min-w-0 items-center gap-2 text-[12px]">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-line-soft bg-surface-2 text-ink-3">
                 <Mark />
               </span>
@@ -319,7 +319,7 @@ function KnowledgeGuide() {
         })}
       </ul>
 
-      <p className="mt-3 border-t border-line-soft pt-2.5 text-[11.5px] leading-relaxed text-ink-3">
+      <p className="mt-3 border-t border-line-soft pt-2.5 text-[12px] leading-relaxed text-ink-3">
         共有フォルダのパスや棚の場所など、ブラウザで開けないものも書けます。その場合はリンクにせず、写せる文字として出します。
       </p>
     </div>
@@ -328,7 +328,7 @@ function KnowledgeGuide() {
 
 export default function KnowledgePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-[13px] text-ink-3">読み込み中…</div>}>
+    <Suspense fallback={<div className="p-8 text-[13.5px] text-ink-3">読み込み中…</div>}>
       <KnowledgeInner />
     </Suspense>
   );
