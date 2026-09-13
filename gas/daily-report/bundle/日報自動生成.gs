@@ -483,7 +483,7 @@ function resolveTargetCalendar_() {
  * - 終日イベントは INCLUDE_ALL_DAY_EVENTS が false の間は除外する。
  * - 前日から続いている予定は、開始日が当日でないため対象外とする。
  *
- * @return {Array.<{title: string, startTime: Date}>}
+ * @return {Array.<{title: string, startTime: Date, endTime: Date, allDay: boolean}>}
  */
 function getCalendarEvents_(date) {
   assertDate_(date);
@@ -508,7 +508,17 @@ function getCalendarEvents_(date) {
     var startTime = event.getStartTime();
     if (!isAllDay && formatDateKey_(startTime) !== dateKey) continue;
 
-    result.push({ title: event.getTitle(), startTime: startTime });
+    /*
+      終了時刻も持つ。日報では使わないが、HOME の 1 日の並びで
+      「何時から何時まで埋まっているか」を出すのに要る。
+      終日イベントは終了が翌日 0 時になるため、そのまま使わない。
+    */
+    result.push({
+      title: event.getTitle(),
+      startTime: startTime,
+      endTime: isAllDay ? startTime : event.getEndTime(),
+      allDay: isAllDay,
+    });
   }
 
   result.sort(function (a, b) {
@@ -566,6 +576,28 @@ function getEventTitlesByHalf_(date) {
     morning: toEventTitles_(filterEventsByHalf_(events, true)),
     afternoon: toEventTitles_(filterEventsByHalf_(events, false)),
   };
+}
+
+/**
+ * 指定日の予定を、画面に並べられる形で返す。
+ *
+ * 日報とは別の用途（HOME で 1 日の埋まり具合を見る）なので、時刻も一緒に渡す。
+ * 出欠や参加者は渡さない。必要になるまで外へ出す情報を増やさない。
+ *
+ * @return {Array.<{title: string, start: string, end: string, allDay: boolean}>}
+ */
+function getDayEventsForApi_(date) {
+  var events = getCalendarEvents_(date);
+  var out = [];
+  for (var i = 0; i < events.length; i++) {
+    out.push({
+      title: formatTitleLine_(events[i].title) === null ? '' : events[i].title,
+      start: formatTimestamp_(events[i].startTime),
+      end: formatTimestamp_(events[i].endTime),
+      allDay: events[i].allDay === true,
+    });
+  }
+  return out;
 }
 
 /* ==================================================================
@@ -1809,6 +1841,7 @@ function confirmAndSend_(reportType) {
  * やり取りはすべて POST。URL に合言葉を載せると、履歴やログに残ってしまうため。
  *
  *   { "secret": "…", "action": "drafts" }                       今日の下書きを返す
+ *   { "secret": "…", "action": "events" }                       今日の予定を返す（HOME 用）
  *   { "secret": "…", "action": "rebuild", "reportType": "day" }  最新のカレンダーで作り直す
  *   { "secret": "…", "action": "save", "reportType": "day",
  *     "body": "---業務報告---…" }                                      本文を書き換える
@@ -1874,6 +1907,17 @@ function handleApiAction_(request) {
   switch (request.action) {
     case 'drafts':
       return buildApiState_(today);
+
+    /*
+      今日の予定。HOME で 1 日の埋まり具合を見るために使う。
+      下書きには触らないので、営業日でなくても返す（土日に見ることもある）。
+    */
+    case 'events':
+      return {
+        ok: true,
+        today: Utilities.formatDate(today, TIME_ZONE, 'yyyy-MM-dd'),
+        events: getDayEventsForApi_(today),
+      };
 
     case 'rebuild':
       rebuildForApi_(today, toReportType_(request.reportType));

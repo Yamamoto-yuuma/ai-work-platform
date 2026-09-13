@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 const TIMEOUT_MS = 20_000;
 
 /** GAS に通す操作。ここに無いものは受け付けない */
-const ACTIONS = ["drafts", "rebuild", "save", "send"] as const;
+const ACTIONS = ["drafts", "rebuild", "save", "send", "events"] as const;
 type Action = (typeof ACTIONS)[number];
 
 const REPORT_TYPES = ["day", "night"] as const;
@@ -48,7 +48,7 @@ function readRequest(payload: unknown): ClientRequest | string {
   if (!isAction(source.action)) return "知らない操作です。";
   const request: ClientRequest = { action: source.action };
 
-  if (source.action !== "drafts") {
+  if (source.action !== "drafts" && source.action !== "events") {
     if (!isReportType(source.reportType)) return "昼か夜かを指定してください。";
     request.reportType = source.reportType;
   }
@@ -99,6 +99,12 @@ function readGasResponse(value: unknown): Record<string, unknown> | string {
   if (source.ok !== true) {
     return "連携先から日報以外の応答が返りました。ウェブアプリのデプロイを確認してください。";
   }
+
+  /*
+    今日の予定は日報とは別の形で返る。日報の項目を探しに行くと、
+    正しい応答を「形が違う」として弾いてしまう。
+  */
+  if (Array.isArray(source.events)) return source;
 
   const reports = source.reports;
   if (typeof reports !== "object" || reports === null) {

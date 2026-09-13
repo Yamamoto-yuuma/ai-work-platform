@@ -8,6 +8,7 @@
  * やり取りはすべて POST。URL に合言葉を載せると、履歴やログに残ってしまうため。
  *
  *   { "secret": "…", "action": "drafts" }                       今日の下書きを返す
+ *   { "secret": "…", "action": "events" }                       今日の予定を返す（HOME 用）
  *   { "secret": "…", "action": "rebuild", "reportType": "day" }  最新のカレンダーで作り直す
  *   { "secret": "…", "action": "save", "reportType": "day",
  *     "body": "---業務報告---…" }                                      本文を書き換える
@@ -73,6 +74,17 @@ function handleApiAction_(request) {
   switch (request.action) {
     case 'drafts':
       return buildApiState_(today);
+
+    /*
+      今日の予定。HOME で 1 日の埋まり具合を見るために使う。
+      下書きには触らないので、営業日でなくても返す（土日に見ることもある）。
+    */
+    case 'events':
+      return {
+        ok: true,
+        today: Utilities.formatDate(today, TIME_ZONE, 'yyyy-MM-dd'),
+        events: getDayEventsForApi_(today),
+      };
 
     case 'rebuild':
       rebuildForApi_(today, toReportType_(request.reportType));

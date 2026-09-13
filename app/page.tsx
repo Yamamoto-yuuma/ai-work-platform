@@ -12,6 +12,7 @@ import { useStore } from "@/adapters/memory/store";
 import { useNextAction, useNow, useStartableToday, useWorkflows } from "@/ui/use-navigator";
 import { Badge, Button, Card, LinkButton, Panel, Row, RowList, TopBar } from "@/ui/primitives";
 import { TaskMemoPanel } from "@/ui/task-memo-panel";
+import { TodayTimeline } from "@/ui/today-timeline";
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
@@ -145,6 +146,15 @@ export default function HomePage() {
         className="-mt-3 mb-5 px-1"
         message={catForHome({ next, now })}
       />
+
+      {/*
+        今日の並び。「今日いちばん先にやること」の次に「今日はこういう1日」を置く。
+        期限だけでは、それが今日に入るのかが分からない。
+        カレンダーが未連携のときは何も出さない（毎日出る警告にしない）。
+      */}
+      <div className="mb-5">
+        <TodayTimeline now={now} />
+      </div>
 
       {/*
         1 列のときも minmax(0,1fr) で押さえる。既定のままだと列が中身の幅まで広がり、
