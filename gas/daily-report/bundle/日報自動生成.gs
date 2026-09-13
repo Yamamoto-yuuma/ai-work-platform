@@ -47,6 +47,7 @@
  *   sendDayDraft / sendNightDraft                送信（ダイアログなし・エディタ用）
  *   runDayReport / runNightReport                下書きを作る（トリガーが実行するもの）
  *   testDayReport / testNightReport              本文だけ確認
+ *   testTodayEvents                              今日の予定を確認（HOME の「今日の並び」用）
  *
  *   これ以外の関数は名前の末尾が _ になっており、実行メニューには出ません。
  *   （doGet / doPost はウェブアプリの入口です。手で実行するものではありません）
@@ -1610,6 +1611,35 @@ function testNightReport() {
 }
 
 /**
+ * 今日の予定をログへ出力する（投稿もシートへの書き出しもしない）。
+ *
+ * HOME の「今日の並び」に渡している中身を、そのまま目で確かめるためのもの。
+ * ウェブアプリ経由でしか使わない口なので、これが無いと動作を確認できない。
+ */
+function testTodayEvents() {
+  assertTimeZone_();
+  var today = businessToday_();
+  var events = getDayEventsForApi_(today);
+
+  if (events.length === 0) {
+    Logger.log(formatJapaneseDate_(today) + ' の予定はありません。');
+    return events;
+  }
+
+  var lines = [];
+  for (var i = 0; i < events.length; i++) {
+    lines.push(
+      events[i].start.substring(11, 16) + '-' + events[i].end.substring(11, 16) +
+        '  ' + events[i].title
+    );
+  }
+  Logger.log(
+    '----- ' + formatJapaneseDate_(today) + ' の予定（' + events.length + '件） -----\n' + lines.join('\n')
+  );
+  return events;
+}
+
+/**
  * 日付（yyyy-MM-dd）を指定して昼の日報本文をログへ出力する（投稿はしない）。
  */
 function testDayReportForDate_(dateText) {
@@ -2364,7 +2394,7 @@ function test17_OnlyEntryPointsArePublic_() {
     'runDayReport', 'runNightReport',
     'showDayDraft', 'showNightDraft',
     'sendDayDraft', 'sendNightDraft',
-    'testDayReport', 'testNightReport',
+    'testDayReport', 'testNightReport', 'testTodayEvents',
     'runAllTests', 'setupTriggers',
   ];
   for (var i = 0; i < entryPoints.length; i++) {

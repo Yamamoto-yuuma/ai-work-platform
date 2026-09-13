@@ -74,6 +74,7 @@ const HEADER = `/**
  *   sendDayDraft / sendNightDraft                送信（ダイアログなし・エディタ用）
  *   runDayReport / runNightReport                下書きを作る（トリガーが実行するもの）
  *   testDayReport / testNightReport              本文だけ確認
+ *   testTodayEvents                              今日の予定を確認（HOME の「今日の並び」用）
  *
  *   これ以外の関数は名前の末尾が _ になっており、実行メニューには出ません。
  *   （doGet / doPost はウェブアプリの入口です。手で実行するものではありません）

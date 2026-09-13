@@ -372,7 +372,7 @@ function test17_OnlyEntryPointsArePublic_() {
     'runDayReport', 'runNightReport',
     'showDayDraft', 'showNightDraft',
     'sendDayDraft', 'sendNightDraft',
-    'testDayReport', 'testNightReport',
+    'testDayReport', 'testNightReport', 'testTodayEvents',
     'runAllTests', 'setupTriggers',
   ];
   for (var i = 0; i < entryPoints.length; i++) {
