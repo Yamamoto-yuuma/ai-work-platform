@@ -14,12 +14,17 @@ import { GoogleAutoSync } from "./google-auto-sync";
 import { GlobalSearch } from "./global-search";
 import { NAV_ICON, SettingsIcon } from "./icons";
 
+/*
+  並びは、通る回数の多い順にする。
+  上にあるものほど押しやすく、目にも入る。毎日通る「タスク」「日報」を
+  上に置き、いま使っていない「業務」はナレッジの下へ下げる。
+*/
 const NAV = [
   { href: "/", label: "ホーム" },
-  { href: "/workflows", label: "業務" },
   { href: "/tasks", label: "タスク" },
   { href: "/daily-report", label: "日報" },
   { href: "/knowledge", label: "ナレッジ" },
+  { href: "/workflows", label: "業務" },
   { href: "/settings", label: "管理" },
 ];
 
