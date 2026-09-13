@@ -48,7 +48,7 @@ export function BulkTaskForm({
   return (
     <Card className="mb-5 p-5">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-bold">まとめて追加</h2>
+        <h2 className="text-[15px] font-semibold">まとめて追加</h2>
         <span className="text-[12px] text-ink-3">1行が1件になります</span>
       </div>
 

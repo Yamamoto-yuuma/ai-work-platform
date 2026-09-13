@@ -261,7 +261,7 @@ function EmailComposeRenderer({ step, stepRun, run, onOutput }: StepRendererProp
 
       {missing.length > 0 && (
         <div className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13.5px] text-danger">
-          <strong className="font-bold">差し込み値が不足しています。</strong>
+          <strong className="font-semibold">差し込み値が不足しています。</strong>
           <span className="ml-1">{missing.join(" / ")} が未設定のため、本文に〔未設定〕と表示されています。</span>
         </div>
       )}
@@ -435,14 +435,14 @@ function ReviewTarget({ step, run }: { step: EffectiveStep; run: WorkRun }) {
   return (
     <section className="rounded-lg border border-line bg-surface">
       <header className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-2 px-3.5 py-2.5">
-        <span className="text-[13.5px] font-bold text-ink-2">確認する内容</span>
+        <span className="text-[13.5px] font-semibold text-ink-2">確認する内容</span>
         <Badge tone="brand">{target.title}</Badge>
         <Badge>{draft.edited ? "編集済み" : "テンプレートのまま"}</Badge>
       </header>
 
       {draft.missingVariables.length > 0 && (
         <div className="border-b border-line bg-danger-soft px-3.5 py-2.5 text-[13.5px] text-danger">
-          <strong className="font-bold">差し込み値が不足しています。</strong>
+          <strong className="font-semibold">差し込み値が不足しています。</strong>
           <span className="ml-1">{draft.missingVariables.join(" / ")} が未設定のまま本文に残っています。</span>
         </div>
       )}
@@ -504,7 +504,7 @@ function KnowledgeViewRenderer({ step }: StepRendererProps) {
     <div className="flex flex-col gap-3">
       {items.map((k) => (
         <div key={k.id} className="rounded-lg border border-line-soft bg-surface p-4 shadow-card">
-          <h4 className="mb-1.5 text-[13.5px] font-bold">{k.title}</h4>
+          <h4 className="mb-1.5 text-[13.5px] font-semibold">{k.title}</h4>
           {k.body && (
             <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-2">{k.body}</p>
           )}
@@ -527,7 +527,7 @@ function AiAssistRenderer() {
 function CompleteRenderer({ run }: StepRendererProps) {
   return (
     <div className="rounded-lg bg-ok-soft p-6 text-center">
-      <p className="text-[17px] font-bold text-ok">この業務を完了します</p>
+      <p className="text-[17px] font-semibold text-ok">この業務を完了します</p>
       <p className="mt-2 text-[13.5px] text-ink-2">{run.subject.label} の対応内容が記録されます。</p>
     </div>
   );
@@ -571,7 +571,7 @@ function RuleAdditions({ step, stepRun, onOutput, onCheck }: StepRendererProps) 
 
   return (
     <section className="mt-5 rounded-lg bg-signal-soft p-4">
-      <h4 className="mb-3 flex items-center gap-1.5 text-[13.5px] font-bold text-signal">
+      <h4 className="mb-3 flex items-center gap-1.5 text-[13.5px] font-semibold text-signal">
         <span>⚑</span>一時ルールにより追加された確認項目
       </h4>
       <div className="flex flex-col gap-2">

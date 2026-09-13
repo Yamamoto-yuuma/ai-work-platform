@@ -156,7 +156,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
         </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-bold tracking-tight">{runLabel(run)}</h1>
+            <h1 className="text-[22px] font-semibold tracking-tight">{runLabel(run)}</h1>
             {/* 対象を持たない業務では見出しが業務名なので繰り返さない */}
             {subjectOf(run) && <p className="mt-0.5 text-[13.5px] text-ink-2">{def.name}</p>}
           </div>
@@ -212,11 +212,11 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                       isCurrent ? "bg-brand-soft" : st === "pending" ? "cursor-default" : "hover:bg-surface-2"
                     }`}
                   >
-                    <span className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border text-[12px] font-bold ${m.cls}`}>
+                    <span className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border text-[12px] font-semibold ${m.cls}`}>
                       {m.mark}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className={`block text-[13.5px] leading-snug ${isCurrent ? "font-bold text-brand-ink" : st === "done" ? "text-ink-3" : "font-medium"}`}>
+                      <span className={`block text-[13.5px] leading-snug ${isCurrent ? "font-semibold text-brand-ink" : st === "done" ? "text-ink-3" : "font-medium"}`}>
                         {s.title}
                       </span>
                       {st === "skipped" && <span className="text-[12px] text-ink-3">条件によりスキップ</span>}
@@ -283,7 +283,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                       </span>
                     )}
                   </div>
-                  <h2 className="mt-2 text-[19px] font-bold tracking-tight">{stepView.step.title}</h2>
+                  <h2 className="mt-2 text-[19px] font-semibold tracking-tight">{stepView.step.title}</h2>
                   {stepView.step.guidance && (
                     <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{stepView.step.guidance}</p>
                   )}
@@ -393,7 +393,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
                     );
                     return (
                       <>
-                        <p className="mt-0.5 text-[15px] font-bold leading-snug text-brand-ink">
+                        <p className="mt-0.5 text-[15px] font-semibold leading-snug text-brand-ink">
                           {action.text}
                         </p>
                         {action.ruleItems.length > 0 && (
@@ -454,7 +454,7 @@ export default function NavigatorPage({ params }: { params: Promise<{ runId: str
           */
           <aside className="w-full shrink-0 lg:w-[312px]">
             <div className="sticky top-4 overflow-hidden rounded-xl bg-surface p-4 shadow-card">
-              <p className="text-[13.5px] font-bold">
+              <p className="text-[13.5px] font-semibold">
                 {isCanceled ? "この業務は中止されています"
                   : isWaiting ? "この業務は待ち中です"
                   : "この業務は完了しています"}

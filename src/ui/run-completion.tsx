@@ -47,8 +47,8 @@ export function RunCompletion({
     <div className="flex flex-col gap-4">
       {/* 完了したこと */}
       <Card className="bg-ok-soft p-6">
-        <p className="text-[12px] font-bold tracking-wide text-ok">業務完了</p>
-        <h2 className="mt-1.5 text-[23px] font-bold">{runLabel(run)}</h2>
+        <p className="text-[12px] font-semibold tracking-wide text-ok">業務完了</p>
+        <h2 className="mt-1.5 text-[23px] font-semibold">{runLabel(run)}</h2>
         <p className="mt-1 text-[13.5px] text-ink-2">{def.name}</p>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px] text-ink-2">
           <span>{executed} ステップを実施{skipped > 0 && `（条件により ${skipped} 件をスキップ）`}</span>
@@ -63,7 +63,7 @@ export function RunCompletion({
 
       {/* この業務から残った仕事 */}
       <Card className="p-5">
-        <h3 className="text-[13.5px] font-bold">
+        <h3 className="text-[13.5px] font-semibold">
           この業務から残った仕事（{open.length}）
         </h3>
         {produced.length === 0 ? (
@@ -106,14 +106,13 @@ export function RunCompletion({
 
       {/* 次に必要な行動 */}
       <Link href={nextHref}>
-        <Card className={`p-5 transition-colors ${
-          next.urgency === "overdue" ? "bg-danger-soft hover:shadow-lift"
-          : "bg-brand-soft hover:shadow-lift"
+        <Card className={`lift p-5 hover:shadow-lift ${
+          next.urgency === "overdue" ? "bg-danger-soft" : "bg-brand-soft"
         }`}>
-          <p className={`text-[12px] font-bold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
+          <p className={`text-[12px] font-semibold tracking-wide ${next.urgency === "overdue" ? "text-danger" : "text-brand"}`}>
             次に着手すること
           </p>
-          <p className={`mt-1.5 text-[17px] font-bold leading-snug ${next.urgency === "overdue" ? "text-danger" : "text-brand-ink"}`}>
+          <p className={`mt-1.5 text-[17px] font-semibold leading-snug ${next.urgency === "overdue" ? "text-danger" : "text-brand-ink"}`}>
             {next.headline}
           </p>
           <p className="mt-1 text-[13.5px] text-ink-2">{next.reason}</p>

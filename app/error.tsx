@@ -24,7 +24,7 @@ export default function GlobalError({
 
   return (
     <div className="mx-auto max-w-[560px] px-6 py-16">
-      <h1 className="text-[19px] font-bold">画面を表示できませんでした</h1>
+      <h1 className="text-[19px] font-semibold">画面を表示できませんでした</h1>
       <p className="mt-3 text-[13.5px] leading-[1.9] text-ink-2">
         処理の途中で問題が起きました。多くの場合は、もう一度開き直すと表示できます。
         繰り返し出る場合は、この端末に保存した内容が古くなっている可能性があります。

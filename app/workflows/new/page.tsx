@@ -51,8 +51,8 @@ function NewWorkflowInner() {
     return (
       <div className="mx-auto max-w-[720px] px-6 py-10">
         <div className="rounded-xl bg-ok-soft p-6 text-center">
-          <p className="text-[13.5px] font-bold text-ok">業務を登録しました</p>
-          <h1 className="mt-2 text-[23px] font-bold tracking-tight">{saved.name}</h1>
+          <p className="text-[13.5px] font-semibold text-ok">業務を登録しました</p>
+          <h1 className="mt-2 text-[23px] font-semibold tracking-tight">{saved.name}</h1>
           <p className="mt-2 text-[13.5px] leading-relaxed text-ink-2">
             この業務は「業務」一覧に並びました。開始すると、HOME・タスクにも現れます。
           </p>

@@ -514,7 +514,7 @@ function TasksInner() {
         <Card className="mb-5 bg-signal-soft p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[13.5px] font-bold text-signal">{proposed.length}件の派生タスクが未確認です</p>
+              <p className="text-[13.5px] font-semibold text-signal">{proposed.length}件の派生タスクが未確認です</p>
               <p className="mt-0.5 text-[13.5px] text-ink-2">変更によって提案されたタスクです。確認して確定してください。</p>
             </div>
             <Button variant="secondary" onClick={() => setView("proposed")}>内容を確認する</Button>
@@ -539,7 +539,7 @@ function TasksInner() {
         grouped.map(([groupKey, list]) => (
           <section key={groupKey} className="mb-6">
             {groupKey && (
-              <h2 className="mb-2 text-[13.5px] font-bold text-ink-3">
+              <h2 className="mb-2 text-[13.5px] font-semibold text-ink-3">
                 {state.runs.find((r) => r.id === groupKey)?.subject.label ?? groupKey}
                 <span className="ml-2 font-normal">
                   {workflows.find((w) => w.key === state.runs.find((r) => r.id === groupKey)?.workflowKey)?.name}
@@ -677,7 +677,7 @@ function TasksInner() {
 
         {task.confirmationState === "proposed" && (
           <div className="mb-4 rounded-lg bg-signal-soft p-3.5">
-            <p className="text-[13.5px] font-bold text-signal">このタスクは提案中です</p>
+            <p className="text-[13.5px] font-semibold text-signal">このタスクは提案中です</p>
             <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
               変更によって自動生成されたタスクです。内容を確認して確定してください。
             </p>

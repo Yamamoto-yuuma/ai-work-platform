@@ -227,7 +227,7 @@ export default function DailyReportPage() {
                 <Card key={reportType}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-[15px] font-bold">
+                      <h2 className="text-[15px] font-semibold">
                         {LABEL[reportType]}
                       </h2>
                       {report.sent ? (

@@ -78,7 +78,7 @@ function ScheduleRow({
   return (
     <div className={`rounded-[5px] bg-surface-2 p-4 ${off ? "opacity-60" : ""}`}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-[12px] font-bold text-ink-3">スケジュール {index + 1}</span>
+        <span className="text-[12px] font-semibold text-ink-3">スケジュール {index + 1}</span>
         <input
           className="field field-sm w-auto flex-1 min-w-[140px]"
           placeholder="呼び名（任意）"
@@ -201,7 +201,7 @@ function ErrorList({ errors }: { errors: DraftError[] }) {
   if (errors.length === 0) return null;
   return (
     <div className="rounded-lg bg-danger-soft px-3.5 py-2.5">
-      <p className="text-[13.5px] font-bold text-danger">入力を確認してください</p>
+      <p className="text-[13.5px] font-semibold text-danger">入力を確認してください</p>
       <ul className="mt-1 flex flex-col gap-0.5">
         {errors.map((e, i) => (
           <li key={i} className="text-[13.5px] text-danger">・{e.message}</li>
@@ -339,7 +339,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                 <p className={`text-[12px] tabular-nums ${state === "todo" ? "text-ink-3" : "text-brand"}`}>
                   STEP {s.n}
                 </p>
-                <p className={`text-[13.5px] font-bold ${state === "todo" ? "text-ink-3" : ""}`}>{s.label}</p>
+                <p className={`text-[13.5px] font-semibold ${state === "todo" ? "text-ink-3" : ""}`}>{s.label}</p>
                 <p className="text-[12px] text-ink-3">{s.hint}</p>
               </button>
             </li>
@@ -349,7 +349,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
 
       {mode === "edit" && runCount > 0 && (
         <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-2">
-          この業務はすでに <span className="font-bold">{runCount}件</span> 実行されています。
+          この業務はすでに <span className="font-semibold">{runCount}件</span> 実行されています。
           保存すると新しいバージョンとして登録され、
           <span className="font-medium">進行中の実行はいまのバージョンのまま進みます</span>。
           過去の実行記録・タスク・依存関係は変化しません。
@@ -397,7 +397,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     draft.workKind === k.value ? "pick-on" : "pick"
                   }`}
                 >
-                  <p className="text-[13.5px] font-bold">{k.label}</p>
+                  <p className="text-[13.5px] font-semibold">{k.label}</p>
                   <p className="mt-0.5 text-[12px] text-ink-3">{k.hint}</p>
                 </button>
               ))}
@@ -410,7 +410,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
       {stage === 2 && (
         <Card className="flex flex-col gap-4 p-5">
           <div>
-            <h3 className="text-[15px] font-bold">この業務でやることを、順に並べます</h3>
+            <h3 className="text-[15px] font-semibold">この業務でやることを、順に並べます</h3>
             <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
               名前だけで構いません。<span className="font-medium">この画面まででも登録できます。</span>
               中身は後から足せます。並び順がそのまま進む順になります。
@@ -428,7 +428,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           <ol className="flex flex-col gap-2">
             {draft.steps.map((s, i) => (
               <li key={s.key} className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-[12px] font-bold tabular-nums text-ink-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-[12px] font-semibold tabular-nums text-ink-3">
                   {i + 1}
                 </span>
                 <input
@@ -534,7 +534,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-4 p-5">
             <div>
-              <h3 className="text-[15px] font-bold">STEPを終えたあと、どう進むか</h3>
+              <h3 className="text-[15px] font-semibold">STEPを終えたあと、どう進むか</h3>
               <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
                 {draft.flowLocked
                   ? "この業務の分岐・並列は、いまの構成をそのまま引き継ぎます。ここでは変更しません。"
@@ -558,7 +558,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           </Card>
 
           <Card className="flex flex-col gap-4 p-5">
-            <h3 className="text-[15px] font-bold">期限・所要時間・優先度</h3>
+            <h3 className="text-[15px] font-semibold">期限・所要時間・優先度</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="業務の期限" hint="開始日からの日数。空欄なら期限なし">
                 <div className="flex items-center gap-2">
@@ -593,7 +593,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     key={p.value} type="button"
                     onClick={() => patch({ defaultPriority: p.value as TaskPriority })}
                     className={`rounded-lg border px-3 py-1.5 text-[13.5px] transition-colors ${
-                      draft.defaultPriority === p.value ? "pick-on font-bold" : "pick"
+                      draft.defaultPriority === p.value ? "pick-on font-semibold" : "pick"
                     }`}
                   >
                     {p.label}
@@ -613,7 +613,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           <Card className="flex flex-col gap-4 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-[15px] font-bold">開始スケジュール</h3>
+                <h3 className="text-[15px] font-semibold">開始スケジュール</h3>
                 <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
                   繰り返し始める業務は、ここに予定を並べます。1つの業務にいくつでも足せます。
                   同じ日に複数が重なっても、案内は1回にまとまります。
@@ -660,7 +660,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
 
           <Card className="flex flex-col gap-4 p-5">
             <div>
-              <h3 className="text-[15px] font-bold">いつ始める業務か</h3>
+              <h3 className="text-[15px] font-semibold">いつ始める業務か</h3>
               <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
                 条件が来たらHOMEの「開始待ち」に出ます。勝手には始まりません。
               </p>
@@ -674,7 +674,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
                     draft.startTrigger.kind === c.kind ? "pick-on" : "pick"
                   }`}
                 >
-                  <p className="text-[13.5px] font-bold">{c.label}</p>
+                  <p className="text-[13.5px] font-semibold">{c.label}</p>
                   <p className="mt-0.5 text-[12px] text-ink-3">{c.hint}</p>
                 </button>
               ))}
@@ -730,7 +730,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           </Card>
 
           <Card className="flex flex-col gap-3 p-5">
-            <label className="flex items-center gap-2 text-[15px] font-bold">
+            <label className="flex items-center gap-2 text-[15px] font-semibold">
               <input
                 type="checkbox" checked={draft.quota.enabled}
                 onChange={(e) => patch({ quota: { ...draft.quota, enabled: e.target.checked } })}
@@ -780,7 +780,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           <ErrorList errors={allErrors} />
           {allErrors.length === 0 && unset.length > 0 && (
             <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">
-              <p className="text-[13.5px] font-bold">詳細は後から設定できます</p>
+              <p className="text-[13.5px] font-semibold">詳細は後から設定できます</p>
               <ul className="mt-1 flex flex-col gap-0.5">
                 {unset.map((h, i) => (
                   <li key={i} className="text-[13.5px] text-ink-2">・{h}</li>
@@ -793,7 +793,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           )}
           <Card className="p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-[16px] font-bold">{draft.name || "（名称未設定）"}</h3>
+              <h3 className="text-[16px] font-semibold">{draft.name || "（名称未設定）"}</h3>
               <Badge tone="brand">{WORK_KINDS.find((k) => k.value === draft.workKind)?.label}</Badge>
               <Badge tone="neutral">{draft.category || "カテゴリ未設定"}</Badge>
             </div>
@@ -863,7 +863,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
           </Card>
 
           <Card className="p-5">
-            <h4 className="mb-3 text-[13.5px] font-bold">STEPの流れ</h4>
+            <h4 className="mb-3 text-[13.5px] font-semibold">STEPの流れ</h4>
             <ol className="flex flex-col gap-1.5">
               {draft.steps.map((s, i) => {
                 const f = draft.flow[s.key] ?? { kind: "next" as const };
@@ -908,7 +908,7 @@ export function WorkflowWizard({ initial, mode, runCount = 0, onSave, onCancel }
               className="flex w-full items-center justify-between text-left"
             >
               <span>
-                <span className="text-[13.5px] font-bold">後から追加できる項目</span>
+                <span className="text-[13.5px] font-semibold">後から追加できる項目</span>
                 <span className="ml-2 text-[12px] text-ink-3">すべて任意。あとで編集からでも足せます</span>
               </span>
               <span className="text-[13.5px] text-ink-3">{openNotes ? "閉じる" : "開く"}</span>
@@ -1071,7 +1071,7 @@ function StepDetailEditor({
       <Field label="STEPの種類" required>
         {step.locked ? (
           <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">
-            <p className="text-[13.5px] font-bold">
+            <p className="text-[13.5px] font-semibold">
               {getComponentSpec(step.componentType).icon} {getComponentSpec(step.componentType).label}
             </p>
             <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
@@ -1089,7 +1089,7 @@ function StepDetailEditor({
                   step.componentType === c.type ? "pick-on" : "pick"
                 }`}
               >
-                <p className="text-[13.5px] font-bold">{getComponentSpec(c.type).icon} {c.label}</p>
+                <p className="text-[13.5px] font-semibold">{getComponentSpec(c.type).icon} {c.label}</p>
                 <p className="mt-0.5 text-[12px] text-ink-3">{c.hint}</p>
               </button>
             ))}

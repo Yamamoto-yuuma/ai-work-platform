@@ -97,7 +97,7 @@ export default function WorkflowsPage() {
 
       {published.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-[15px] font-bold">業務が未登録です</p>
+          <p className="text-[15px] font-semibold">業務が未登録です</p>
           <p className="mx-auto mt-1.5 max-w-[420px] text-[13.5px] leading-relaxed text-ink-2">
             名前とSTEPの並びだけで登録できます。
           </p>

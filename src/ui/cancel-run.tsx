@@ -51,7 +51,7 @@ export function CancelRunPanel({
     <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-danger-soft px-5 py-3">
         <div>
-          <h3 className="text-[15px] font-bold text-danger">この業務を中止する</h3>
+          <h3 className="text-[15px] font-semibold text-danger">この業務を中止する</h3>
           <p className="mt-0.5 text-[13.5px] text-ink-2">
             完了ではなく、途中でやめた記録として残ります。確定するまで何も変わりません。
           </p>
@@ -69,7 +69,7 @@ export function CancelRunPanel({
 
         {openTasks.length > 0 && (
           <section>
-            <h4 className="mb-1 text-[13.5px] font-bold text-ink-3">
+            <h4 className="mb-1 text-[13.5px] font-semibold text-ink-3">
               この業務に紐づく未完了のタスク（{openTasks.length}件）
             </h4>
             <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
@@ -106,7 +106,7 @@ export function CancelRunPanel({
 
         {confirming ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-danger-soft px-3.5 py-3">
-            <p className="w-full text-[13.5px] font-bold text-danger">
+            <p className="w-full text-[13.5px] font-semibold text-danger">
               この業務を中止します。元に戻すことはできません。
             </p>
             <Button variant="danger" onClick={cancelRun}>中止を確定</Button>
@@ -138,8 +138,8 @@ export function CanceledRunNotice({ run }: { run: WorkRun }) {
   return (
     <Card className="overflow-hidden">
       <header className="border-b border-line bg-surface-2 px-5 py-4">
-        <p className="text-[12px] font-bold tracking-wide text-ink-3">業務中止</p>
-        <h2 className="mt-1 text-[23px] font-bold tracking-tight">{runLabel(run)}</h2>
+        <p className="text-[12px] font-semibold tracking-wide text-ink-3">業務中止</p>
+        <h2 className="mt-1 text-[23px] font-semibold tracking-tight">{runLabel(run)}</h2>
         <p className="mt-1 text-[13.5px] text-ink-2">この業務は中止されています。STEPの実行はできません。</p>
       </header>
 
@@ -166,7 +166,7 @@ export function CanceledRunNotice({ run }: { run: WorkRun }) {
 
         {remaining.length > 0 && (
           <section>
-            <h3 className="mb-2 text-[13.5px] font-bold text-ink-3">
+            <h3 className="mb-2 text-[13.5px] font-semibold text-ink-3">
               この業務に残っているタスク（{remaining.length}件）
             </h3>
             <ul className="flex flex-col gap-1">

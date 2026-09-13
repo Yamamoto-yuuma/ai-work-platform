@@ -112,7 +112,7 @@ export default function HomePage() {
           つくようにする。面を塗ると、画面のほとんどが色になってしまう。
           線の色は急ぎかどうかで変える。ここだけは色で示してよい。
         */}
-        <div className={`rounded-xl border border-line-soft border-l-[3px] bg-surface p-6 shadow-card transition-shadow duration-150 hover:shadow-lift ${
+        <div className={`lift rounded-xl border border-line-soft border-l-[3px] bg-surface p-6 shadow-card hover:shadow-lift ${
           next.urgency === "overdue" ? "border-l-danger" : "border-l-brand"
         }`}>
           <div className="mb-2 flex items-center gap-2">
@@ -120,7 +120,7 @@ export default function HomePage() {
             {next.urgency === "overdue" && <Badge tone="danger">期限超過</Badge>}
             {next.urgency === "today" && <Badge tone="signal">今日まで</Badge>}
           </div>
-          <p className={`text-[23px] font-bold leading-snug ${next.urgency === "overdue" ? "text-danger" : "text-brand-ink"}`}>
+          <p className={`text-[23px] font-semibold leading-snug ${next.urgency === "overdue" ? "text-danger" : "text-brand-ink"}`}>
             {next.headline}
           </p>
           {/*
@@ -173,7 +173,7 @@ export default function HomePage() {
                         className="flex items-center gap-3 px-4 py-2.5"
                       >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13.5px] font-bold">{runLabel(run)}</span>
+                          <span className="block truncate text-[13.5px] font-semibold">{runLabel(run)}</span>
                           <span className="mt-0.5 block text-[12px] text-ink-2">
                             {reason} ／ 確認予定日：
                             {run.waitingUntil
@@ -226,7 +226,7 @@ export default function HomePage() {
             {upNext.length === 0 ? (
               publishedCount === 0 ? (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-[13.5px] font-bold">業務が未登録です</p>
+                  <p className="text-[13.5px] font-semibold">業務が未登録です</p>
                   <div className="mt-3 flex justify-center">
                     <LinkButton href="/workflows/new" size="sm">＋ 業務を登録</LinkButton>
                   </div>
@@ -288,7 +288,7 @@ export default function HomePage() {
                       <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft">
                         <span className="block text-[13.5px] font-medium">{runLabel(run)}</span>
                         <span className="block text-[12px] text-ink-3">{reason}</span>
-                        <span className={`mt-0.5 block text-[12px] ${st.overdue ? "font-bold text-danger" : "text-ink-3"}`}>
+                        <span className={`mt-0.5 block text-[12px] ${st.overdue ? "font-semibold text-danger" : "text-ink-3"}`}>
                           次回確認：
                           {run.waitingUntil
                             ? new Date(run.waitingUntil).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })

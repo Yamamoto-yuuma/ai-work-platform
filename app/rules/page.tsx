@@ -62,7 +62,7 @@ export default function RulesPage() {
               {phase === "scheduled" && <Badge tone="brand">開始前</Badge>}
               {phase === "expired" && <Badge tone="neutral">期間終了</Badge>}
             </div>
-            <h3 className="mt-2 text-[15px] font-bold leading-snug">{rule.name}</h3>
+            <h3 className="mt-2 text-[15px] font-semibold leading-snug">{rule.name}</h3>
             <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{rule.description}</p>
           </div>
           <Button size="sm" variant="ghost" onClick={() => setPreview(preview?.id === rule.id ? null : rule)}>
@@ -84,7 +84,7 @@ export default function RulesPage() {
 
         {preview?.id === rule.id && (
           <div className="mt-3 rounded-lg bg-brand-soft p-3.5">
-            <p className="text-[13.5px] font-bold text-brand">このルールの影響</p>
+            <p className="text-[13.5px] font-semibold text-brand">このルールの影響</p>
             {affected.length === 0 ? (
               <p className="mt-1.5 text-[13.5px] text-ink-2">影響するSTEPはありません。</p>
             ) : (
@@ -122,7 +122,7 @@ export default function RulesPage() {
       />
 
       <Card className="mb-6 p-4">
-        <p className="text-[13.5px] font-bold">ルールの優先順位</p>
+        <p className="text-[13.5px] font-semibold">ルールの優先順位</p>
         <ol className="mt-2 flex flex-wrap gap-2 text-[13.5px]">
           {(["case", "temporary", "department", "standard"] as const).map((t, i) => (
             <li key={t} className="flex items-center gap-1.5">

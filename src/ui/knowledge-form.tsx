@@ -159,7 +159,7 @@ export function KnowledgeForm({
 
       {errors.length > 0 && (
         <div className="rounded-lg bg-danger-soft p-3.5">
-          <p className="mb-1.5 text-[13.5px] font-bold text-danger">保存できません</p>
+          <p className="mb-1.5 text-[13.5px] font-semibold text-danger">保存できません</p>
           <ul className="flex flex-col gap-0.5">
             {errors.map((e, i) => <li key={i} className="text-[13.5px] text-danger">・{e.message}</li>)}
           </ul>

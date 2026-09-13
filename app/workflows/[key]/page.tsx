@@ -101,7 +101,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
 
       {stopped && (
         <Card className="mb-5 border-line bg-surface-2 p-4">
-          <p className="text-[13.5px] font-bold">この業務は停止中です</p>
+          <p className="text-[13.5px] font-semibold">この業務は停止中です</p>
           <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
             新しく開始できません。定義と過去の実行記録はそのまま残っています。
           </p>
@@ -112,13 +112,13 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
       <Card className="mb-5 p-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-line bg-surface-2 px-3.5 py-2.5">
-            <p className="text-[12px] font-bold text-ink-3">業務の定義（この画面）</p>
+            <p className="text-[12px] font-semibold text-ink-3">業務の定義（この画面）</p>
             <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
               やることの手順そのものです。1つだけ持ちます。編集すると新しいバージョンになります。
             </p>
           </div>
           <div className="rounded-lg bg-brand-soft px-3.5 py-2.5">
-            <p className="text-[12px] font-bold text-brand">実行（開始するたびに増える）</p>
+            <p className="text-[12px] font-semibold text-brand">実行（開始するたびに増える）</p>
             <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">
               この手順を1回まわしたものです。相手や案件ごとに別々に進み、進捗も別々に残ります。
             </p>
@@ -144,12 +144,12 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                   <li key={s.key}>
                     <Card className={`p-4 ${isBranch ? "border-dashed bg-surface-2" : ""}`}>
                       <div className="flex items-start gap-3">
-                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-[12px] font-bold tabular-nums text-ink-3">
+                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-[12px] font-semibold tabular-nums text-ink-3">
                           {i + 1}
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-[15px] font-bold">{s.title}</h3>
+                            <h3 className="text-[15px] font-semibold">{s.title}</h3>
                             <Badge tone={isBranch ? "neutral" : "brand"}>{spec.icon} {spec.label}</Badge>
                             {!s.required && <Badge tone="neutral">任意</Badge>}
                             {s.estimatedMinutes && (
@@ -215,7 +215,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                     if (list.length === 0) return null;
                     return (
                       <div key={n.key}>
-                        <dt className="text-[12px] font-bold text-ink-3">{n.label}</dt>
+                        <dt className="text-[12px] font-semibold text-ink-3">{n.label}</dt>
                         <dd className="mt-1 flex flex-wrap gap-1.5">
                           {list.map((x, i) => <Badge key={i} tone="neutral">{x}</Badge>)}
                         </dd>
@@ -225,14 +225,14 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
                   if (!v) return null;
                   return (
                     <div key={n.key}>
-                      <dt className="text-[12px] font-bold text-ink-3">{n.label}</dt>
+                      <dt className="text-[12px] font-semibold text-ink-3">{n.label}</dt>
                       <dd className="mt-0.5 whitespace-pre-wrap text-[13.5px] leading-relaxed">{String(v)}</dd>
                     </div>
                   );
                 })}
                 {(notes.faq ?? []).length > 0 && (
                   <div>
-                    <dt className="text-[12px] font-bold text-ink-3">よくある質問</dt>
+                    <dt className="text-[12px] font-semibold text-ink-3">よくある質問</dt>
                     <dd className="mt-1 flex flex-col gap-1.5">
                       {(notes.faq ?? []).map((f, i) => (
                         <div key={i} className="rounded-lg bg-surface-2 px-3 py-2 text-[13.5px]">
@@ -250,7 +250,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
 
         <div className="flex flex-col gap-4">
           <Card className="p-5">
-            <p className="mb-2 text-[13.5px] font-bold text-ink-3">この業務の設定</p>
+            <p className="mb-2 text-[13.5px] font-semibold text-ink-3">この業務の設定</p>
             <dl className="flex flex-col gap-1.5 text-[13.5px]">
               {def.workKind && (
                 <div className="flex justify-between gap-3"><dt className="text-ink-3">業務タイプ</dt><dd>{WORK_KIND_LABEL[def.workKind]}</dd></div>
@@ -295,7 +295,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
           </Card>
 
           <Card className="p-5">
-            <p className="mb-2 text-[13.5px] font-bold text-ink-3">定義情報</p>
+            <p className="mb-2 text-[13.5px] font-semibold text-ink-3">定義情報</p>
             <dl className="flex flex-col gap-1.5 text-[13.5px]">
               {/*
                 内部の識別子は出さない（Phase 12 / P2-1）。
@@ -311,7 +311,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
 
           {openRuns.length > 0 && (
             <Card className="p-5">
-              <p className="mb-2 text-[13.5px] font-bold text-ink-3">進行中の実行（{openRuns.length}）</p>
+              <p className="mb-2 text-[13.5px] font-semibold text-ink-3">進行中の実行（{openRuns.length}）</p>
               <ul className="flex flex-col gap-1">
                 {openRuns.map((r) => {
                   const p = runProgress(def, r, state.stepRunsByRun[r.id] ?? []);
@@ -330,7 +330,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
 
           {closedRuns.length > 0 && (
             <Card className="p-5">
-              <p className="mb-2 text-[13.5px] font-bold text-ink-3">終わった実行（{closedRuns.length}）</p>
+              <p className="mb-2 text-[13.5px] font-semibold text-ink-3">終わった実行（{closedRuns.length}）</p>
               <ul className="flex flex-col gap-1">
                 {closedRuns.slice(0, 5).map((r) => (
                   <li key={r.id}>
@@ -345,7 +345,7 @@ export default function WorkflowDetailPage({ params }: { params: Promise<{ key: 
           )}
 
           <Card className="p-5">
-            <p className="mb-2 text-[13.5px] font-bold text-ink-3">この業務に適用されるルール</p>
+            <p className="mb-2 text-[13.5px] font-semibold text-ink-3">この業務に適用されるルール</p>
             {relatedRules.length === 0 ? (
               <p className="text-[13.5px] text-ink-3">現在有効なルールはありません</p>
             ) : (

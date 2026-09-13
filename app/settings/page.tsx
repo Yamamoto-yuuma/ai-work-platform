@@ -79,7 +79,7 @@ export default function SettingsPage() {
         ].map((x) => (
           <Link key={x.href} href={x.href}>
             <Card className="h-full p-4 transition-colors hover:border-brand">
-              <p className="text-[15px] font-bold">{x.title}</p>
+              <p className="text-[15px] font-semibold">{x.title}</p>
               <p className="mt-1 text-[13.5px] text-ink-2">{x.desc}</p>
             </Card>
           </Link>

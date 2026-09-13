@@ -179,7 +179,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
       {task.confirmationState === "proposed" && (
         <Card className="mb-5 bg-signal-soft p-4">
-          <p className="text-[13.5px] font-bold text-signal">このタスクは提案中です</p>
+          <p className="text-[13.5px] font-semibold text-signal">このタスクは提案中です</p>
           <p className="mt-1 text-[13.5px] text-ink-2">
             変更によって自動生成されたタスクです。内容を確認して確定してください。
           </p>
@@ -192,7 +192,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
       {blockedBy.length > 0 && (
         <Card className="mb-5 bg-danger-soft p-4">
-          <p className="text-[13.5px] font-bold text-danger">
+          <p className="text-[13.5px] font-semibold text-danger">
             このタスクはブロック中です — {blockedBy.length}件の先行タスクの完了を待っています
           </p>
           <ul className="mt-2.5 flex flex-col gap-1">
@@ -215,7 +215,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
       {waitingOnThis.length > 0 && (
         <Card className="mb-5 p-5">
-          <p className="text-[13.5px] font-bold text-ink-3">
+          <p className="text-[13.5px] font-semibold text-ink-3">
             このタスクの完了を待っているタスク（{waitingOnThis.length}）
           </p>
           <ul className="mt-2.5 flex flex-col gap-1">
@@ -252,7 +252,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         {/* 派生の系譜 */}
         {change && (
           <Card className="p-4 sm:col-span-2">
-            <p className="mb-2 text-[13.5px] font-bold text-ink-3">このタスクが発生した理由</p>
+            <p className="mb-2 text-[13.5px] font-semibold text-ink-3">このタスクが発生した理由</p>
             <div className="rounded-lg bg-surface-2 px-3.5 py-3">
               <p className="text-[13.5px] font-medium">{change.entityLabel}</p>
               <p className="mt-1 text-[13.5px] text-ink-2">
@@ -264,7 +264,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         )}
 
         <Card className="p-5">
-          <p className="mb-2 text-[13.5px] font-bold text-ink-3">担当者</p>
+          <p className="mb-2 text-[13.5px] font-semibold text-ink-3">担当者</p>
           {(() => {
             const assignee = users.find((u) => u.id === task.assigneeId);
             const isMine = task.assigneeId === state.currentUserId;
@@ -285,7 +285,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         </Card>
 
         <Card className="p-5">
-          <p className="mb-2 text-[13.5px] font-bold text-ink-3">紐付く業務</p>
+          <p className="mb-2 text-[13.5px] font-semibold text-ink-3">紐付く業務</p>
           {run && def ? (
             <Link href={`/navigator/${run.id}`} className="block rounded-lg bg-surface-2 px-3 py-2.5 hover:bg-brand-soft">
               <span className="block text-[13.5px] font-medium">{run.subject.label}</span>
@@ -299,7 +299,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         {/* 開始できる業務が無いときは見出しごと出さない（仕様 §15-4） */}
         {startable && (
           <Card className="p-5">
-            <p className="mb-2 text-[13.5px] font-bold text-ink-3">この場から業務を開始</p>
+            <p className="mb-2 text-[13.5px] font-semibold text-ink-3">この場から業務を開始</p>
             <p className="mb-2 text-[13.5px] text-ink-2">「{startable.name}」を開始できます。</p>
             <Button onClick={startWorkflow} disabled={blockedBy.length > 0}>この業務を開始する</Button>
           </Card>

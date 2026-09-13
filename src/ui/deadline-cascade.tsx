@@ -74,13 +74,13 @@ export function DeadlineCascadePanel({
 
   return (
     <Card className="mb-5 bg-signal-soft p-5">
-      <h2 className="text-[15px] font-bold text-signal">
+      <h2 className="text-[15px] font-semibold text-signal">
         この変更で {proposals.length} 件の後続タスクに影響があります
       </h2>
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
         「{sourceTitle}」の期限を{direction === "later" ? "後ろ倒し" : "前倒し"}したため、
         これを待っているタスクの期限も同じ日数だけ{direction === "later" ? "後ろへ" : "前へ"}動かすことを提案します。
-        <strong className="font-bold">確定するまで後続タスクの期限は変わりません。</strong>
+        <strong className="font-semibold">確定するまで後続タスクの期限は変わりません。</strong>
       </p>
 
       <ul className="mt-4 flex flex-col gap-1.5">

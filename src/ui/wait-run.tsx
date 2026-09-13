@@ -166,7 +166,7 @@ export function WaitRunPanel({
     <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-5 py-3">
         <div>
-          <h3 className="text-[15px] font-bold">この業務を待ちにする</h3>
+          <h3 className="text-[15px] font-semibold">この業務を待ちにする</h3>
           <p className="mt-0.5 text-[13.5px] text-ink-3">
             作業を一旦止めます。確定するまで何も変わりません。
           </p>
@@ -215,7 +215,7 @@ export function WaitRunPanel({
 
         {openTasks.length > 0 && (
           <section>
-            <h4 className="mb-1 text-[13.5px] font-bold text-ink-3">
+            <h4 className="mb-1 text-[13.5px] font-semibold text-ink-3">
               この業務に紐づく未完了のタスク（{openTasks.length}件）
             </h4>
             <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
@@ -246,8 +246,8 @@ export function WaitRunPanel({
         {confirming ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-signal-soft px-3.5 py-3">
             <p className="w-full text-[13.5px] leading-relaxed text-ink">
-              <strong className="font-bold">{formatJaDate(until)}</strong> まで
-              「<strong className="font-bold">{waitingFor.trim()}</strong>」を待ちます。
+              <strong className="font-semibold">{formatJaDate(until)}</strong> まで
+              「<strong className="font-semibold">{waitingFor.trim()}</strong>」を待ちます。
               確認日になると、HOMEの「要確認」に出ます。
             </p>
             <Button onClick={apply}>待ちを確定</Button>
@@ -300,10 +300,10 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
   return (
     <Card className="overflow-hidden">
       <header className={`border-b border-line px-5 py-4 ${status.overdue ? "bg-danger-soft" : "bg-surface-2"}`}>
-        <p className={`text-[12px] font-bold tracking-wide ${status.overdue ? "text-danger" : "text-ink-3"}`}>
+        <p className={`text-[12px] font-semibold tracking-wide ${status.overdue ? "text-danger" : "text-ink-3"}`}>
           {status.overdue ? "待ち中・確認期限超過" : status.dueToday ? "待ち中・今日が確認予定日" : "待ち中"}
         </p>
-        <h2 className="mt-1 text-[23px] font-bold tracking-tight">{runLabel(run)}</h2>
+        <h2 className="mt-1 text-[23px] font-semibold tracking-tight">{runLabel(run)}</h2>
         <p className="mt-1 text-[13.5px] text-ink-2">
           この業務は待ち中です。確認して、まだ待つか作業を再開するかを決めてください。
         </p>
@@ -321,7 +321,7 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
               <span className="font-medium tabular-nums">
                 {run.waitingUntil ? formatJaDate(run.waitingUntil) : "（未設定）"}
               </span>
-              <span className={`ml-2 text-[13.5px] ${status.overdue ? "font-bold text-danger" : "text-ink-2"}`}>
+              <span className={`ml-2 text-[13.5px] ${status.overdue ? "font-semibold text-danger" : "text-ink-2"}`}>
                 {status.headline ? `${status.headline}・${status.label}` : status.label}
               </span>
             </dd>
@@ -349,7 +349,7 @@ export function WaitingRunNotice({ run }: { run: WorkRun }) {
 
         {editing ? (
           <section className="rounded-lg bg-signal-soft p-4">
-            <p className="mb-3 text-[13.5px] font-bold text-signal">まだ待つ：次回確認日を決め直します</p>
+            <p className="mb-3 text-[13.5px] font-semibold text-signal">まだ待つ：次回確認日を決め直します</p>
             <label className="mb-1.5 block text-[13.5px] font-medium" htmlFor="wait-for-edit">何を待っているか</label>
             <input
               id="wait-for-edit" type="text" value={waitingFor}

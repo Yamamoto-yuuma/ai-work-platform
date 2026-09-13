@@ -96,7 +96,7 @@ export function TaskForm({
   return (
     <Card className="mb-5 p-5">
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-bold">{isEdit ? "タスクを編集" : "タスクを追加"}</h2>
+        <h2 className="text-[15px] font-semibold">{isEdit ? "タスクを編集" : "タスクを追加"}</h2>
         <span className="text-[12px] text-ink-3">
           {isEdit
             ? "由来・業務との紐付けは変更されません"
@@ -286,7 +286,7 @@ export function TaskForm({
 
       {errors.length > 0 && (
         <div className="mt-4 rounded-lg bg-danger-soft p-3.5">
-          <p className="mb-1.5 text-[13.5px] font-bold text-danger">保存できません</p>
+          <p className="mb-1.5 text-[13.5px] font-semibold text-danger">保存できません</p>
           <ul className="flex flex-col gap-0.5">
             {errors.map((e, i) => (
               <li key={i} className="text-[13.5px] text-danger">・{e.message}</li>

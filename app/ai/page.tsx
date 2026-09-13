@@ -35,7 +35,7 @@ export default function AiPage() {
       <Card className="mb-6 border-ai/30 bg-ai-soft p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[13.5px] font-bold text-ai">LLM API（Claude）は現在未接続です</p>
+            <p className="text-[13.5px] font-semibold text-ai">LLM API（Claude）は現在未接続です</p>
             <p className="mt-1 text-[13.5px] text-ink-2">{llm?.note}</p>
           </div>
           <Badge tone="ai">{llm?.plannedPhase} で接続予定</Badge>
@@ -44,14 +44,14 @@ export default function AiPage() {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2">
         <Card className="p-4">
-          <p className="text-[13.5px] font-bold">AIが停止していても業務は完遂できます</p>
+          <p className="text-[13.5px] font-semibold">AIが停止していても業務は完遂できます</p>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
             業務フローの実行・派生タスクの生成・不足情報の検出・逆算スケジュール・ルール適用は、
             すべてAIに依存しない決定的なロジックで動作します。
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-[13.5px] font-bold">AIが勝手に確定することはありません</p>
+          <p className="text-[13.5px] font-semibold">AIが勝手に確定することはありません</p>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
             業務の開始・タスクの確定・メールの送信・企業の選定・業務フローの公開は、
             すべてユーザーの明示的な確認を必要とします。
@@ -88,7 +88,7 @@ export default function AiPage() {
       </div>
 
       <Card className="mt-6 p-4">
-        <p className="text-[13.5px] font-bold">なぜAIチャット画面がないのか</p>
+        <p className="text-[13.5px] font-semibold">なぜAIチャット画面がないのか</p>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
           ユーザーが質問を考えて入力する時点で、すでに「何をすべきか分からない」状態が発生しています。
           本プロダクトはその状態自体をなくすことを目的としているため、

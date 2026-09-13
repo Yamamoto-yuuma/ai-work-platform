@@ -13,7 +13,7 @@ import { Badge, Button } from "./primitives";
 function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
     <section className="border-b border-line-soft px-4 py-3.5 last:border-b-0">
-      <h3 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold tracking-wide text-ink-3">
+      <h3 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-semibold tracking-wide text-ink-3">
         <span className="text-[13.5px]">{icon}</span>{title}
       </h3>
       {children}
@@ -42,7 +42,7 @@ export function ContextPanel({
     <aside className="w-full shrink-0 lg:w-[312px]">
       <div className="sticky top-4 overflow-hidden rounded-xl border border-line bg-surface">
         <div className="border-b border-line bg-surface-2 px-4 py-2.5">
-          <h2 className="text-[13.5px] font-bold">このSTEPの情報</h2>
+          <h2 className="text-[13.5px] font-semibold">このSTEPの情報</h2>
           <p className="mt-0.5 text-[12px] text-ink-3">現在の作業に関係するものだけを表示しています</p>
         </div>
 
@@ -176,7 +176,7 @@ export function ContextPanel({
         */}
         {(onRequestChange || onWaitRun || onCancelRun) && (
           <div className="border-t border-line bg-surface-2 px-4 py-3">
-            <p className="mb-2 text-[12px] font-bold tracking-wide text-ink-3">この業務に対して</p>
+            <p className="mb-2 text-[12px] font-semibold tracking-wide text-ink-3">この業務に対して</p>
             <div className="flex flex-wrap items-center gap-1.5">
               {onRequestChange && (
                 <Button

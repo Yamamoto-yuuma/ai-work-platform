@@ -172,7 +172,7 @@ export function ChangeRequestPanel({
     <Card className="mt-4 shadow-pop">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-5 py-3">
         <div>
-          <h3 className="text-[15px] font-bold">業務途中の変更を起票する</h3>
+          <h3 className="text-[15px] font-semibold">業務途中の変更を起票する</h3>
           <p className="mt-0.5 text-[13.5px] text-ink-3">
             {phase === "input"
               ? "変更内容を入力すると、影響を確認できます。この時点では何も変更されません"
@@ -374,13 +374,13 @@ function ImpactPreview({
     <div className="flex flex-col gap-4 p-5">
       {/* 変更内容 */}
       <section className="rounded-lg bg-brand-soft px-4 py-3">
-        <p className="text-[12px] font-bold tracking-wide text-brand">変更内容</p>
-        <p className="mt-1 text-[15px] font-bold text-brand-ink">{impact.change.entityLabel}</p>
+        <p className="text-[12px] font-semibold tracking-wide text-brand">変更内容</p>
+        <p className="mt-1 text-[15px] font-semibold text-brand-ink">{impact.change.entityLabel}</p>
         <p className="mt-0.5 text-[13.5px]">
           {impact.change.fieldLabel}：
           <span className="mx-1.5 line-through opacity-60">{describeValue(impact.change.before) || "（未登録）"}</span>
           →
-          <span className="mx-1.5 font-bold">{describeValue(impact.change.after)}</span>
+          <span className="mx-1.5 font-semibold">{describeValue(impact.change.after)}</span>
         </p>
         {impact.change.reason && (
           <p className="mt-1.5 text-[13.5px] text-ink-2">理由：{impact.change.reason}</p>
@@ -390,11 +390,11 @@ function ImpactPreview({
       {/* 業務の期限そのものの更新 */}
       {target.kind === "run-deadline" && (
         <section>
-          <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">この業務の期限</h4>
+          <h4 className="mb-2 text-[13.5px] font-semibold text-ink-3">この業務の期限</h4>
           <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2.5 shadow-card text-[13.5px]">
             <span className="text-ink-3 line-through tabular-nums">{describeValue(impact.change.before)}</span>
             <span className="mx-2 text-ink-3">→</span>
-            <span className="font-bold tabular-nums">{describeValue(impact.change.after)}</span>
+            <span className="font-semibold tabular-nums">{describeValue(impact.change.after)}</span>
             <span className="ml-2 text-[12px] text-ink-3">確定すると業務の期限が更新されます</span>
           </p>
         </section>
@@ -403,7 +403,7 @@ function ImpactPreview({
       {/* 期限が変わる既存タスク */}
       {impact.deadlineProposals.length > 0 && (
         <section>
-          <h4 className="mb-1 text-[13.5px] font-bold text-ink-3">
+          <h4 className="mb-1 text-[13.5px] font-semibold text-ink-3">
             期限が変わるタスク（{impact.deadlineProposals.length}件）
           </h4>
           <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
@@ -424,7 +424,7 @@ function ImpactPreview({
       {/* 新しく発生するタスク */}
       {creatable.length > 0 && (
         <section>
-          <h4 className="mb-1 text-[13.5px] font-bold text-ink-3">
+          <h4 className="mb-1 text-[13.5px] font-semibold text-ink-3">
             新しく発生するタスク（{creatable.length}件）
           </h4>
           <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
@@ -521,8 +521,8 @@ function AppliedSummary({
   return (
     <Card className="mt-4 shadow-pop">
       <header className="border-b border-line bg-ok-soft px-5 py-3">
-        <p className="text-[12px] font-bold tracking-wide text-ok">変更を確定しました</p>
-        <p className="mt-0.5 text-[15px] font-bold">{applied.changeLabel}</p>
+        <p className="text-[12px] font-semibold tracking-wide text-ok">変更を確定しました</p>
+        <p className="mt-0.5 text-[15px] font-semibold">{applied.changeLabel}</p>
         <p className="mt-1 text-[13.5px] text-ink-2">
           影響 {total} 件
           （{applied.runDeadline && "業務の期限 1 件／"}
@@ -533,7 +533,7 @@ function AppliedSummary({
       <div className="flex flex-col gap-4 p-5">
         {applied.runDeadline && (
           <section>
-            <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">この業務の期限</h4>
+            <h4 className="mb-2 text-[13.5px] font-semibold text-ink-3">この業務の期限</h4>
             <p className="rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13.5px]">
               <span className="tabular-nums text-ink-3 line-through">{fmtDate(applied.runDeadline.from)}</span>
               <span className="mx-2 text-ink-3">→</span>
@@ -544,7 +544,7 @@ function AppliedSummary({
 
         {applied.updatedDeadlines.length > 0 && (
           <section>
-            <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">期限が変わったタスク</h4>
+            <h4 className="mb-2 text-[13.5px] font-semibold text-ink-3">期限が変わったタスク</h4>
             <ul className="flex flex-col gap-1">
               {applied.updatedDeadlines.map((d, i) => (
                 <li key={i} className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface px-3.5 py-2 shadow-card text-[13.5px]">
@@ -560,7 +560,7 @@ function AppliedSummary({
 
         {applied.createdTasks.length > 0 && (
           <section>
-            <h4 className="mb-2 text-[13.5px] font-bold text-ink-3">新しく発生したタスク</h4>
+            <h4 className="mb-2 text-[13.5px] font-semibold text-ink-3">新しく発生したタスク</h4>
             <ul className="flex flex-col gap-1">
               {applied.createdTasks.map((t) => (
                 <li key={t.id}>

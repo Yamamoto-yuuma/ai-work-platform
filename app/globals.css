@@ -141,6 +141,14 @@ body {
 * { box-sizing: border-box; }
 
 /*
+  太字は 600 で止める。
+  日本語は画数が多いので 700 で組むと、小さいところほど字が潰れて
+  黒い塊に見える。強調のつもりが読みにくさになる。
+  b / strong はブラウザ既定が 700 なので、ここで揃える。
+*/
+b, strong { font-weight: 600; }
+
+/*
   ここから下は独自クラス。components レイヤーに入れている。
 
   Tailwind v4 はユーティリティを utilities レイヤーに置く。レイヤーの外に
@@ -149,6 +157,51 @@ body {
   同じ仕組みに乗せて、必要なときはユーティリティで上書きできるようにする。
 */
 @layer components {
+  /*
+    ── 触れたときの動き ──────────────────────────────────
+    押せるものは、触れたらわずかに手前へ出て、押した瞬間に沈む。
+    紙の上のボタンを指で押す感じに寄せる。動きは 0.16 秒で終わらせ、
+    「反応した」と分かる最小限にとどめる。長いと、次の操作を待たされる。
+
+    大きさの変化は 2% だけ。これ以上動かすと、隣のものとの間が
+    詰まって見えて、並んだボタンがガタつく。
+
+    動きを減らす設定にしている人には動かさない。色と影の変化は残るので、
+    どれに触れているかは分かる。
+  */
+  .tap {
+    transition:
+      transform .16s cubic-bezier(.2, .7, .3, 1),
+      background-color .16s ease,
+      border-color .16s ease,
+      box-shadow .16s ease,
+      color .16s ease;
+  }
+  /*
+    浮かせるのは、指す道具があるときだけ。
+    タッチの画面には「触れている」状態が無く、:hover は一度触ると
+    そのまま残る。押したボタンが浮いたまま戻らなくなる。
+  */
+  @media (hover: hover) {
+    .tap:hover:not(:disabled) { transform: translateY(-1px) scale(1.02); }
+  }
+  .tap:active:not(:disabled) { transform: translateY(0) scale(.985); }
+
+  /*
+    面の大きいもの（カード）用。持ち上げるだけで、大きさは変えない。
+    2% でも、幅 700px のカードでは 14px 伸びる。隣とぶつかって見える。
+  */
+  .lift { transition: transform .16s cubic-bezier(.2, .7, .3, 1), border-color .16s ease, box-shadow .16s ease; }
+  @media (hover: hover) {
+    .lift:hover { transform: translateY(-1px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tap, .tap:hover:not(:disabled), .tap:active:not(:disabled),
+    .lift, .lift:hover { transform: none; }
+    .tap, .lift { transition-duration: .01ms; }
+  }
+
   /*
     ── 入力欄 ────────────────────────────────────────────
     四角い枠で囲うのをやめる。ごく淡い線と、紙面よりわずかに明るい面で
@@ -167,7 +220,9 @@ body {
     outline: none;
     transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
   }
-  .field:hover { border-color: var(--color-line); }
+  @media (hover: hover) {
+    .field:hover { border-color: var(--color-line); }
+  }
   .field:focus {
     border-color: color-mix(in srgb, var(--color-brand) 45%, var(--color-line));
     box-shadow: var(--ring-focus);
@@ -195,12 +250,21 @@ body {
     border: 1px solid var(--color-line-soft);
     background: var(--color-surface);
     box-shadow: var(--shadow-card);
-    transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+    transition:
+      transform .16s cubic-bezier(.2, .7, .3, 1),
+      border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
   }
-  .pick:hover {
-    background: color-mix(in srgb, var(--color-brand-soft) 45%, var(--color-surface));
-    border-color: color-mix(in srgb, var(--color-brand) 22%, var(--color-line));
-    box-shadow: var(--shadow-lift);
+  @media (hover: hover) {
+    .pick:hover {
+      background: color-mix(in srgb, var(--color-brand-soft) 45%, var(--color-surface));
+      /* 触れているものは縁をはっきりさせる。面の色だけだと、どれに当たっているか分かりにくい */
+      border-color: color-mix(in srgb, var(--color-brand) 45%, var(--color-line));
+      box-shadow: var(--shadow-lift);
+      transform: translateY(-1px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pick:hover { transform: none; }
   }
   .pick-on {
     border-radius: var(--radius-md);
@@ -281,7 +345,9 @@ body {
   /* 仕切るのは行と行のあいだだけ。見出し行は自分で下線を持つ */
   .rows > .row + .row { border-top: 1px solid var(--color-line-soft); }
   .row { position: relative; transition: background-color .12s ease; }
-  .row:hover { background: color-mix(in srgb, var(--color-surface-2) 62%, var(--color-surface)); }
+  @media (hover: hover) {
+    .row:hover { background: color-mix(in srgb, var(--color-surface-2) 62%, var(--color-surface)); }
+  }
 
   /*
     ── 表としての一覧 ────────────────────────────────────
@@ -334,9 +400,21 @@ body {
     border: 1.5px solid var(--color-line);
     background: var(--color-surface);
     color: transparent;
-    transition: border-color .12s ease, background-color .12s ease, color .12s ease;
+    transition:
+      transform .14s cubic-bezier(.2, .7, .3, 1),
+      border-color .12s ease, background-color .12s ease, color .12s ease;
   }
-  .check:hover { border-color: var(--color-ok); color: var(--color-ok); }
+  @media (hover: hover) {
+    .check:hover {
+      border-color: var(--color-ok);
+      color: var(--color-ok);
+      transform: scale(1.12);
+    }
+  }
+  .check:active { transform: scale(.94); }
+  @media (prefers-reduced-motion: reduce) {
+    .check:hover, .check:active { transform: none; }
+  }
   .check-on {
     border-color: var(--color-ok);
     background: var(--color-ok);

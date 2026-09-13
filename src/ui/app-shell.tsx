@@ -110,11 +110,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           */}
           <Link href="/" title="AI WORK HUB" className={collapsed ? "" : "min-w-0 px-2 md:px-2.5"}>
             {collapsed ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-[12px] font-bold tracking-tight text-brand-ink">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-[12px] font-semibold tracking-tight text-brand-ink">
                 AI
               </span>
             ) : (
-              <span className="block whitespace-nowrap text-[12px] font-bold leading-tight tracking-tight text-brand">
+              <span className="block whitespace-nowrap text-[12px] font-semibold leading-tight tracking-tight text-brand">
                 AI WORK HUB
               </span>
             )}
@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
                 <span className={labelCls}>{item.label}</span>
                 {item.href === "/tasks" && proposedCount > 0 && (
-                  <span className={`ml-auto rounded-full bg-signal px-1.5 py-0.5 text-[12px] font-bold text-white ${labelCls}`}>
+                  <span className={`ml-auto rounded-full bg-signal px-1.5 py-0.5 text-[12px] font-semibold text-white ${labelCls}`}>
                     {proposedCount}
                   </span>
                 )}
