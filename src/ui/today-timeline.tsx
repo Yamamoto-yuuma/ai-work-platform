@@ -15,12 +15,12 @@
  * 同じ軸の下に期限の位置だけ印を出し、一覧は下に並べる。
  * 持っていない情報を、あるように見せない。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStore } from "@/adapters/memory/store";
 import { formatMinutes } from "@/core/model/task-draft";
 import { effectiveStatus } from "@/core/task/dependency";
 import type { Task } from "@/core/model/types";
-import { Panel } from "./primitives";
+import { Button, Panel } from "./primitives";
 
 /** 表示する時間帯。これより早い・遅い予定は端に寄せる */
 const START_HOUR = 8;
@@ -70,6 +70,26 @@ interface EventsResponse {
   error?: string;
   notConfigured?: boolean;
 }
+
+/**
+ * 読み込みの状態。
+ *
+ * 以前は、読めるまでと読めなかったときを同じ「何も出さない」で扱っていた。
+ * カレンダーを見に行くのに数秒かかるので、そのあいだ HOME からこの枠ごと
+ * 消えてしまい、動いていないのか壊れているのか分からなかった。
+ *
+ *   loading … 読みに行っている。枠は出したまま、中身の形だけ見せる
+ *   ready   … 読めた
+ *   failed  … 読めなかった。黙って消さず、理由と読み直す口を出す
+ *   off     … そもそも連携していない。ここだけは何も出さない
+ *             （設定していないことは毎日知らせる用件ではない。
+ *              つなぐ場所は［管理］の「Integrations」にある）
+ */
+type Load =
+  | { kind: "loading" }
+  | { kind: "ready"; events: DayEvent[]; calendarColor?: string }
+  | { kind: "failed"; message: string }
+  | { kind: "off" };
 
 /**
  * 予定を塗る色。
@@ -165,10 +185,14 @@ function minutesLabel(gap: { from: number; to: number }): string {
 
 export function TodayTimeline({ now }: { now: Date }) {
   const { state } = useStore();
-  const [events, setEvents] = useState<DayEvent[] | null>(null);
-  const [calendarColor, setCalendarColor] = useState<string | undefined>(undefined);
-  /** 連携していない・読めないときは、HOME に何も足さない（毎日出る警告にしない） */
-  const [hidden, setHidden] = useState(false);
+  const [load, setLoad] = useState<Load>({ kind: "loading" });
+  /** 読み直しのたびに数える。前の応答が遅れて返ってきても上書きさせない */
+  const [attempt, setAttempt] = useState(0);
+
+  const reload = useCallback(() => {
+    setLoad({ kind: "loading" });
+    setAttempt((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -181,17 +205,30 @@ export function TodayTimeline({ now }: { now: Date }) {
       .then((r) => {
         if (!alive) return;
         if (r.ok === true && Array.isArray(r.events)) {
-          setEvents(r.events);
-          setCalendarColor(typeof r.calendarColor === "string" ? r.calendarColor : undefined);
-        } else setHidden(true);
+          setLoad({
+            kind: "ready",
+            events: r.events,
+            calendarColor: typeof r.calendarColor === "string" ? r.calendarColor : undefined,
+          });
+        } else if (r.notConfigured === true) {
+          setLoad({ kind: "off" });
+        } else {
+          setLoad({
+            kind: "failed",
+            message:
+              typeof r.error === "string" && r.error.trim() !== ""
+                ? r.error
+                : "カレンダーの予定を受け取れませんでした。",
+          });
+        }
       })
       .catch(() => {
-        if (alive) setHidden(true);
+        if (alive) setLoad({ kind: "failed", message: "カレンダーへ問い合わせできませんでした。" });
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
 
   /* 今日が期限で、まだ終わっていないもの */
   const todayTasks = useMemo(
@@ -204,18 +241,18 @@ export function TodayTimeline({ now }: { now: Date }) {
   );
 
   const blocks = useMemo(() => {
-    if (events === null) return [];
-    return events
+    if (load.kind !== "ready") return [];
+    return load.events
       .filter((e) => !e.allDay && e.title.trim().length > 0)
       .map((e) => ({
         title: e.title,
         start: new Date(e.start),
         end: new Date(e.end),
-        color: colorOf(e, calendarColor),
+        color: colorOf(e, load.calendarColor),
       }))
       .filter((e) => !isNaN(e.start.getTime()) && !isNaN(e.end.getTime()))
       .sort((a, b) => a.start.getTime() - b.start.getTime());
-  }, [events, calendarColor]);
+  }, [load]);
 
   const gaps = useMemo(
     () =>
@@ -235,7 +272,60 @@ export function TodayTimeline({ now }: { now: Date }) {
   const withoutEstimate = todayTasks.filter((t) => minutesOf(t) === undefined).length;
   const short = estimated > free;
 
-  if (hidden || events === null) return null;
+  /* つないでいないときだけ、HOME に何も足さない */
+  if (load.kind === "off") return null;
+
+  if (load.kind === "loading") {
+    return (
+      <Panel title="Schedule" note="今日の予定と、今日締めのタスク">
+        <div className="px-4 py-4">
+          <Ruler />
+          {/*
+            読み込み中も、出来上がりと同じ形の枠を置く。
+            枠ごと消えていると、動いていないのか壊れているのか分からない。
+            中身は分からないので、帯の場所だけを灰色で示す（予定を偽らない）。
+          */}
+          <div className="relative mt-1 overflow-hidden rounded-[5px] border border-line-soft bg-surface py-1.5">
+            <Gridlines />
+            <div className="relative flex animate-pulse flex-col gap-1">
+              {[
+                { left: 8, width: 10 },
+                { left: 26, width: 16 },
+                { left: 52, width: 12 },
+              ].map((b) => (
+                <div key={b.left} className="relative h-[22px]">
+                  <div
+                    className="absolute top-0 h-full rounded-[3px] bg-surface-2"
+                    style={{ left: `${b.left}%`, width: `${b.width}%` }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="mt-3 rounded-[5px] bg-surface-2 px-3 py-2 text-[13.5px] text-ink-3">
+            カレンダーを読み込んでいます…
+          </p>
+        </div>
+      </Panel>
+    );
+  }
+
+  if (load.kind === "failed") {
+    return (
+      <Panel title="Schedule" note="今日の予定と、今日締めのタスク">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+          <div className="min-w-0">
+            <p className="text-[13.5px] font-medium">カレンダーを読み込めませんでした</p>
+            {/* 何が起きたかをそのまま出す。番号だけでは直す場所が分からない */}
+            <p className="mt-0.5 text-[12px] leading-[1.7] text-ink-3">{load.message}</p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={reload}>
+            読み込み直す
+          </Button>
+        </div>
+      </Panel>
+    );
+  }
 
   const nowPct = positionOf(now) * 100;
   const showNow = now.getHours() >= START_HOUR && now.getHours() < END_HOUR;
@@ -244,38 +334,10 @@ export function TodayTimeline({ now }: { now: Date }) {
     <Panel title="Schedule" note="今日の予定と、今日締めのタスク">
       <div className="px-4 py-4">
         <div className="relative">
-          {/*
-            目盛り。
-            以前は flex で等間隔に置いていたので、数字の位置と帯の位置が
-            少しずつずれていた。「16:30 の予定」が 16 の目盛りの下に
-            来ていないと、目で時刻を読み取れない。同じ計算で置く。
-          */}
-          <div className="relative h-4 text-[12px] tabular-nums text-ink-3">
-            {TICKS.map((h, i) => (
-              <span
-                key={h}
-                className="absolute top-0"
-                style={{
-                  left: `${pctOfHour(h)}%`,
-                  transform:
-                    i === 0 ? "none" : i === TICKS.length - 1 ? "translateX(-100%)" : "translateX(-50%)",
-                }}
-              >
-                {h}
-              </span>
-            ))}
-          </div>
+          <Ruler />
 
           <div className="relative mt-1 overflow-hidden rounded-[5px] border border-line-soft bg-surface py-1.5">
-            {/* 目盛りの線。数字だけだと、帯がどの時刻にあるかを目で追えない */}
-            {TICKS.slice(1, -1).map((h) => (
-              <div
-                key={h}
-                className="pointer-events-none absolute inset-y-0 w-px bg-line-soft"
-                style={{ left: `${pctOfHour(h)}%` }}
-                aria-hidden="true"
-              />
-            ))}
+            <Gridlines />
 
             {blocks.length === 0 ? (
               <div className="relative px-2 py-3 text-center text-[12px] text-ink-3">
@@ -443,6 +505,49 @@ export function TodayTimeline({ now }: { now: Date }) {
         )}
       </div>
     </Panel>
+  );
+}
+
+/**
+ * 時刻の目盛り。
+ *
+ * 以前は flex で等間隔に置いていたので、数字の位置と帯の位置が少しずつずれていた。
+ * 「16:30 の予定」が 16 の目盛りの下に来ていないと、目で時刻を読み取れない。
+ * 帯と同じ計算で置く。読み込み中の枠でも同じものを使う。
+ */
+function Ruler() {
+  return (
+    <div className="relative h-4 text-[12px] tabular-nums text-ink-3">
+      {TICKS.map((h, i) => (
+        <span
+          key={h}
+          className="absolute top-0"
+          style={{
+            left: `${pctOfHour(h)}%`,
+            transform:
+              i === 0 ? "none" : i === TICKS.length - 1 ? "translateX(-100%)" : "translateX(-50%)",
+          }}
+        >
+          {h}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** 目盛りの線。数字だけだと、帯がどの時刻にあるかを目で追えない */
+function Gridlines() {
+  return (
+    <>
+      {TICKS.slice(1, -1).map((h) => (
+        <div
+          key={h}
+          className="pointer-events-none absolute inset-y-0 w-px bg-line-soft"
+          style={{ left: `${pctOfHour(h)}%` }}
+          aria-hidden="true"
+        />
+      ))}
+    </>
   );
 }
 
