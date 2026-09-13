@@ -103,7 +103,7 @@ function KnowledgeInner() {
         「どこに何を書いたか」を残しに来ただけなので、往復させない。
       */}
       {creating && (
-        <Card className="mb-4">
+        <Card className="mb-4 p-5">
           <SubHead title="New entry" note="ナレッジを追加" className="mb-4" />
           <KnowledgeForm
             mode={{ kind: "create" }}

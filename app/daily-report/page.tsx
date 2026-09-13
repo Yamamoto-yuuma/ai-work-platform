@@ -265,7 +265,7 @@ export default function DailyReportPage() {
               const working = busy !== null;
 
               return (
-                <Card key={reportType}>
+                <Card key={reportType} className="p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <h2 className="text-[15px] font-semibold">
