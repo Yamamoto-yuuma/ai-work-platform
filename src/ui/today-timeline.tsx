@@ -92,6 +92,53 @@ type Load =
   | { kind: "off" };
 
 /**
+ * 前回読んだ内容の置き場。
+ *
+ * カレンダーを見に行くのは Apps Script で、返ってくるまで数秒かかる。
+ * 毎回そこを待つと、HOME を開くたびに枠が空のままの時間ができる。
+ * 前に読んだものを端末に持っておき、開いた瞬間にそれを出してから、
+ * 裏で最新を取りに行って静かに差し替える。
+ *
+ * 日付が変わったものは使わない。昨日の予定を今日の予定として出すくらいなら、
+ * 数秒待たせるほうがよい。
+ */
+const CACHE_KEY = "ai-work-platform:schedule";
+
+interface CachedDay {
+  date: string;
+  events: DayEvent[];
+  calendarColor?: string;
+  savedAt: number;
+}
+
+/** その日のうちの、ローカル時刻の日付キー（YYYY-MM-DD） */
+function dateKeyOf(date: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+
+function readCache(todayKey: string): CachedDay | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw === null) return null;
+    const parsed = JSON.parse(raw) as CachedDay;
+    if (parsed.date !== todayKey || !Array.isArray(parsed.events)) return null;
+    return parsed;
+  } catch {
+    // 使えない端末（プライベートウィンドウなど）では、今までどおり待って読む
+    return null;
+  }
+}
+
+function writeCache(value: CachedDay): void {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(value));
+  } catch {
+    /* 置けなくても表示には困らない */
+  }
+}
+
+/**
  * 予定を塗る色。
  *
  * 番号 → カレンダーの色 → それも無ければ画面の差し色、の順に落とす。
@@ -188,14 +235,33 @@ export function TodayTimeline({ now }: { now: Date }) {
   const [load, setLoad] = useState<Load>({ kind: "loading" });
   /** 読み直しのたびに数える。前の応答が遅れて返ってきても上書きさせない */
   const [attempt, setAttempt] = useState(0);
+  /**
+   * 前回の内容を出したまま、最新が取れなかったとき。
+   * 出ているものが古いことは伝える。黙って古い予定を見せない。
+   */
+  const [staleReason, setStaleReason] = useState<string | null>(null);
 
   const reload = useCallback(() => {
-    setLoad({ kind: "loading" });
+    setStaleReason(null);
     setAttempt((n) => n + 1);
   }, []);
 
+  const todayKey = dateKeyOf(now);
+
   useEffect(() => {
     let alive = true;
+
+    /*
+      まず、前に読んだ今日の内容があればそれを出す。
+      localStorage は描画のあとに読む（サーバ側の HTML と食い違わせないため）。
+    */
+    const cached = readCache(todayKey);
+    let hasSomething = false;
+    if (cached !== null) {
+      hasSomething = true;
+      setLoad({ kind: "ready", events: cached.events, calendarColor: cached.calendarColor });
+    }
+
     fetch("/api/daily-report", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -205,30 +271,32 @@ export function TodayTimeline({ now }: { now: Date }) {
       .then((r) => {
         if (!alive) return;
         if (r.ok === true && Array.isArray(r.events)) {
-          setLoad({
-            kind: "ready",
-            events: r.events,
-            calendarColor: typeof r.calendarColor === "string" ? r.calendarColor : undefined,
-          });
+          const calendarColor = typeof r.calendarColor === "string" ? r.calendarColor : undefined;
+          setLoad({ kind: "ready", events: r.events, calendarColor });
+          setStaleReason(null);
+          writeCache({ date: todayKey, events: r.events, calendarColor, savedAt: Date.now() });
         } else if (r.notConfigured === true) {
           setLoad({ kind: "off" });
         } else {
-          setLoad({
-            kind: "failed",
-            message:
-              typeof r.error === "string" && r.error.trim() !== ""
-                ? r.error
-                : "カレンダーの予定を受け取れませんでした。",
-          });
+          const message =
+            typeof r.error === "string" && r.error.trim() !== ""
+              ? r.error
+              : "カレンダーの予定を受け取れませんでした。";
+          // 出せるものがあるなら消さない。消すと、開くたびに画面が入れ替わる
+          if (hasSomething) setStaleReason(message);
+          else setLoad({ kind: "failed", message });
         }
       })
       .catch(() => {
-        if (alive) setLoad({ kind: "failed", message: "カレンダーへ問い合わせできませんでした。" });
+        if (!alive) return;
+        const message = "カレンダーへ問い合わせできませんでした。";
+        if (hasSomething) setStaleReason(message);
+        else setLoad({ kind: "failed", message });
       });
     return () => {
       alive = false;
     };
-  }, [attempt]);
+  }, [attempt, todayKey]);
 
   /* 今日が期限で、まだ終わっていないもの */
   const todayTasks = useMemo(
@@ -445,6 +513,21 @@ export function TodayTimeline({ now }: { now: Date }) {
             )}
           </div>
         </div>
+
+        {/*
+          前回の内容を出しているが、最新が取れなかったとき。
+          古いものを黙って見せない。ただし消しもしない（消すと何も分からなくなる）。
+        */}
+        {staleReason !== null && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[5px] bg-signal-soft px-3 py-2">
+            <p className="min-w-0 text-[12px] leading-[1.7] text-signal">
+              前回読んだ内容を出しています（最新を取れませんでした）。{staleReason}
+            </p>
+            <Button variant="secondary" size="sm" onClick={reload}>
+              読み込み直す
+            </Button>
+          </div>
+        )}
 
         {/* 足りているかどうか。ここが「先にどれをやるか」を決める材料になる */}
         <p

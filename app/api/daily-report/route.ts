@@ -75,6 +75,30 @@ function isReport(value: unknown): boolean {
 }
 
 /**
+ * 連携先が返した理由に、直し方を足す。
+ *
+ * GAS は「何が起きたか」しか知らない。どこを直せばよいかは、
+ * こちら側と向こう側の食い違いを知っているここでしか言えない。
+ *
+ * 例：画面が新しくなって使う操作が増えたのに、Apps Script 側は貼り替え前のまま。
+ * このとき GAS は「知らない操作です: events」としか言えないが、
+ * 直すのはコードの貼り替えとデプロイであって、カレンダーでも権限でもない。
+ */
+function withFixHint(error: string): string {
+  if (error.includes("知らない操作です")) {
+    return (
+      `${error}／Apps Script のコードが貼り替え前のままの可能性があります。` +
+      "最新のコードを貼り、［デプロイを管理］→ 編集 → バージョン「新バージョン」で更新してください" +
+      "（保存しただけでは配られる版は変わりません）。"
+    );
+  }
+  if (error.includes("合言葉")) {
+    return `${error}／Apps Script のスクリプト プロパティ API_SHARED_SECRET と、環境変数 DAILY_REPORT_SECRET を同じ値にしてください。`;
+  }
+  return error;
+}
+
+/**
  * 連携先の応答が、画面の期待どおりの形か確かめる。
  *
  * JSON として読めることと、日報として使えることは別。形の違う JSON をそのまま
@@ -91,9 +115,10 @@ function readGasResponse(value: unknown): Record<string, unknown> | string {
 
   // 連携先が理由付きで断った場合は、その理由をそのまま見せる
   if (source.ok === false) {
-    return typeof source.error === "string" && source.error.trim() !== ""
-      ? source
-      : "連携先が処理できませんでした（理由は返っていません）。";
+    if (typeof source.error === "string" && source.error.trim() !== "") {
+      return { ...source, error: withFixHint(source.error) };
+    }
+    return "連携先が処理できませんでした（理由は返っていません）。";
   }
 
   if (source.ok !== true) {
