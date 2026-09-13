@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { useNextAction, useNow, useStartableToday, useWorkflows } from "@/ui/use-navigator";
 import { Badge, Button, Card, LinkButton, Panel, Row, RowList, TopBar } from "@/ui/primitives";
+import { TaskMemoPanel } from "@/ui/task-memo-panel";
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
@@ -77,13 +78,22 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 pb-8">
+      {/*
+        タスク化前メモ。右端の入口とパネルだけで、HOME の並びには入らない
+        （位置は fixed。ここに置いても「本日の作業」の幅も配置も変わらない）。
+      */}
+      <TaskMemoPanel now={now} />
       {/* 自分ひとりで使うものなので、自分の名前は出さない */}
       <TopBar
         title="本日の作業"
         description={now.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <LinkButton href="/workflows/new" variant="secondary">＋ 業務を登録</LinkButton>
+            {/*
+              業務の登録は、ここには置かない。毎日通る場所に「作る側」の入口が
+              並んでいると、今日やることを見に来たのに手が止まる。
+              業務が 1 件も無いときは、下の「次の候補」から案内する。
+            */}
             <LinkButton href="/workflows">＋ 新しい業務を開始</LinkButton>
           </div>
         }
