@@ -7,8 +7,13 @@
  * タスクの入力フォームではない。題名・期限・担当・優先度を最初から埋めさせると、
  * 「あとで入れよう」になって、結局どこにも残らない。まず書けることを優先する。
  *
- * HOME の上に右から重ねる。別の画面へ飛ばさない。
- * 飛ばすと、いま見ていた「本日の作業」が消えて、何をメモしようとしたか分からなくなる。
+ * 別の画面へ飛ばさない。飛ばすと、いま見ていた「本日の作業」が消えて、
+ * 何をメモしようとしたか分からなくなる。
+ *
+ * 既定では開いたままにする。毎日いちばん使うものを、毎回ひと押しさせない。
+ * 広い画面では HOME の横に並べて置き、覆わない（覆うと、開いているあいだ
+ * 今日の予定が見えなくなる）。狭い画面は並べる余地が無いので、今までどおり重ねる。
+ * 閉じるか開くかを選んだら、その選択を覚えて次から同じ状態で開く。
  *
  * 読み取りは決まった規則だけで行う（core/task/bulk）。AI には渡さない。
  * 書いた内容が外へ出ないのと、同じ文字列がいつも同じ結果になるのを優先している。
@@ -32,6 +37,15 @@ import { Button } from "./primitives";
  * 書きかけのメモが壊れても、タスクや業務までは道連れにしない。
  */
 const DRAFT_KEY = "ai-work-platform:task-memo";
+
+/** 開いたままにするか畳んでおくか。選んだほうを覚える */
+const OPEN_KEY = "ai-work-platform:task-memo-open";
+
+/** 横に並べられる画面幅。これより狭いときは重ねる */
+const DOCK_QUERY = "(min-width: 1280px)";
+
+/** パネルの幅。HOME 側の余白もこの値を見て決める */
+const PANEL_WIDTH = "420px";
 
 const PLACEHOLDER = `例：
 ①○○社の資料を確認する 明日
@@ -83,9 +97,16 @@ function toCandidate(block: MemoBlock, index: number, defaultAssigneeId: string)
   };
 }
 
-export function TaskMemoPanel({ now }: { now: Date }) {
+export function TaskMemoPanel({
+  now, open, onOpenChange,
+}: {
+  now: Date;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const { dispatch, users, currentUser } = useStore();
-  const [open, setOpen] = useState(false);
+  /** 横に並べているか。狭い画面では重ねる */
+  const [docked, setDocked] = useState(false);
   const [text, setText] = useState("");
   /** null のあいだは書くところ。配列が入ったら確認するところ */
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
@@ -100,6 +121,42 @@ export function TaskMemoPanel({ now }: { now: Date }) {
     } catch {
       // 保存が使えない端末でも、書くこと自体はできる
     }
+  }, []);
+
+  /*
+    並べられる幅かどうかを見張る。窓の大きさを変えたら追従する。
+    サーバー側では画面幅が分からないので、最初の描画では畳んだ形にしておき、
+    ここで決め直す（そうしないと、表示直後に形が飛ぶ）。
+  */
+  useEffect(() => {
+    const mq = window.matchMedia(DOCK_QUERY);
+    const apply = () => setDocked(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  /*
+    開いた状態で始めるかどうか。
+    前に選んだほうがあればそれに従う。無ければ、横に並べられる画面のときだけ開く
+    （狭い画面で開いたまま出すと、開いた瞬間に今日の予定が隠れる）。
+  */
+  useEffect(() => {
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem(OPEN_KEY);
+    } catch {
+      // 覚えられないだけ。既定で始める
+    }
+    if (saved === "closed") return;
+    /*
+      開いた状態で始めるのは、横に並べられる画面のときだけ。
+      広い画面で「開く」を選んでいても、スマホでそれを持ち込むと、
+      開いた瞬間に今日の予定が隠れる（狭い画面では重ねるしかないため）。
+    */
+    if (window.matchMedia(DOCK_QUERY).matches) onOpenChange(true);
+    // 初回だけ決める。あとは人の操作に任せる
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* 書いたそばから残す。閉じるボタンを押しても、タブを閉じても消えない */
@@ -117,20 +174,37 @@ export function TaskMemoPanel({ now }: { now: Date }) {
     if (open && candidates === null) textareaRef.current?.focus();
   }, [open, candidates]);
 
-  const close = useCallback(() => {
-    setOpen(false);
-    setDone(null);
-  }, []);
+  const remember = (next: boolean) => {
+    try {
+      window.localStorage.setItem(OPEN_KEY, next ? "open" : "closed");
+    } catch {
+      // 覚えられないだけ。今回の開け閉めは効く
+    }
+  };
 
-  /* Esc で閉じる。書きかけは残るので、閉じることに躊躇が要らない */
+  const close = useCallback(() => {
+    onOpenChange(false);
+    remember(false);
+    setDone(null);
+  }, [onOpenChange]);
+
+  const openPanel = () => {
+    onOpenChange(true);
+    remember(true);
+  };
+
+  /*
+    Esc で閉じる。重ねているときだけにする。
+    横に並べているときは何も覆っていないので、Esc で消えるとかえって驚く。
+  */
   useEffect(() => {
-    if (!open) return;
+    if (!open || docked) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
+  }, [open, docked, close]);
 
   /* 何件になるかを、押す前に出す。押してから数が違うと驚く */
   const blocks = useMemo(() => parseMemo(text, now), [text, now]);
@@ -188,7 +262,7 @@ export function TaskMemoPanel({ now }: { now: Date }) {
         <button
           type="button"
           id="task-memo-open"
-          onClick={() => setOpen(true)}
+          onClick={openPanel}
           title="タスクメモを開く"
           className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-[5px] border border-line bg-surface px-3 py-2.5 text-[12.5px] font-medium text-ink shadow-pop transition-colors hover:bg-surface-2 md:bottom-auto md:right-0 md:top-1/2 md:-translate-y-1/2 md:flex-col md:gap-1.5 md:rounded-r-none md:px-2 md:py-4"
         >
@@ -199,18 +273,26 @@ export function TaskMemoPanel({ now }: { now: Date }) {
 
       {open && (
         <>
-          {/* 後ろの HOME は見えたままにする。開いていることが分かればよい */}
-          <button
-            type="button"
-            aria-label="タスクメモを閉じる"
-            onClick={close}
-            className="fixed inset-0 z-40 cursor-default bg-ink/10"
-          />
+          {/*
+            重ねているときだけ、後ろを押せなくする。
+            横に並べているときは HOME をそのまま使えるようにする（覆っていないため）。
+          */}
+          {!docked && (
+            <button
+              type="button"
+              aria-label="タスクメモを閉じる"
+              onClick={close}
+              className="fixed inset-0 z-40 cursor-default bg-ink/10"
+            />
+          )}
 
           <aside
-            role="dialog"
+            role={docked ? "complementary" : "dialog"}
             aria-label="タスクメモ"
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col border-l border-line bg-paper shadow-pop"
+            style={{ maxWidth: PANEL_WIDTH }}
+            className={`fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-line bg-paper ${
+              docked ? "" : "shadow-pop"
+            }`}
           >
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-4">
               <div className="min-w-0">
@@ -224,10 +306,11 @@ export function TaskMemoPanel({ now }: { now: Date }) {
               <button
                 type="button"
                 onClick={close}
-                aria-label="閉じる"
+                aria-label={docked ? "タスクメモを畳む" : "閉じる"}
+                title={docked ? "畳む" : "閉じる"}
                 className="shrink-0 rounded-[5px] px-2 py-1 text-[15px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink"
               >
-                ×
+                {docked ? "»" : "×"}
               </button>
             </div>
 

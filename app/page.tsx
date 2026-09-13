@@ -5,6 +5,7 @@
  * 「今日何をすればよいか」がスクロールせずに分かること。
  * リストを並べるのではなく、NextActionResolver の出力を最上部に出す。
  */
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
@@ -29,6 +30,8 @@ function fmt(d?: string) {
 export default function HomePage() {
   const router = useRouter();
   const { state, dispatch, workflows, customers, currentUser } = useStore();
+  /* タスクメモの開閉。本文の幅を変えるので、パネルではなくここで持つ */
+  const [memoOpen, setMemoOpen] = useState(false);
   const { next, ranked, waiting } = useNextAction();
   const now = useNow();
   // 開始条件が来ている業務。勝手には始めず、ここに出して自分が決める
@@ -77,26 +80,27 @@ export default function HomePage() {
     : "/workflows";
 
   return (
-    <div className="mx-auto max-w-[1180px] px-6 pb-8">
+    <div
+      className={`mx-auto max-w-[1180px] px-6 pb-8 transition-[padding] duration-200 ${
+        memoOpen ? "xl:pr-[calc(var(--memo-w)+1.5rem)]" : ""
+      }`}
+    >
       {/*
-        タスク化前メモ。右端の入口とパネルだけで、HOME の並びには入らない
-        （位置は fixed。ここに置いても「本日の作業」の幅も配置も変わらない）。
+        タスク化前メモ。既定では開いたままにする（毎日いちばん使うため）。
+        広い画面では横に並べて置き、HOME を覆わない。畳めば元の幅に戻る。
+        HOME の中身そのものには手を入れていない。使える幅が狭くなるだけで、
+        窓を小さくしたときと同じ並び方をする。
       */}
-      <TaskMemoPanel now={now} />
-      {/* 自分ひとりで使うものなので、自分の名前は出さない */}
+      <TaskMemoPanel now={now} open={memoOpen} onOpenChange={setMemoOpen} />
+      {/*
+        自分ひとりで使うものなので、自分の名前は出さない。
+        右上に入口は置かない。毎日通る場所に「作る側」の入口が並んでいると、
+        今日やることを見に来たのに手が止まる。業務を始めるのは左のレーンの
+        「業務」から、登録は業務が 0 件のときに下の「次の候補」から案内する。
+      */}
       <TopBar
         title="本日の作業"
         description={now.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
-        action={
-          <div className="flex flex-wrap items-center gap-2">
-            {/*
-              業務の登録は、ここには置かない。毎日通る場所に「作る側」の入口が
-              並んでいると、今日やることを見に来たのに手が止まる。
-              業務が 1 件も無いときは、下の「次の候補」から案内する。
-            */}
-            <LinkButton href="/workflows">＋ 新しい業務を開始</LinkButton>
-          </div>
-        }
       />
 
       {/* 最上部：今やるべき唯一のこと */}
