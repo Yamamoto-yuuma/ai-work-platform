@@ -90,6 +90,7 @@ function getCalendarEvents_(date) {
       startTime: startTime,
       endTime: isAllDay ? startTime : event.getEndTime(),
       allDay: isAllDay,
+      color: getEventColorId_(event),
     });
   }
 
@@ -97,6 +98,36 @@ function getCalendarEvents_(date) {
     return a.startTime.getTime() - b.startTime.getTime();
   });
   return result;
+}
+
+/**
+ * 予定に付けた色の番号。
+ *
+ * カレンダー上で色を変えていなければ空文字が返る（＝カレンダー既定の色）。
+ * 番号と実際の色の対応は Google 側が決めているので、こちらでは名前を付けず、
+ * 番号のまま画面へ渡して向こうで色に直す。ここで色名を決めると、
+ * Google がパレットを変えたときに食い違う。
+ *
+ * 予定の種類によっては色を持たず、getColor が投げることがある。
+ * 色が取れないことは日報にも並びにも影響しないので、黙って既定に倒す。
+ */
+function getEventColorId_(event) {
+  try {
+    var color = event.getColor();
+    return color === null || color === undefined ? '' : String(color);
+  } catch (e) {
+    return '';
+  }
+}
+
+/** カレンダーそのものの色（#rrggbb）。色を変えていない予定はこの色で表示される。 */
+function getCalendarColor_() {
+  try {
+    var color = getTargetCalendar_().getColor();
+    return typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color) ? color : '';
+  } catch (e) {
+    return '';
+  }
 }
 
 /**
@@ -156,7 +187,10 @@ function getEventTitlesByHalf_(date) {
  * 日報とは別の用途（HOME で 1 日の埋まり具合を見る）なので、時刻も一緒に渡す。
  * 出欠や参加者は渡さない。必要になるまで外へ出す情報を増やさない。
  *
- * @return {Array.<{title: string, start: string, end: string, allDay: boolean}>}
+ * 色の番号も一緒に渡す。カレンダーで色分けしている人にとっては、
+ * どの予定かを読む前に色で見分けているので、色を落とすと別物になる。
+ *
+ * @return {Array.<{title: string, start: string, end: string, allDay: boolean, color: string}>}
  */
 function getDayEventsForApi_(date) {
   var events = getCalendarEvents_(date);
@@ -167,6 +201,7 @@ function getDayEventsForApi_(date) {
       start: formatTimestamp_(events[i].startTime),
       end: formatTimestamp_(events[i].endTime),
       allDay: events[i].allDay === true,
+      color: events[i].color === undefined ? '' : events[i].color,
     });
   }
   return out;

@@ -84,6 +84,8 @@ function handleApiAction_(request) {
         ok: true,
         today: Utilities.formatDate(today, TIME_ZONE, 'yyyy-MM-dd'),
         events: getDayEventsForApi_(today),
+        // 色を変えていない予定は、カレンダーそのものの色で表示される
+        calendarColor: getCalendarColor_(),
       };
 
     case 'rebuild':
