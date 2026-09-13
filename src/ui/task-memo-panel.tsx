@@ -12,9 +12,13 @@
  *
  * 読み取りは決まった規則だけで行う（core/task/bulk）。AI には渡さない。
  * 書いた内容が外へ出ないのと、同じ文字列がいつも同じ結果になるのを優先している。
+ *
+ * 「①」「②」のような印を付けた行から次の印までが 1 件。印の無い行は前の件の続きになる。
+ * 思いついたことを続けて書いても、途中の一文が別のタスクにならないようにするため。
+ * 印をどこにも使わなければ、1 行が 1 件になる。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { parseBulk, type ParsedTaskLine } from "@/core/task/bulk";
+import { parseMemo, type MemoBlock } from "@/core/task/bulk";
 import { formatMinutes } from "@/core/model/task-draft";
 import { newTaskId } from "@/lib/id";
 import { useStore } from "@/adapters/memory/store";
@@ -29,10 +33,11 @@ import { Button } from "./primitives";
  */
 const DRAFT_KEY = "ai-work-platform:task-memo";
 
-const PLACEHOLDER = `例：明日のMTGまでに資料確認する 明日
-田中さんに資料を見てもらう 明日
-佐藤さんに資料を送る 30分
-MTGの議事録を作って先方に送る`;
+const PLACEHOLDER = `例：
+①○○社の資料を確認する 明日
+　MTGで使うので先に目を通しておく
+②田中さんに資料を見てもらう
+③佐藤さんへ資料を送付する 30分`;
 
 /** 確認前の 1 件。人が直せるように、読み取った結果をそのまま持つ */
 interface Candidate {
@@ -43,6 +48,8 @@ interface Candidate {
   assigneeId: string;
   estimatedMinutes?: number;
   priority: Task["priority"];
+  /** 見出しに続けて書かれたもの。タスクの説明として残す */
+  note?: string;
   /** 何を読み取ったか。「なぜこの期限になったか」を出すために残す */
   matched: string[];
 }
@@ -63,15 +70,16 @@ function fromDateInput(value: string): string | undefined {
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 18, 0, 0, 0).toISOString();
 }
 
-function toCandidate(line: ParsedTaskLine, index: number, defaultAssigneeId: string): Candidate {
+function toCandidate(block: MemoBlock, index: number, defaultAssigneeId: string): Candidate {
   return {
-    key: `${index}-${line.raw}`,
-    title: line.title,
-    due: toDateInput(line.dueAt),
+    key: `${index}-${block.raw}`,
+    title: block.title,
+    due: toDateInput(block.dueAt),
     assigneeId: defaultAssigneeId,
-    estimatedMinutes: line.estimatedMinutes,
-    priority: line.priority ?? "normal",
-    matched: line.matched,
+    estimatedMinutes: block.estimatedMinutes,
+    priority: block.priority ?? "normal",
+    note: block.note,
+    matched: block.matched,
   };
 }
 
@@ -124,15 +132,12 @@ export function TaskMemoPanel({ now }: { now: Date }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
-  const lineCount = useMemo(
-    () => text.split(/\r?\n/).filter((l) => l.trim().length > 0).length,
-    [text],
-  );
+  /* 何件になるかを、押す前に出す。押してから数が違うと驚く */
+  const blocks = useMemo(() => parseMemo(text, now), [text, now]);
 
   const toTasks = () => {
-    const parsed = parseBulk(text, now);
-    if (parsed.length === 0) return;
-    setCandidates(parsed.map((l, i) => toCandidate(l, i, currentUser.id)));
+    if (blocks.length === 0) return;
+    setCandidates(blocks.map((b, i) => toCandidate(b, i, currentUser.id)));
     setDone(null);
   };
 
@@ -151,6 +156,7 @@ export function TaskMemoPanel({ now }: { now: Date }) {
       id: newTaskId(),
       title: c.title.trim(),
       status: "todo",
+      description: c.note,
       priority: c.priority,
       assigneeId: c.assigneeId,
       dueAt: fromDateInput(c.due),
@@ -243,15 +249,18 @@ export function TaskMemoPanel({ now }: { now: Date }) {
                     className="field min-h-[220px] flex-1 resize-none leading-[1.9]"
                   />
                   <p className="text-[11px] leading-[1.8] text-ink-3">
-                    1行が1件になります。「明日」「9/14」「金曜」「30分」「至急」を混ぜて書けば、
-                    期限・見積時間・優先度も読み取ります。
+                    <span className="text-ink-2">①②③</span> や{" "}
+                    <span className="text-ink-2">・</span> を付けた行から、次の印までが1件になります。
+                    印の無い行は、その前の件の続きとして扱います。印を使わなければ1行が1件です。
+                    <br />
+                    「明日」「9/14」「金曜」「30分」「至急」を混ぜて書けば、期限・見積時間・優先度も読み取ります。
                   </p>
                 </div>
 
                 <div className="shrink-0 border-t border-line px-5 py-4">
-                  <Button className="w-full justify-center" disabled={lineCount === 0} onClick={toTasks}>
+                  <Button className="w-full justify-center" disabled={blocks.length === 0} onClick={toTasks}>
                     メモをタスクにする
-                    {lineCount > 0 ? `（${lineCount}行）` : ""}
+                    {blocks.length > 0 ? `（${blocks.length}件）` : ""}
                   </Button>
                 </div>
               </>
@@ -309,6 +318,12 @@ export function TaskMemoPanel({ now }: { now: Date }) {
                               <span className="text-[11px] text-ink-3">{formatMinutes(c.estimatedMinutes)}</span>
                             )}
                           </div>
+
+                          {c.note !== undefined && (
+                            <p className="mt-2 whitespace-pre-wrap rounded-[3px] bg-surface-2 px-2.5 py-1.5 text-[11.5px] leading-[1.7] text-ink-2">
+                              {c.note}
+                            </p>
+                          )}
 
                           {c.matched.length > 0 && (
                             <p className="mt-1.5 text-[10.5px] text-ink-3">
