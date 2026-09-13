@@ -9,8 +9,49 @@
  *
  * 送信は戻せないので、押す前に必ず本文を出して確かめてもらう。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, Card, Empty, PageHeader } from "@/ui/primitives";
+
+/**
+ * 日報の本文。中身の高さに合わせて伸びる。
+ *
+ * 高さを固定していると、夜の日報の 3 分の 1 しか見えなかった。
+ * 夜の日報は「日報」タブをそのまま持ってくるので 30 行を超え、
+ * 高さは 749px 要るのに枠は 256px しかなかった。
+ *
+ * 送信は取り消せない。押す前に全体を目で確かめられないほうが困る。
+ * 頭打ちは画面の高さの 85%。7 割にしたら 30 行の日報がまだ収まらなかった。
+ * これより長いときだけ枠の中で送る（送信ボタンに手が届かなくならないため）。
+ */
+function ReportBody({
+  id, value, readOnly, onChange,
+}: {
+  id: string;
+  value: string;
+  readOnly: boolean;
+  onChange: (value: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el === null) return;
+    // いったん縮めてから測る。そうしないと、短くなったときに追従しない
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight + 2}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      id={id}
+      className="mt-3 max-h-[85vh] min-h-64 w-full resize-y rounded-[5px] border border-line bg-surface px-3 py-2.5 font-mono text-[13.5px] leading-[1.8] text-ink outline-none focus:border-brand"
+      value={value}
+      readOnly={readOnly}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
 
 type ReportType = "day" | "night";
 
@@ -141,7 +182,7 @@ export default function DailyReportPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[900px] px-6 pb-8">
+      <div className="mx-auto max-w-[1080px] px-6 pb-8">
         <PageHeader
           title="日報"
           description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
@@ -153,7 +194,7 @@ export default function DailyReportPage() {
 
   if (failure?.notConfigured) {
     return (
-      <div className="mx-auto max-w-[900px] px-6 pb-8">
+      <div className="mx-auto max-w-[1080px] px-6 pb-8">
         <PageHeader
           title="日報"
           description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
@@ -177,7 +218,7 @@ export default function DailyReportPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[900px] px-6 pb-8">
+    <div className="mx-auto max-w-[1080px] px-6 pb-8">
       <PageHeader
         title="日報"
         description="カレンダーの予定から作った下書きを、確かめてから Chatwork へ送ります。"
@@ -250,16 +291,12 @@ export default function DailyReportPage() {
 
                   {report.exists ? (
                     <>
-                      <textarea
+                      <ReportBody
                         id={`daily-report-${reportType}`}
-                        className="mt-3 h-64 w-full resize-y rounded-[5px] border border-line bg-surface px-3 py-2.5 font-mono text-[13.5px] leading-[1.8] text-ink outline-none focus:border-brand"
                         value={edited}
                         readOnly={report.sent}
-                        onChange={(event) =>
-                          setDrafts((current) => ({
-                            ...current,
-                            [reportType]: event.target.value,
-                          }))
+                        onChange={(next) =>
+                          setDrafts((current) => ({ ...current, [reportType]: next }))
                         }
                       />
                       <div className="mt-3 flex flex-wrap items-center gap-2">
