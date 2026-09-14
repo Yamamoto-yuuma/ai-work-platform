@@ -142,12 +142,72 @@ function readGasResponse(value: unknown): Record<string, unknown> | string {
   return source;
 }
 
-/** 連携先から JSON が返らなかったときに、直す場所まで書いたメッセージにする */
-function describeBadResponse(status: number): string {
-  if (status === 404) {
+/**
+ * 設定されている URL の形を見て、分かる範囲の間違いを名指しする。
+ *
+ * 404 が返ったとき、「URL の書き方が違う」のか「デプロイが無くなった」のかで
+ * 直す場所がまったく違う。前者はここで分かるので、推測させない。
+ *
+ * @return 見つかった問題、または問題なしの null
+ */
+function findUrlProblem(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return "設定されている値が URL の形をしていません。";
+  }
+  if (parsed.hostname !== "script.google.com") {
+    return `設定されている URL の行き先が script.google.com ではありません（${parsed.hostname}）。`;
+  }
+  if (parsed.pathname.endsWith("/dev")) {
     return (
-      "連携先の URL が見つかりません（status 404）。DAILY_REPORT_GAS_URL を確認してください。" +
-      "Apps Script の［デプロイを管理］にあるウェブアプリの URL（末尾が /exec）である必要があります。"
+      "設定されている URL の末尾が /dev です。これは編集中の版を自分だけが開くための URL で、" +
+      "外からは使えません。［デプロイを管理］に出ている /exec の URL に置き換えてください。"
+    );
+  }
+  if (!parsed.pathname.endsWith("/exec")) {
+    return "設定されている URL の末尾が /exec ではありません。";
+  }
+  return null;
+}
+
+/**
+ * URL を、目で見比べられるだけ残して隠す。
+ * 全部出すと画面や記録に残ってしまう。前後だけあれば、
+ * Apps Script 側に出ている URL と同じものかどうかは見分けられる。
+ */
+function maskUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    /* 長い区切りは、形が想定どおりでなくても必ず縮める（そこが ID のことが多い） */
+    const shorten = (part: string) =>
+      part.length > 14 ? `${part.slice(0, 7)}……${part.slice(-5)}` : part;
+    const path = parsed.pathname.split("/").map(shorten).join("/");
+    return `${parsed.origin}${path}`;
+  } catch {
+    return "（URL として読めない値）";
+  }
+}
+
+/** 連携先から JSON が返らなかったときに、直す場所まで書いたメッセージにする */
+function describeBadResponse(status: number, url: string): string {
+  if (status === 404) {
+    const problem = findUrlProblem(url);
+    if (problem !== null) {
+      return `連携先が見つかりません（status 404）。${problem}`;
+    }
+    /*
+      形は合っているのに 404。つまり「その URL のデプロイが、いま存在しない」。
+      ［新しいデプロイ］を作ると URL ごと変わるので、貼り替えのときに
+      ここへ迷い込みやすい。更新は［デプロイを管理］→ 編集 → 新バージョン。
+    */
+    return (
+      `連携先が見つかりません（status 404）。URL の形は合っているので、` +
+      `その URL のデプロイが今は存在していない可能性が高いです。` +
+      `［デプロイを管理］を開き、そこに出ているウェブアプリの URL と、いま設定されている ` +
+      `${maskUrl(url)} が同じかどうかを見比べてください。` +
+      `［新しいデプロイ］を作ると URL ごと変わります（更新は［デプロイを管理］→ 編集 → バージョン「新バージョン」）。`
     );
   }
   if (status === 401 || status === 403) {
@@ -211,7 +271,10 @@ export async function POST(request: Request) {
     } catch {
       // JSON が返らないときは、設定のどこがおかしいかまで書く。
       // 番号だけ出しても、どこを直せばよいか分からない
-      return NextResponse.json({ ok: false, error: describeBadResponse(response.status) }, { status: 200 });
+      return NextResponse.json(
+        { ok: false, error: describeBadResponse(response.status, url) },
+        { status: 200 },
+      );
     }
 
     const checked = readGasResponse(parsedJson);
