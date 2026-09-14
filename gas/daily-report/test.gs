@@ -38,6 +38,7 @@ function runAllTests() {
     ['Test 25: 昼の日報はカレンダーだけで作る', test25_DayReportStaysOnCalendar_],
     ['Test 26: 別用途の同名シートには書き込まない', test26_ForeignSheetIsNotOverwritten_],
     ['Test 27: 節の見出しの書き方が違っても切れ目を見つける', test27_SectionMarkerVariants_],
+    ['Test 28: AM と PM の境目は 14 時', test28_AmPmBoundary_],
   ];
 
   var failed = 0;
@@ -730,4 +731,49 @@ function test27_SectionMarkerVariants_() {
     return readNightProgressLines_();
   });
   assertEquals_('＜進捗状況＞\n★リード売上 69.4万円', lines.join('\n'), '飾りが違っても切れ目で止まる');
+}
+
+function test28_AmPmBoundary_() {
+  /*
+    午前の打ち合わせが午後まで続くので、12 時で切ると運営MTGや架電班MTGが
+    PM 側に落ちて、実際の動き方と合わなかった。境目は 14 時。
+    判定は開始時刻だけを見る（終わる時刻でまたいでも、始めた側に入れる）。
+  */
+  assertEquals_(14, AM_PM_BOUNDARY_HOUR, 'AM と PM の境目');
+
+  var day = parseDate_('2026-09-14');
+  var at = function (hour, minute) {
+    var d = new Date(day.getTime());
+    d.setHours(hour, minute || 0, 0, 0);
+    return d;
+  };
+
+  var cases = [
+    [at(9, 0), true, '09:00'],
+    [at(11, 0), true, '11:00（運営MTG）'],
+    [at(13, 0), true, '13:00'],
+    [at(13, 59), true, '13:59（境目の直前）'],
+    [at(14, 0), false, '14:00（境目ちょうどは PM）'],
+    [at(14, 1), false, '14:01'],
+    [at(17, 30), false, '17:30'],
+  ];
+  for (var i = 0; i < cases.length; i++) {
+    assertEquals_(
+      cases[i][1],
+      isMorningStart_(cases[i][0]),
+      cases[i][2] + ' が ' + (cases[i][1] ? 'AM' : 'PM') + ' になること'
+    );
+  }
+
+  // 絞り込みの側も同じ境目で動くこと
+  var events = [
+    { title: '朝礼', startTime: at(9, 0) },
+    { title: '運営MTG', startTime: at(11, 0) },
+    { title: '架電班MTG', startTime: at(13, 30) },
+    { title: '計上作業', startTime: at(15, 0) },
+  ];
+  var am = toEventTitles_(filterEventsByHalf_(events, true));
+  var pm = toEventTitles_(filterEventsByHalf_(events, false));
+  assertEquals_('朝礼,運営MTG,架電班MTG', am.join(','), 'AM の予定');
+  assertEquals_('計上作業', pm.join(','), 'PM の予定');
 }

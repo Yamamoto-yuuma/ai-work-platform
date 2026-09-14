@@ -149,7 +149,7 @@ function describeCalendarDay_(date) {
     } else if (formatTitleLine_(title) === null) {
       verdict = '除外（予定名が空）';
     } else {
-      verdict = '採用（' + (getJstHour_(start) < 12 ? 'AM' : 'PM') + '）';
+      verdict = '採用（' + (isMorningStart_(start) ? 'AM' : 'PM') + '）';
     }
 
     lines.push(
@@ -191,7 +191,7 @@ function getCalendarColor_() {
 }
 
 /**
- * AM（00:00:00 - 11:59:59 開始）の予定。
+ * AM（00:00 〜 AM_PM_BOUNDARY_HOUR の直前に開始）の予定。
  */
 function getMorningEvents_(date) {
   assertDate_(date);
@@ -199,11 +199,16 @@ function getMorningEvents_(date) {
 }
 
 /**
- * PM（12:00:00 - 23:59:59 開始）の予定。
+ * PM（AM_PM_BOUNDARY_HOUR 〜 23:59 に開始）の予定。
  */
 function getAfternoonEvents_(date) {
   assertDate_(date);
   return filterEventsByHalf_(getCalendarEvents_(date), false);
+}
+
+/** 開始時刻が AM 側かどうか。境目は config.gs の AM_PM_BOUNDARY_HOUR で決める */
+function isMorningStart_(startTime) {
+  return getJstHour_(startTime) < AM_PM_BOUNDARY_HOUR;
 }
 
 /**
@@ -212,8 +217,7 @@ function getAfternoonEvents_(date) {
 function filterEventsByHalf_(events, wantMorning) {
   var result = [];
   for (var i = 0; i < events.length; i++) {
-    var isMorning = getJstHour_(events[i].startTime) < 12;
-    if (isMorning === wantMorning) result.push(events[i]);
+    if (isMorningStart_(events[i].startTime) === wantMorning) result.push(events[i]);
   }
   return result;
 }

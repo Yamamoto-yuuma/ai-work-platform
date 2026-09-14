@@ -6,7 +6,7 @@ Google カレンダーの予定から日報を生成し、スプレッドシー�
 **日報用スプレッドシートの［拡張機能］→［Apps Script］に紐づけて使います。**
 単独の Apps Script プロジェクトでは、シートへの書き出しとボタンが動きません。
 
-- 昼（12:55 頃）: 当日 AM を「業務報告」、当日 PM を「業務予定」として作成
+- 昼（12:55 頃）: 当日 AM を「業務報告」、当日 PM を「業務予定」として作成（AM / PM の境目は 14 時）
 - 夜（18:25 頃）: 進捗状況までは「日報」タブから読み、業務報告・業務予定・所感はカレンダーから作成
 - 土日祝は作成しない（トリガーは止めない）
 - LLM は使用しない。カレンダーのタイトルをそのまま整形するだけ
@@ -86,7 +86,7 @@ npm run check:bundle   # 最新かどうかを確かめる（npm run verify に�
 | 機能 | 対応する関数 |
 |---|---|
 | カレンダーから予定を取得 | `getCalendarEvents_(date)` |
-| AM / PM の分類（開始時刻基準・AM は 00:00:00–11:59:59） | `getMorningEvents_(date)` / `getAfternoonEvents_(date)` |
+| AM / PM の分類（開始時刻基準・境目は `AM_PM_BOUNDARY_HOUR` = 14 時） | `getMorningEvents_(date)` / `getAfternoonEvents_(date)` |
 | 昼の日報の生成 | `generateDayReport_(date)` / `buildDayReportBody_(am, pm)` |
 | 夜の日報の生成 | `generateNightReport_(date)` / `buildNightReportBody_(progress, todayPm, nextAm, nextPm)` |
 | 土日祝の判定 | `isBusinessDay_(date)` |
