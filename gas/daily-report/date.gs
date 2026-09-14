@@ -47,6 +47,16 @@ function getJstHour_(date) {
 }
 
 /**
+ * 日本時間での「0 時からの分」（13:45 なら 825）。
+ * AM / PM の境目を分まで見るために使う。
+ */
+function getJstMinutesOfDay_(date) {
+  var text = Utilities.formatDate(date, TIME_ZONE, 'HH:mm');
+  var parts = text.split(':');
+  return Number(parts[0]) * 60 + Number(parts[1]);
+}
+
+/**
  * 日本時間での日付キー（yyyyMMdd）。送信済み管理・ログ・同日判定に使う。
  */
 function formatDateKey_(date) {

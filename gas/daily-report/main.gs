@@ -158,6 +158,15 @@ function showNightSources() {
   );
   var next = nextBusinessDay_(today);
   report.push('');
+  report.push('----- AM と PM の境目 -----');
+  report.push(
+    formatAmPmBoundary_() + ' から PM（この時刻より前に始まる予定が AM）' +
+      (getProperty_(PROP_AM_PM_BOUNDARY) === null
+        ? '　※ 既定値。変えるときは Script Properties に ' + PROP_AM_PM_BOUNDARY + ' を足す'
+        : '　※ Script Properties の ' + PROP_AM_PM_BOUNDARY + ' で設定されています')
+  );
+
+  report.push('');
   report.push('----- 当日（' + formatJapaneseDate_(today) + '）のカレンダー -----');
   report.push('※ 業務報告に出るのは、ここで「採用（PM）」になったものだけです');
   var todayLines = describeCalendarDay_(today);

@@ -88,17 +88,22 @@ var NIGHT_REPORT_MINUTE = 25;
 var BUSINESS_DAY_START_HOUR = 5;
 
 /**
- * AM と PM の境目（この時刻から PM）。
+ * PM が始まる時刻。この時刻より前に始まる予定が AM。
  *
  * 昼の 12 時ではなく 14 時で切る。午前の打ち合わせが午後まで続くことが多く、
  * 12 時で切ると運営MTGや架電班MTGが PM 側に落ちて、実際の動き方と合わなかった。
  *
- *   AM … 00:00 〜 13:59 開始
- *   PM … 14:00 〜 23:59 開始
+ *   AM … 00:00 〜 13:59 開始（13:45 の予定も AM）
+ *   PM … 14:00 〜 23:59 開始（14:00 ちょうどは PM）
  *
  * 判定は開始時刻だけを見る。終わる時刻でまたいでも、始めた側に入れる。
+ *
+ * スクリプト プロパティ「AM_PM_BOUNDARY」があればそちらを使う（例: 13:45）。
+ * 働き方が変われば切り方も変わるので、そのたびにコードを貼り替えて
+ * デプロイし直さずに済むようにしておく。
  */
-var AM_PM_BOUNDARY_HOUR = 14;
+var DEFAULT_AM_PM_BOUNDARY = '14:00';
+var PROP_AM_PM_BOUNDARY = 'AM_PM_BOUNDARY';
 
 /**
  * 終日イベントを日報に含めるか。
@@ -181,6 +186,47 @@ function getTargetCalendarId_() {
   return getProperty_(PROP_TARGET_CALENDAR_ID);
 }
 
+/** 1 回の実行の中で使い回す AM / PM の境目（分）。 */
+var amPmBoundaryCache_ = null;
+
+/**
+ * PM が始まる時刻を「0 時からの分」で返す（14:00 なら 840）。
+ *
+ * 書き方を間違えたときは黙って既定に戻さず、止める。
+ * 静かに 14:00 に戻すと、設定したつもりの時刻で切られていないことに
+ * 気づかないまま日報が出続ける。
+ */
+function getAmPmBoundaryMinutes_() {
+  if (amPmBoundaryCache_ !== null) return amPmBoundaryCache_;
+
+  var text = getProperty_(PROP_AM_PM_BOUNDARY);
+  if (text === null) text = DEFAULT_AM_PM_BOUNDARY;
+
+  var matched = /^([0-9]{1,2}):([0-9]{2})$/.exec(String(text).trim());
+  if (matched === null) {
+    throw new Error(
+      'Script Properties の「' + PROP_AM_PM_BOUNDARY + '」は 14:00 のような形式で指定してください: ' + text
+    );
+  }
+  var hour = Number(matched[1]);
+  var minute = Number(matched[2]);
+  if (hour > 23 || minute > 59) {
+    throw new Error(
+      'Script Properties の「' + PROP_AM_PM_BOUNDARY + '」が時刻として正しくありません: ' + text
+    );
+  }
+
+  amPmBoundaryCache_ = hour * 60 + minute;
+  return amPmBoundaryCache_;
+}
+
+/** 設定されている境目を「14:00」の形で返す（ログ用）。 */
+function formatAmPmBoundary_() {
+  var minutes = getAmPmBoundaryMinutes_();
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return p(Math.floor(minutes / 60)) + ':' + p(minutes % 60);
+}
+
 /** 日本時間の UTC からのオフセット（分）。Date.getTimezoneOffset() は符号が逆で -540 になる。 */
 var JST_TIMEZONE_OFFSET_MINUTES = -540;
 
@@ -250,6 +296,16 @@ function getJstDayOfWeek_(date) {
  */
 function getJstHour_(date) {
   return Number(Utilities.formatDate(date, TIME_ZONE, 'H'));
+}
+
+/**
+ * 日本時間での「0 時からの分」（13:45 なら 825）。
+ * AM / PM の境目を分まで見るために使う。
+ */
+function getJstMinutesOfDay_(date) {
+  var text = Utilities.formatDate(date, TIME_ZONE, 'HH:mm');
+  var parts = text.split(':');
+  return Number(parts[0]) * 60 + Number(parts[1]);
 }
 
 /**
@@ -670,9 +726,12 @@ function getAfternoonEvents_(date) {
   return filterEventsByHalf_(getCalendarEvents_(date), false);
 }
 
-/** 開始時刻が AM 側かどうか。境目は config.gs の AM_PM_BOUNDARY_HOUR で決める */
+/**
+ * 開始時刻が AM 側かどうか。
+ * 境目は分まで見る（13:45 と 14:00 を区別するため）。値は config.gs で決める。
+ */
 function isMorningStart_(startTime) {
-  return getJstHour_(startTime) < AM_PM_BOUNDARY_HOUR;
+  return getJstMinutesOfDay_(startTime) < getAmPmBoundaryMinutes_();
 }
 
 /**
@@ -1887,6 +1946,15 @@ function showNightSources() {
   );
   var next = nextBusinessDay_(today);
   report.push('');
+  report.push('----- AM と PM の境目 -----');
+  report.push(
+    formatAmPmBoundary_() + ' から PM（この時刻より前に始まる予定が AM）' +
+      (getProperty_(PROP_AM_PM_BOUNDARY) === null
+        ? '　※ 既定値。変えるときは Script Properties に ' + PROP_AM_PM_BOUNDARY + ' を足す'
+        : '　※ Script Properties の ' + PROP_AM_PM_BOUNDARY + ' で設定されています')
+  );
+
+  report.push('');
   report.push('----- 当日（' + formatJapaneseDate_(today) + '）のカレンダー -----');
   report.push('※ 業務報告に出るのは、ここで「採用（PM）」になったものだけです');
   var todayLines = describeCalendarDay_(today);
@@ -2358,7 +2426,8 @@ function runAllTests() {
     ['Test 25: 昼の日報はカレンダーだけで作る', test25_DayReportStaysOnCalendar_],
     ['Test 26: 別用途の同名シートには書き込まない', test26_ForeignSheetIsNotOverwritten_],
     ['Test 27: 節の見出しの書き方が違っても切れ目を見つける', test27_SectionMarkerVariants_],
-    ['Test 28: AM と PM の境目は 14 時', test28_AmPmBoundary_],
+    ['Test 28: AM と PM の境目は 14:00', test28_AmPmBoundary_],
+    ['Test 29: 境目は設定で変えられる', test29_AmPmBoundaryIsConfigurable_],
   ];
 
   var failed = 0;
@@ -3056,10 +3125,11 @@ function test27_SectionMarkerVariants_() {
 function test28_AmPmBoundary_() {
   /*
     午前の打ち合わせが午後まで続くので、12 時で切ると運営MTGや架電班MTGが
-    PM 側に落ちて、実際の動き方と合わなかった。境目は 14 時。
-    判定は開始時刻だけを見る（終わる時刻でまたいでも、始めた側に入れる）。
+    PM 側に落ちて、実際の動き方と合わなかった。境目は 14:00。
+    分まで見る（13:45 と 14:00 を区別するため）。
+    判定は開始時刻だけ（終わる時刻でまたいでも、始めた側に入れる）。
   */
-  assertEquals_(14, AM_PM_BOUNDARY_HOUR, 'AM と PM の境目');
+  assertEquals_('14:00', DEFAULT_AM_PM_BOUNDARY, 'PM が始まる時刻の既定値');
 
   var day = parseDate_('2026-09-14');
   var at = function (hour, minute) {
@@ -3071,7 +3141,8 @@ function test28_AmPmBoundary_() {
   var cases = [
     [at(9, 0), true, '09:00'],
     [at(11, 0), true, '11:00（運営MTG）'],
-    [at(13, 0), true, '13:00'],
+    [at(13, 30), true, '13:30'],
+    [at(13, 45), true, '13:45'],
     [at(13, 59), true, '13:59（境目の直前）'],
     [at(14, 0), false, '14:00（境目ちょうどは PM）'],
     [at(14, 1), false, '14:01'],
@@ -3089,11 +3160,78 @@ function test28_AmPmBoundary_() {
   var events = [
     { title: '朝礼', startTime: at(9, 0) },
     { title: '運営MTG', startTime: at(11, 0) },
-    { title: '架電班MTG', startTime: at(13, 30) },
+    { title: '架電班MTG', startTime: at(13, 45) },
     { title: '計上作業', startTime: at(15, 0) },
   ];
-  var am = toEventTitles_(filterEventsByHalf_(events, true));
-  var pm = toEventTitles_(filterEventsByHalf_(events, false));
-  assertEquals_('朝礼,運営MTG,架電班MTG', am.join(','), 'AM の予定');
-  assertEquals_('計上作業', pm.join(','), 'PM の予定');
+  assertEquals_(
+    '朝礼,運営MTG,架電班MTG',
+    toEventTitles_(filterEventsByHalf_(events, true)).join(','),
+    'AM の予定'
+  );
+  assertEquals_(
+    '計上作業',
+    toEventTitles_(filterEventsByHalf_(events, false)).join(','),
+    'PM の予定'
+  );
+}
+
+function test29_AmPmBoundaryIsConfigurable_() {
+  /*
+    働き方が変われば切り方も変わる。そのたびにコードを貼り替えて
+    デプロイし直さずに済むよう、スクリプト プロパティで動かせるようにしてある。
+  */
+  var day = parseDate_('2026-09-14');
+  var at = function (hour, minute) {
+    var d = new Date(day.getTime());
+    d.setHours(hour, minute || 0, 0, 0);
+    return d;
+  };
+
+  withAmPmBoundary_('13:45', function () {
+    assertEquals_('13:45', formatAmPmBoundary_(), '設定した境目が使われること');
+    assertTrue_(isMorningStart_(at(13, 44)), '13:44 は AM');
+    assertTrue_(!isMorningStart_(at(13, 45)), '13:45 ちょうどは PM（その時刻から PM のため）');
+  });
+
+  withAmPmBoundary_('12:00', function () {
+    assertTrue_(isMorningStart_(at(11, 59)), '11:59 は AM');
+    assertTrue_(!isMorningStart_(at(12, 0)), '12:00 は PM');
+  });
+
+  /*
+    書き方を間違えたら、黙って既定に戻さずに止める。
+    静かに 14:00 に戻すと、設定したつもりの時刻で切られていないことに
+    気づかないまま日報が出続ける。
+  */
+  var rejected = 0;
+  var bad = ['14時', '25:00', '14:60', '1400'];
+  for (var i = 0; i < bad.length; i++) {
+    try {
+      withAmPmBoundary_(bad[i], function () { return formatAmPmBoundary_(); });
+    } catch (e) {
+      rejected++;
+    }
+  }
+  assertEquals_(bad.length, rejected, '正しくない時刻は受け付けないこと');
+
+  // 空欄は「設定していない」と同じ。既定に戻すのが正しい
+  withAmPmBoundary_('', function () {
+    assertEquals_(DEFAULT_AM_PM_BOUNDARY, formatAmPmBoundary_(), '空欄なら既定値を使う');
+  });
+}
+
+/** テスト用に AM / PM の境目を差し替える */
+function withAmPmBoundary_(value, task) {
+  var props = PropertiesService.getScriptProperties();
+  var saved = props.getProperty(PROP_AM_PM_BOUNDARY);
+  var savedCache = amPmBoundaryCache_;
+  try {
+    props.setProperty(PROP_AM_PM_BOUNDARY, value);
+    amPmBoundaryCache_ = null;
+    return task();
+  } finally {
+    if (saved === null) props.deleteProperty(PROP_AM_PM_BOUNDARY);
+    else props.setProperty(PROP_AM_PM_BOUNDARY, saved);
+    amPmBoundaryCache_ = savedCache;
+  }
 }

@@ -6,7 +6,7 @@ Google カレンダーの予定から日報を生成し、スプレッドシー�
 **日報用スプレッドシートの［拡張機能］→［Apps Script］に紐づけて使います。**
 単独の Apps Script プロジェクトでは、シートへの書き出しとボタンが動きません。
 
-- 昼（12:55 頃）: 当日 AM を「業務報告」、当日 PM を「業務予定」として作成（AM / PM の境目は 14 時）
+- 昼（12:55 頃）: 当日 AM を「業務報告」、当日 PM を「業務予定」として作成（AM / PM の境目は 14:00・分単位で変更可）
 - 夜（18:25 頃）: 進捗状況までは「日報」タブから読み、業務報告・業務予定・所感はカレンダーから作成
 - 土日祝は作成しない（トリガーは止めない）
 - LLM は使用しない。カレンダーのタイトルをそのまま整形するだけ
@@ -86,7 +86,7 @@ npm run check:bundle   # 最新かどうかを確かめる（npm run verify に�
 | 機能 | 対応する関数 |
 |---|---|
 | カレンダーから予定を取得 | `getCalendarEvents_(date)` |
-| AM / PM の分類（開始時刻基準・境目は `AM_PM_BOUNDARY_HOUR` = 14 時） | `getMorningEvents_(date)` / `getAfternoonEvents_(date)` |
+| AM / PM の分類（開始時刻基準・境目は `AM_PM_BOUNDARY` = 14:00） | `getMorningEvents_(date)` / `getAfternoonEvents_(date)` |
 | 昼の日報の生成 | `generateDayReport_(date)` / `buildDayReportBody_(am, pm)` |
 | 夜の日報の生成 | `generateNightReport_(date)` / `buildNightReportBody_(progress, todayPm, nextAm, nextPm)` |
 | 土日祝の判定 | `isBusinessDay_(date)` |
@@ -254,6 +254,17 @@ PM
 | `NIGHT_REPORT_SPREADSHEET_ID` | `1bBnz…HCEU` | スプレッドシートの ID（URL の `/d/` と `/edit` の間） |
 | `NIGHT_REPORT_SHEET_NAME` | `日報` | 読むシート（タブ）の名前 |
 | `NIGHT_REPORT_RANGE` | `B1:C24` | 読む範囲（列をまたいでもよい） |
+
+### AM / PM の境目（任意）
+
+| キー | 例 | 意味 |
+| --- | --- | --- |
+| `AM_PM_BOUNDARY` | `13:45` | PM が始まる時刻。未設定なら `14:00` |
+
+この時刻**より前**に始まる予定が AM、この時刻**以降**に始まる予定が PM。
+判定は開始時刻だけを見る（終わる時刻でまたいでも、始めた側に入れる）。
+書き方を間違えたときは黙って既定に戻さず止める。静かに戻すと、
+設定したつもりの時刻で切られていないことに気づかないまま日報が出続ける。
 
 読み直しはトリガー（18:25）が下書きを作るたびに毎回行われる。そのときのシートを読むので、
 日々の内容は自動で入れ替わる。手で入れ直す必要はない。

@@ -206,9 +206,12 @@ function getAfternoonEvents_(date) {
   return filterEventsByHalf_(getCalendarEvents_(date), false);
 }
 
-/** 開始時刻が AM 側かどうか。境目は config.gs の AM_PM_BOUNDARY_HOUR で決める */
+/**
+ * 開始時刻が AM 側かどうか。
+ * 境目は分まで見る（13:45 と 14:00 を区別するため）。値は config.gs で決める。
+ */
 function isMorningStart_(startTime) {
-  return getJstHour_(startTime) < AM_PM_BOUNDARY_HOUR;
+  return getJstMinutesOfDay_(startTime) < getAmPmBoundaryMinutes_();
 }
 
 /**
