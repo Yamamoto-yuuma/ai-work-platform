@@ -156,9 +156,19 @@ function showNightSources() {
         'シート側の見出しが「' + NIGHT_SECTION_NAMES.join('／') + '」のどれかになっているか確認してください。'
       : '節の見出しは ' + (cut + 1) + ' 行目です。'
   );
+  var next = nextBusinessDay_(today);
   report.push('');
-  report.push('----- 次の営業日 -----');
-  report.push(formatJapaneseDate_(nextBusinessDay_(today)));
+  report.push('----- 当日（' + formatJapaneseDate_(today) + '）のカレンダー -----');
+  report.push('※ 業務報告に出るのは、ここで「採用（PM）」になったものだけです');
+  var todayLines = describeCalendarDay_(today);
+  for (var k = 0; k < todayLines.length; k++) report.push(todayLines[k]);
+
+  report.push('');
+  report.push('----- 次の営業日（' + formatJapaneseDate_(next) + '）のカレンダー -----');
+  report.push('※ 業務予定に出るのは、ここで「採用」になったものです');
+  var nextLines = describeCalendarDay_(next);
+  for (var m = 0; m < nextLines.length; m++) report.push(nextLines[m]);
+
   report.push('');
   report.push('----- 組み上がる本文 -----');
   report.push(generateNightReport_(today));

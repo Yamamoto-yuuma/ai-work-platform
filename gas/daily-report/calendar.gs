@@ -101,6 +101,66 @@ function getCalendarEvents_(date) {
 }
 
 /**
+ * その日のカレンダーを、絞り込む前の状態から順に説明する行を返す。
+ *
+ * 「予定が日報に出ない」とき、カレンダーに無いのか、取れているのに
+ * 落としているのかで直す場所が違う。1 件ずつ、採否と理由を並べる。
+ *
+ * ここでは日報を作らない。目で確かめるためだけの読み取り。
+ *
+ * @return {Array.<string>}
+ */
+function describeCalendarDay_(date) {
+  assertDate_(date);
+  var lines = [];
+  var calendar = getTargetCalendar_();
+  var targetDay = toJstStartOfDay_(date);
+  var dateKey = formatDateKey_(targetDay);
+
+  lines.push('読んだカレンダー: ' + calendar.getName());
+
+  var events;
+  try {
+    events = calendar.getEventsForDay(targetDay);
+  } catch (e) {
+    lines.push('カレンダーを読めませんでした: ' + e);
+    return lines;
+  }
+
+  if (events.length === 0) {
+    lines.push(
+      'このカレンダーには 1 件もありません。' +
+        'Google ToDo（タスク）はカレンダーの画面には出ますが、予定ではないのでここには入りません。'
+    );
+    return lines;
+  }
+
+  for (var i = 0; i < events.length; i++) {
+    var event = events[i];
+    var isAllDay = event.isAllDayEvent();
+    var start = event.getStartTime();
+    var title = event.getTitle();
+    var verdict;
+
+    if (isAllDay && !INCLUDE_ALL_DAY_EVENTS) {
+      verdict = '除外（終日の予定。含めるには INCLUDE_ALL_DAY_EVENTS を true にする）';
+    } else if (!isAllDay && formatDateKey_(start) !== dateKey) {
+      verdict = '除外（前の日から続いている予定）';
+    } else if (formatTitleLine_(title) === null) {
+      verdict = '除外（予定名が空）';
+    } else {
+      verdict = '採用（' + (getJstHour_(start) < 12 ? 'AM' : 'PM') + '）';
+    }
+
+    lines.push(
+      '・' + (isAllDay ? '終日' : Utilities.formatDate(start, TIME_ZONE, 'HH:mm')) +
+        ' ' + title + ' → ' + verdict
+    );
+  }
+  return lines;
+}
+
+/**
  * 予定に付けた色の番号。
  *
  * カレンダー上で色を変えていなければ空文字が返る（＝カレンダー既定の色）。
