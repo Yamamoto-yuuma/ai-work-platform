@@ -122,6 +122,53 @@ function testNightReport() {
 }
 
 /**
+ * 夜の日報が、シートとカレンダーのどちらから何を取っているかをログへ出す。
+ *
+ * 「業務報告より下が変わらない」とき、原因は 3 つありうる。
+ *   1. 貼り替えたコードがデプロイされていない
+ *   2. 前に作った下書きが表示されているだけ（作り直していない）
+ *   3. シートの節の見出しを見つけられず、全部を上半分として読んでいる
+ *
+ * 3 だけはログを見ないと分からないので、切れ目がどこだったかを出す。
+ * 投稿もシートへの書き出しもしない。
+ */
+function showNightSources() {
+  assertTimeZone_();
+  var today = businessToday_();
+  var lines = readNightReportLines_();
+
+  var cut = -1;
+  for (var i = 0; i < lines.length; i++) {
+    if (isSectionMarker_(lines[i])) { cut = i; break; }
+  }
+
+  var report = [];
+  report.push('----- シートから読んだ行（' + lines.length + ' 行）-----');
+  for (var j = 0; j < lines.length; j++) {
+    var mark = j === cut ? ' ← ここから下は読まない（節の見出し）' : '';
+    report.push(String(j + 1) + ': ' + lines[j] + mark);
+  }
+  report.push('');
+  report.push(
+    cut < 0
+      ? '節の見出しが見つかりませんでした。全部を進捗状況として扱い、' +
+        'その下にカレンダーの業務報告・業務予定を足します。' +
+        'シート側の見出しが「' + NIGHT_SECTION_NAMES.join('／') + '」のどれかになっているか確認してください。'
+      : '節の見出しは ' + (cut + 1) + ' 行目です。'
+  );
+  report.push('');
+  report.push('----- 次の営業日 -----');
+  report.push(formatJapaneseDate_(nextBusinessDay_(today)));
+  report.push('');
+  report.push('----- 組み上がる本文 -----');
+  report.push(generateNightReport_(today));
+
+  var text = report.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+/**
  * 今日の予定をログへ出力する（投稿もシートへの書き出しもしない）。
  *
  * HOME の Schedule 欄に渡している中身を、そのまま目で確かめるためのもの。

@@ -30,11 +30,35 @@ var PROP_NIGHT_REPORT_RANGE = 'NIGHT_REPORT_RANGE';
 var NIGHT_REPORT_MAX_LINES = 60;
 
 /**
- * 節の見出しの行かどうか（---業務報告--- など）。
- * ここから下はカレンダーで作り直すので、シートからは読まない。
+ * 節の名前。この行から下はカレンダーで作り直すので、シートからは読まない。
+ */
+var NIGHT_SECTION_NAMES = ['業務報告', '業務予定', '所感'];
+
+/**
+ * 節の見出しの行かどうか。
+ *
+ * 「---業務報告---」を想定しているが、シートの書き方は人が決めるので、
+ * 飾りの付け方まで決め打ちにしない。前後の飾り（ダッシュ・罫線・かっこ・■・空白）を
+ * 落としたうえで、節の名前そのものと一致するかだけを見る。
+ *
+ *   ---業務報告---  ／  【業務報告】  ／  ■業務報告  ／  業務報告
+ *
+ * 逆に「ダッシュで囲まれた行」を広く拾うことはしない。
+ * 進捗状況の中に区切り線があると、そこで切れて日報が途中までになる。
+ * 「＜進捗状況＞」も、飾りを落とすと「進捗状況」で名前に無いため残る。
  */
 function isSectionMarker_(line) {
-  return /^-{2,}[^-].*-{2,}$/.test(String(line === null || line === undefined ? '' : line).trim());
+  var text = String(line === null || line === undefined ? '' : line).trim();
+  if (text === '') return false;
+
+  var core = text
+    .replace(/^[-‐-―ー─-╿=＝【［\[＜<「■◆●○\s]+/, '')
+    .replace(/[-‐-―ー─-╿=＝】］\]＞>」\s]+$/, '');
+
+  for (var i = 0; i < NIGHT_SECTION_NAMES.length; i++) {
+    if (core === NIGHT_SECTION_NAMES[i]) return true;
+  }
+  return false;
 }
 
 /**

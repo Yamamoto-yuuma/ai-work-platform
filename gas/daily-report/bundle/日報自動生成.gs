@@ -693,11 +693,35 @@ var PROP_NIGHT_REPORT_RANGE = 'NIGHT_REPORT_RANGE';
 var NIGHT_REPORT_MAX_LINES = 60;
 
 /**
- * 節の見出しの行かどうか（---業務報告--- など）。
- * ここから下はカレンダーで作り直すので、シートからは読まない。
+ * 節の名前。この行から下はカレンダーで作り直すので、シートからは読まない。
+ */
+var NIGHT_SECTION_NAMES = ['業務報告', '業務予定', '所感'];
+
+/**
+ * 節の見出しの行かどうか。
+ *
+ * 「---業務報告---」を想定しているが、シートの書き方は人が決めるので、
+ * 飾りの付け方まで決め打ちにしない。前後の飾り（ダッシュ・罫線・かっこ・■・空白）を
+ * 落としたうえで、節の名前そのものと一致するかだけを見る。
+ *
+ *   ---業務報告---  ／  【業務報告】  ／  ■業務報告  ／  業務報告
+ *
+ * 逆に「ダッシュで囲まれた行」を広く拾うことはしない。
+ * 進捗状況の中に区切り線があると、そこで切れて日報が途中までになる。
+ * 「＜進捗状況＞」も、飾りを落とすと「進捗状況」で名前に無いため残る。
  */
 function isSectionMarker_(line) {
-  return /^-{2,}[^-].*-{2,}$/.test(String(line === null || line === undefined ? '' : line).trim());
+  var text = String(line === null || line === undefined ? '' : line).trim();
+  if (text === '') return false;
+
+  var core = text
+    .replace(/^[-‐-―ー─-╿=＝【［\[＜<「■◆●○\s]+/, '')
+    .replace(/[-‐-―ー─-╿=＝】］\]＞>」\s]+$/, '');
+
+  for (var i = 0; i < NIGHT_SECTION_NAMES.length; i++) {
+    if (core === NIGHT_SECTION_NAMES[i]) return true;
+  }
+  return false;
 }
 
 /**
@@ -1750,6 +1774,53 @@ function testNightReport() {
 }
 
 /**
+ * 夜の日報が、シートとカレンダーのどちらから何を取っているかをログへ出す。
+ *
+ * 「業務報告より下が変わらない」とき、原因は 3 つありうる。
+ *   1. 貼り替えたコードがデプロイされていない
+ *   2. 前に作った下書きが表示されているだけ（作り直していない）
+ *   3. シートの節の見出しを見つけられず、全部を上半分として読んでいる
+ *
+ * 3 だけはログを見ないと分からないので、切れ目がどこだったかを出す。
+ * 投稿もシートへの書き出しもしない。
+ */
+function showNightSources() {
+  assertTimeZone_();
+  var today = businessToday_();
+  var lines = readNightReportLines_();
+
+  var cut = -1;
+  for (var i = 0; i < lines.length; i++) {
+    if (isSectionMarker_(lines[i])) { cut = i; break; }
+  }
+
+  var report = [];
+  report.push('----- シートから読んだ行（' + lines.length + ' 行）-----');
+  for (var j = 0; j < lines.length; j++) {
+    var mark = j === cut ? ' ← ここから下は読まない（節の見出し）' : '';
+    report.push(String(j + 1) + ': ' + lines[j] + mark);
+  }
+  report.push('');
+  report.push(
+    cut < 0
+      ? '節の見出しが見つかりませんでした。全部を進捗状況として扱い、' +
+        'その下にカレンダーの業務報告・業務予定を足します。' +
+        'シート側の見出しが「' + NIGHT_SECTION_NAMES.join('／') + '」のどれかになっているか確認してください。'
+      : '節の見出しは ' + (cut + 1) + ' 行目です。'
+  );
+  report.push('');
+  report.push('----- 次の営業日 -----');
+  report.push(formatJapaneseDate_(nextBusinessDay_(today)));
+  report.push('');
+  report.push('----- 組み上がる本文 -----');
+  report.push(generateNightReport_(today));
+
+  var text = report.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+/**
  * 今日の予定をログへ出力する（投稿もシートへの書き出しもしない）。
  *
  * HOME の Schedule 欄に渡している中身を、そのまま目で確かめるためのもの。
@@ -2199,6 +2270,7 @@ function runAllTests() {
     ['Test 24: シートの数字を計算し直さない', test24_SheetValuesAreNotRecomputed_],
     ['Test 25: 昼の日報はカレンダーだけで作る', test25_DayReportStaysOnCalendar_],
     ['Test 26: 別用途の同名シートには書き込まない', test26_ForeignSheetIsNotOverwritten_],
+    ['Test 27: 節の見出しの書き方が違っても切れ目を見つける', test27_SectionMarkerVariants_],
   ];
 
   var failed = 0;
@@ -2561,7 +2633,7 @@ function test17_OnlyEntryPointsArePublic_() {
     'runDayReport', 'runNightReport',
     'showDayDraft', 'showNightDraft',
     'sendDayDraft', 'sendNightDraft',
-    'testDayReport', 'testNightReport', 'testTodayEvents',
+    'testDayReport', 'testNightReport', 'testTodayEvents', 'showNightSources',
     'runAllTests', 'setupTriggers',
   ];
   for (var i = 0; i < entryPoints.length; i++) {
@@ -2843,4 +2915,52 @@ function assertEquals_(expected, actual, label) {
 
 function assertTrue_(condition, label) {
   if (!condition) throw new Error(label + ' を満たしませんでした。');
+}
+
+function test27_SectionMarkerVariants_() {
+  /*
+    シートの見出しの飾り方は人が決める。決め打ちにすると、飾りを変えた日に
+    切れ目を見失い、シートの書きかけがそのまま日報に出る。
+    飾りを落として節の名前と突き合わせる。
+  */
+  var markers = [
+    '---業務報告---',
+    '--- 業務報告 ---',
+    '―――業務報告―――',
+    '【業務報告】',
+    '■業務報告',
+    '業務報告',
+    '---業務予定---',
+    '---所感---',
+  ];
+  for (var i = 0; i < markers.length; i++) {
+    assertTrue_(isSectionMarker_(markers[i]), '節の見出しとして扱う: ' + markers[i]);
+  }
+
+  /*
+    逆に、飾りが付いているだけの行を節の見出しにしない。
+    進捗状況の中の区切り線で切れると、日報が途中までになる。
+  */
+  var notMarkers = [
+    '＜進捗状況＞　　実績/目標',
+    '★リード売上    69.4万円　/ 　60万円',
+    '-----------------',
+    '■朝礼',
+    '2026年9月12日(土)の日報をお送りいたします。',
+    '',
+  ];
+  for (var j = 0; j < notMarkers.length; j++) {
+    assertTrue_(!isSectionMarker_(notMarkers[j]), '節の見出しにしない: 「' + notMarkers[j] + '」');
+  }
+
+  // 飾りを変えたシートでも、切れ目より下は読まない
+  var lines = withNightSheet_([
+    ['＜進捗状況＞', ''],
+    ['★リード売上 69.4万円', ''],
+    ['【業務報告】', ''],
+    ['■シートに書きかけの予定', ''],
+  ], function () {
+    return readNightProgressLines_();
+  });
+  assertEquals_('＜進捗状況＞\n★リード売上 69.4万円', lines.join('\n'), '飾りが違っても切れ目で止まる');
 }
