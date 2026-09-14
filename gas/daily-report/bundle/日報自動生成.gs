@@ -15,8 +15,9 @@
  * ■ 使う前に
  *   1. ［プロジェクトの設定］でタイムゾーンを Asia/Tokyo にする
  *   2. ［スクリプト プロパティ］に CHATWORK_API_TOKEN と CHATWORK_ROOM_ID を設定する
- *   3. runAllTests を実行して全件成功することを確認する
- *   4. setupTriggers を実行してトリガー（12:55 / 18:25）を作る
+ *   3. ［サービス］→［+］→ Tasks API を足す（Google ToDo を日報に出す場合のみ）
+ *   4. runAllTests を実行して全件成功することを確認する
+ *   5. setupTriggers を実行してトリガー（12:55 / 18:25）を作る
  *
  * ■ 毎日の流れ
  *   12:55 / 18:25 にトリガーが動き、「日報」シートに下書きが 1 行増える
@@ -26,6 +27,9 @@
  * ■ 日報に入るもの
  *   そのまま Chatwork へ貼れる本文だけです。
  *   どちらの型かを示す見出し（昼用・夜用の別）は入りません。
+ *   業務予定には、カレンダーの予定に続けて Google ToDo の未完了タスクが並びます
+ *   （期限を付けたタスクだけ。Tasks API は期限の時刻を持たないため、AM / PM への
+ *   振り分けはできず、昼は PM 側・夜は AM 側に固定で入ります）。
  *
  * ■ AI Work（業務プラットフォーム）から使う場合
  *   ［スクリプト プロパティ］に API_SHARED_SECRET（推測されにくい文字列）を足し、
@@ -48,6 +52,8 @@
  *   runDayReport / runNightReport                下書きを作る（トリガーが実行するもの）
  *   testDayReport / testNightReport              本文だけ確認
  *   testTodayEvents                              今日の予定を確認（HOME の Schedule 欄用）
+ *   showNightSources                             夜の日報が何をどこから取ったかを確認
+ *   showTasks                                    Google ToDo が日報に出るかを確認
  *
  *   これ以外の関数は名前の末尾が _ になっており、実行メニューには出ません。
  *   （doGet / doPost はウェブアプリの入口です。手で実行するものではありません）
@@ -650,7 +656,8 @@ function describeCalendarDay_(date) {
   if (events.length === 0) {
     lines.push(
       'このカレンダーには 1 件もありません。' +
-        'Google ToDo（タスク）はカレンダーの画面には出ますが、予定ではないのでここには入りません。'
+        'Google ToDo（タスク）はカレンダーの画面には出ますが、予定ではないのでここには入りません' +
+        '（タスクは tasks.gs が別に読みます。showTasks() で確認できます）。'
     );
     return lines;
   }
@@ -711,7 +718,7 @@ function getCalendarColor_() {
 }
 
 /**
- * AM（00:00 〜 AM_PM_BOUNDARY_HOUR の直前に開始）の予定。
+ * AM（00:00 〜 境目の直前に開始）の予定。境目は config.gs で決める。
  */
 function getMorningEvents_(date) {
   assertDate_(date);
@@ -719,7 +726,7 @@ function getMorningEvents_(date) {
 }
 
 /**
- * PM（AM_PM_BOUNDARY_HOUR 〜 23:59 に開始）の予定。
+ * PM（境目 〜 23:59 に開始）の予定。境目は config.gs で決める。
  */
 function getAfternoonEvents_(date) {
   assertDate_(date);
@@ -792,6 +799,198 @@ function getDayEventsForApi_(date) {
     });
   }
   return out;
+}
+
+/* ==================================================================
+ * tasks.gs
+ * ================================================================== */
+/**
+ * Google ToDo（タスク）の読み取り。
+ *
+ * カレンダーの画面にはタスクも並ぶが、タスクは予定ではない。別のサービスで、
+ * CalendarApp からは 1 件も取れない。読むには拡張サービス「Tasks API」を足す。
+ *
+ *   Apps Script の左メニュー［サービス］→［+］→ Tasks API → 追加
+ *
+ * 足していないプロジェクトでもスクリプト全体が止まらないようにしてある。
+ * タスクだけが空になり、日報は今までどおり出る。日報が毎日出ることのほうが、
+ * タスク欄が埋まることより大事なため。
+ *
+ * ■ 期限に時刻は入らない
+ *   Tasks API の due は日付だけを持つ。画面で時刻を付けても API からは読めない
+ *   （Google 側の仕様で、時刻部分は捨てられる）。したがって、タスクを開始時刻で
+ *   AM / PM に振り分けることはできない。置き場所は report.gs で決めている。
+ */
+
+/** 1 回の実行で読むタスクリストの数の上限。 */
+var TASK_LISTS_MAX = 20;
+
+/** 1 つのリストから読むタスクの数の上限（Tasks API の上限が 100）。 */
+var TASKS_PER_LIST_MAX = 100;
+
+/** 日報 1 本に並べるタスクの数の上限。多すぎると日報が読めなくなる。 */
+var TASKS_PER_REPORT_MAX = 20;
+
+/**
+ * 拡張サービス「Tasks API」が足されているか。
+ *
+ * 足されていないプロジェクトでは Tasks という名前自体が無い。
+ * 参照すると落ちるので、typeof で確かめる。
+ */
+function isTasksServiceAvailable_() {
+  return (
+    typeof Tasks !== 'undefined' &&
+    Tasks !== null &&
+    Tasks.Tasklists !== undefined &&
+    Tasks.Tasks !== undefined
+  );
+}
+
+/**
+ * その日が期限の、まだ終わっていないタスクかどうか。
+ *
+ * 完了・削除・非表示のものは日報に出さない。
+ * due は「2026-09-14T00:00:00.000Z」の形で、日付の部分だけが意味を持つ。
+ *
+ * @param {Object} task Tasks API が返したタスク
+ * @param {string} dueKey 期限の日付（yyyy-MM-dd）
+ */
+function isIncompleteTaskDueOn_(task, dueKey) {
+  if (task === null || task === undefined) return false;
+  if (task.deleted === true || task.hidden === true) return false;
+  if (task.status === 'completed') return false;
+  if (typeof task.due !== 'string' || task.due.length < 10) return false;
+  return task.due.substring(0, 10) === dueKey;
+}
+
+/**
+ * 指定日が期限の、未完了タスクの名前を返す。
+ *
+ * 読めないときは空の配列を返す（日報は作る）。理由はログへ残す。
+ * 黙って空にすると、タスクが 0 件なのか読めていないのか分からなくなる。
+ *
+ * @return {Array.<string>}
+ */
+function getTaskTitlesForDate_(date) {
+  assertDate_(date);
+  if (!isTasksServiceAvailable_()) {
+    Logger.log(
+      'Google ToDo は読んでいません（拡張サービス「Tasks API」が足されていません）。' +
+        'Apps Script の［サービス］→［+］→ Tasks API で追加できます。'
+    );
+    return [];
+  }
+
+  var dueKey = Utilities.formatDate(date, TIME_ZONE, 'yyyy-MM-dd');
+  var lists = listTaskLists_();
+  var titles = [];
+
+  for (var i = 0; i < lists.length; i++) {
+    var items = listTasksDueOn_(lists[i], dueKey);
+    for (var j = 0; j < items.length; j++) {
+      if (!isIncompleteTaskDueOn_(items[j], dueKey)) continue;
+      if (formatTitleLine_(items[j].title) === null) continue;
+      titles.push(items[j].title);
+      if (titles.length >= TASKS_PER_REPORT_MAX) return titles;
+    }
+  }
+  return titles;
+}
+
+/**
+ * タスクリストの一覧。読めなければ空。
+ *
+ * リストを 1 つに決め打ちしない。仕事のタスクを既定の「マイタスク」以外に
+ * 分けている人がいて、決め打ちにするとその人の日報だけ空になる。
+ */
+function listTaskLists_() {
+  try {
+    var response = Tasks.Tasklists.list({ maxResults: TASK_LISTS_MAX });
+    return response && response.items ? response.items : [];
+  } catch (e) {
+    Logger.log('Google ToDo のリストを読めませんでした（日報はタスクなしで作ります）: ' + e);
+    return [];
+  }
+}
+
+/**
+ * 1 つのリストから、その日が期限のタスクを読む。読めなければ空。
+ *
+ * dueMin / dueMax で Google 側に絞らせる。手元だけで絞ると、期限を付けていない
+ * タスクが多い人は上限に当たって、期限付きのタスクが最後まで届かない。
+ * 返ってきたものは呼び出し側でもう一度確かめる（絞り込みを二重にしておく）。
+ */
+function listTasksDueOn_(list, dueKey) {
+  try {
+    var response = Tasks.Tasks.list(list.id, {
+      showCompleted: false,
+      showHidden: false,
+      showDeleted: false,
+      dueMin: dueKey + 'T00:00:00.000Z',
+      dueMax: dueKey + 'T23:59:59.999Z',
+      maxResults: TASKS_PER_LIST_MAX,
+    });
+    return response && response.items ? response.items : [];
+  } catch (e) {
+    Logger.log(
+      'Google ToDo「' + (list && list.title ? list.title : list.id) + '」を読めませんでした: ' + e
+    );
+    return [];
+  }
+}
+
+/**
+ * その日のタスクを、絞り込む前の状態から順に説明する行を返す。
+ *
+ * 「タスクが日報に出ない」とき、サービスを足していないのか、リストが違うのか、
+ * 期限を付けていないのかで直す場所が違う。1 件ずつ、採否と理由を並べる。
+ *
+ * ここでは日報を作らない。目で確かめるためだけの読み取り。
+ *
+ * @return {Array.<string>}
+ */
+function describeTasksForDate_(date) {
+  assertDate_(date);
+  var lines = [];
+
+  if (!isTasksServiceAvailable_()) {
+    lines.push(
+      '拡張サービス「Tasks API」が足されていません。' +
+        'Apps Script の左メニュー［サービス］→［+］→ Tasks API →［追加］で足してください。' +
+        '足すまで、タスクは 1 件も日報に出ません。'
+    );
+    return lines;
+  }
+
+  var dueKey = Utilities.formatDate(date, TIME_ZONE, 'yyyy-MM-dd');
+  var lists = listTaskLists_();
+  if (lists.length === 0) {
+    lines.push('タスクリストが 1 つも読めませんでした。');
+    return lines;
+  }
+
+  for (var i = 0; i < lists.length; i++) {
+    var items = listTasksDueOn_(lists[i], dueKey);
+    lines.push('［リスト］' + lists[i].title + '（期限が ' + dueKey + ' のもの: ' + items.length + ' 件）');
+    for (var j = 0; j < items.length; j++) {
+      var task = items[j];
+      var verdict;
+      if (!isIncompleteTaskDueOn_(task, dueKey)) {
+        verdict = '除外（完了済み・削除済み、または期限が別の日）';
+      } else if (formatTitleLine_(task.title) === null) {
+        verdict = '除外（タスク名が空）';
+      } else {
+        verdict = '採用';
+      }
+      lines.push('・' + task.title + ' → ' + verdict);
+    }
+  }
+
+  lines.push(
+    '※ 期限を付けていないタスクはここに出ません。Tasks API は期限の「日付」しか持たず、' +
+      '時刻は読めないため、時刻での絞り込みもできません。'
+  );
+  return lines;
 }
 
 /* ==================================================================
@@ -992,13 +1191,22 @@ function isSpreadsheetError_(text) {
  * report.gs
  * ================================================================== */
 /**
- * 昼の日報本文の生成。
+ * 日報本文の生成。
  *
  * フォーマットは固定のため、AI・LLM は使用しない。
- * カレンダーのタイトルをそのまま「■」付きの行にするだけ。
+ * カレンダーの予定と Google ToDo のタスクを「■」付きの行にするだけ。
  *
- * 夜の日報はここでは作らない。スプレッドシートの「日報」タブがそのまま本文になる
- * （nightBody.gs）。同じ文面を二か所で組み立てると、片方だけ直した日に食い違う。
+ * 夜の日報の上半分（挨拶・進捗状況）はここでは作らない。スプレッドシートの
+ * 「日報」タブから読む（nightBody.gs）。下半分だけをここで組み立てる。
+ *
+ * ■ タスクを置く場所
+ *   タスクは必ず「業務予定」側に入れる。未完了のタスク＝これからやることなので、
+ *   業務報告（やったこと）に混ぜると、やっていないことを報告したことになる。
+ *
+ *   Tasks API は期限の「日付」しか持たず、時刻は読めない。そのため予定のように
+ *   開始時刻で AM / PM へ振り分けることはできない。置き場所は下のとおり固定する。
+ *     昼 … 業務予定（当日 PM）の末尾に、当日が期限のタスク
+ *     夜 … 業務予定（翌営業日 AM）の末尾に、翌営業日が期限のタスク
  *
  * 出来上がるのは、そのまま Chatwork へ貼れる本文だけにする。
  * 「【昼用】」「【夜用】」のような、どちらの型かを示す見出しは入れない。
@@ -1035,12 +1243,13 @@ function appendTitleLines_(lines, titles) {
 }
 
 /**
- * 昼の日報本文を組み立てる（カレンダーへはアクセスしない純粋な処理）。
+ * 昼の日報本文を組み立てる（カレンダーへも ToDo へもアクセスしない純粋な処理）。
  *
  * @param {Array.<string>} morningTitles 当日 AM の予定タイトル
  * @param {Array.<string>} afternoonTitles 当日 PM の予定タイトル
+ * @param {Array.<string>=} taskTitles 当日が期限の未完了タスク名
  */
-function buildDayReportBody_(morningTitles, afternoonTitles) {
+function buildDayReportBody_(morningTitles, afternoonTitles, taskTitles) {
   var lines = [];
   lines.push('---業務報告---');
   lines.push('AM');
@@ -1049,16 +1258,19 @@ function buildDayReportBody_(morningTitles, afternoonTitles) {
   lines.push('---業務予定---');
   lines.push('PM');
   appendTitleLines_(lines, afternoonTitles);
+  // タスクは「これからやること」なので業務予定側。業務報告に入れると
+  // やっていないことを報告したことになる
+  appendTitleLines_(lines, taskTitles);
   return lines.join('\n');
 }
 
 /**
- * 指定日の昼の日報本文を生成する（カレンダーを参照する）。
+ * 指定日の昼の日報本文を生成する（カレンダーと Google ToDo を参照する）。
  */
 function generateDayReport_(date) {
   assertDate_(date);
   var titles = getEventTitlesByHalf_(date);
-  return buildDayReportBody_(titles.morning, titles.afternoon);
+  return buildDayReportBody_(titles.morning, titles.afternoon, getTaskTitlesForDate_(date));
 }
 
 /**
@@ -1071,12 +1283,18 @@ function generateDayReport_(date) {
  *   業務予定 … 次の営業日の AM と PM。夜に出す予定は、翌日そのまま使えるもの
  *   所感     … 見出しだけ。中身は人が下書きに書き足す
  *
+ * タスクは業務予定の AM 側に置く。期限に時刻が無く（Tasks API の仕様）、
+ * AM / PM のどちらかには決められないので、先に目に入る側へ寄せる。
+ *
  * @param {Array.<string>} progressLines シートから読んだ上半分
  * @param {Array.<string>} afternoonTitles 当日 PM の予定タイトル
  * @param {Array.<string>} nextMorningTitles 次の営業日 AM の予定タイトル
  * @param {Array.<string>} nextAfternoonTitles 次の営業日 PM の予定タイトル
+ * @param {Array.<string>=} nextTaskTitles 次の営業日が期限の未完了タスク名
  */
-function buildNightReportBody_(progressLines, afternoonTitles, nextMorningTitles, nextAfternoonTitles) {
+function buildNightReportBody_(
+  progressLines, afternoonTitles, nextMorningTitles, nextAfternoonTitles, nextTaskTitles
+) {
   var lines = [];
   if (progressLines) {
     for (var i = 0; i < progressLines.length; i++) lines.push(progressLines[i]);
@@ -1091,6 +1309,7 @@ function buildNightReportBody_(progressLines, afternoonTitles, nextMorningTitles
   lines.push('---業務予定---');
   lines.push('AM');
   appendTitleLines_(lines, nextMorningTitles);
+  appendTitleLines_(lines, nextTaskTitles);
   lines.push('');
   lines.push('PM');
   appendTitleLines_(lines, nextAfternoonTitles);
@@ -1101,17 +1320,22 @@ function buildNightReportBody_(progressLines, afternoonTitles, nextMorningTitles
 }
 
 /**
- * 指定日の夜の日報本文を生成する（シートとカレンダーの両方を参照する）。
+ * 指定日の夜の日報本文を生成する（シート・カレンダー・Google ToDo を参照する）。
+ *
+ * タスクは翌営業日が期限のものを読む。夜の業務予定は翌営業日のことなので、
+ * 当日が期限のタスクを並べると、報告の対象日とずれる。
  */
 function generateNightReport_(date) {
   assertDate_(date);
+  var nextDate = nextBusinessDay_(date);
   var today = getEventTitlesByHalf_(date);
-  var next = getEventTitlesByHalf_(nextBusinessDay_(date));
+  var next = getEventTitlesByHalf_(nextDate);
   return buildNightReportBody_(
     readNightProgressLines_(),
     today.afternoon,
     next.morning,
-    next.afternoon
+    next.afternoon,
+    getTaskTitlesForDate_(nextDate)
   );
 }
 
@@ -1967,8 +2191,47 @@ function showNightSources() {
   for (var m = 0; m < nextLines.length; m++) report.push(nextLines[m]);
 
   report.push('');
+  report.push('----- 次の営業日（' + formatJapaneseDate_(next) + '）の Google ToDo -----');
+  report.push('※ 業務予定の AM 側に、ここで「採用」になったものが並びます');
+  var taskLines = describeTasksForDate_(next);
+  for (var t = 0; t < taskLines.length; t++) report.push(taskLines[t]);
+
+  report.push('');
   report.push('----- 組み上がる本文 -----');
   report.push(generateNightReport_(today));
+
+  var text = report.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+/**
+ * Google ToDo（タスク）を、日報に出るかどうかまで含めてログへ出す。
+ *
+ * 「タスクが日報に出ない」原因は、たいてい次のどれか。
+ *   1. 拡張サービス「Tasks API」を足していない
+ *   2. タスクに期限を付けていない（期限の無いタスクは日報に出ない）
+ *   3. 期限が別の日になっている
+ *
+ * どれなのかはログを見ないと分からないので、リストごとに 1 件ずつ出す。
+ * 投稿もシートへの書き出しもしない。
+ */
+function showTasks() {
+  assertTimeZone_();
+  var today = businessToday_();
+  var next = nextBusinessDay_(today);
+
+  var report = [];
+  report.push('----- 当日（' + formatJapaneseDate_(today) + '）の Google ToDo -----');
+  report.push('※ 昼の日報の業務予定（PM）の末尾に、ここで「採用」になったものが並びます');
+  var todayLines = describeTasksForDate_(today);
+  for (var i = 0; i < todayLines.length; i++) report.push(todayLines[i]);
+
+  report.push('');
+  report.push('----- 次の営業日（' + formatJapaneseDate_(next) + '）の Google ToDo -----');
+  report.push('※ 夜の日報の業務予定（AM）の末尾に、ここで「採用」になったものが並びます');
+  var nextLines = describeTasksForDate_(next);
+  for (var j = 0; j < nextLines.length; j++) report.push(nextLines[j]);
 
   var text = report.join('\n');
   Logger.log(text);
@@ -2428,6 +2691,9 @@ function runAllTests() {
     ['Test 27: 節の見出しの書き方が違っても切れ目を見つける', test27_SectionMarkerVariants_],
     ['Test 28: AM と PM の境目は 14:00', test28_AmPmBoundary_],
     ['Test 29: 境目は設定で変えられる', test29_AmPmBoundaryIsConfigurable_],
+    ['Test 30: タスクは業務予定側に入る', test30_TasksGoUnderPlans_],
+    ['Test 31: 期限・完了・削除でタスクを絞り込む', test31_TaskFiltering_],
+    ['Test 32: Tasks API が無くても日報は作られる', test32_ReportWorksWithoutTasksService_],
   ];
 
   var failed = 0;
@@ -2790,7 +3056,7 @@ function test17_OnlyEntryPointsArePublic_() {
     'runDayReport', 'runNightReport',
     'showDayDraft', 'showNightDraft',
     'sendDayDraft', 'sendNightDraft',
-    'testDayReport', 'testNightReport', 'testTodayEvents', 'showNightSources',
+    'testDayReport', 'testNightReport', 'testTodayEvents', 'showNightSources', 'showTasks',
     'runAllTests', 'setupTriggers',
   ];
   for (var i = 0; i < entryPoints.length; i++) {
@@ -2805,6 +3071,7 @@ function test17_OnlyEntryPointsArePublic_() {
     'generateDayReport', 'generateNightReport',
     'buildDayReportBody', 'buildNightReportBody',
     'getCalendarEvents', 'getMorningEvents', 'getAfternoonEvents',
+    'getTaskTitlesForDate', 'describeTasksForDate', 'isIncompleteTaskDueOn',
     'isBusinessDay', 'getNextBusinessDay',
     'sendToChatwork', 'buildReportKey', 'hasAlreadySent', 'markAsSent',
     'formatJapaneseDate', 'parseDate',
@@ -3218,6 +3485,124 @@ function test29_AmPmBoundaryIsConfigurable_() {
   withAmPmBoundary_('', function () {
     assertEquals_(DEFAULT_AM_PM_BOUNDARY, formatAmPmBoundary_(), '空欄なら既定値を使う');
   });
+}
+
+function test30_TasksGoUnderPlans_() {
+  /*
+    Google ToDo の未完了タスクは「これからやること」なので、業務予定側に入れる。
+    業務報告に混ぜると、やっていないことを報告したことになる。
+
+    Tasks API は期限の「日付」しか持たず、時刻は読めない。そのため予定のように
+    開始時刻で AM / PM へ振り分けることはできず、置き場所を固定している。
+      昼 … 業務予定（当日 PM）の末尾
+      夜 … 業務予定（翌営業日 AM）の末尾
+  */
+  var day = buildDayReportBody_(['朝礼'], ['計上作業'], ['請求書の送付', '見積の作成']);
+  assertEquals_(
+    [
+      '---業務報告---',
+      'AM',
+      '■朝礼',
+      ' ',
+      '---業務予定---',
+      'PM',
+      '■計上作業',
+      '■請求書の送付',
+      '■見積の作成',
+    ].join('\n'),
+    day,
+    '昼の日報はタスクを業務予定（PM）の末尾に置く'
+  );
+
+  var night = buildNightReportBody_(['お疲れ様です。'], ['昼礼'], ['朝礼'], ['架電'], ['請求書の送付']);
+  assertEquals_(
+    [
+      'お疲れ様です。',
+      '',
+      '---業務報告---',
+      'PM',
+      '■昼礼',
+      '',
+      '---業務予定---',
+      'AM',
+      '■朝礼',
+      '■請求書の送付',
+      '',
+      'PM',
+      '■架電',
+      '',
+      '---所感---',
+    ].join('\n'),
+    night,
+    '夜の日報はタスクを業務予定（AM）の末尾に置く'
+  );
+
+  // 業務報告の側へ漏れていないこと（ここが崩れると、やっていない報告になる）
+  var reportPart = night.substring(night.indexOf('---業務報告---'), night.indexOf('---業務予定---'));
+  assertTrue_(reportPart.indexOf('請求書の送付') === -1, 'タスクが業務報告に混ざらないこと');
+
+  // タスクが無い日は、今までどおりの本文のまま（余分な行を足さない）
+  assertEquals_(
+    buildDayReportBody_(['朝礼'], ['計上作業']),
+    buildDayReportBody_(['朝礼'], ['計上作業'], []),
+    'タスクが無ければ日報の形は変わらない'
+  );
+}
+
+function test31_TaskFiltering_() {
+  /*
+    日報に出すのは「その日が期限の、まだ終わっていないタスク」だけ。
+    完了・削除・非表示のものが混ざると、済んだ仕事を予定として報告することになる。
+    期限を付けていないタスクも出さない（いつやるか決まっていないため）。
+  */
+  var due = '2026-09-15';
+  var accepted = [
+    { title: '請求書の送付', status: 'needsAction', due: '2026-09-15T00:00:00.000Z' },
+    { title: '見積の作成', due: '2026-09-15T00:00:00.000Z' },
+  ];
+  for (var i = 0; i < accepted.length; i++) {
+    assertTrue_(isIncompleteTaskDueOn_(accepted[i], due), '採用: ' + accepted[i].title);
+  }
+
+  var rejected = [
+    ['完了済み', { title: '済んだ仕事', status: 'completed', due: '2026-09-15T00:00:00.000Z' }],
+    ['削除済み', { title: '消した仕事', deleted: true, due: '2026-09-15T00:00:00.000Z' }],
+    ['非表示', { title: '隠れた仕事', hidden: true, due: '2026-09-15T00:00:00.000Z' }],
+    ['期限が前日', { title: '昨日まで', due: '2026-09-14T00:00:00.000Z' }],
+    ['期限が翌日', { title: '明日まで', due: '2026-09-16T00:00:00.000Z' }],
+    ['期限が無い', { title: 'いつか', status: 'needsAction' }],
+    ['中身が無い', null],
+  ];
+  for (var j = 0; j < rejected.length; j++) {
+    assertTrue_(
+      !isIncompleteTaskDueOn_(rejected[j][1], due),
+      '除外（' + rejected[j][0] + '）: ' + (rejected[j][1] === null ? 'null' : rejected[j][1].title)
+    );
+  }
+}
+
+function test32_ReportWorksWithoutTasksService_() {
+  /*
+    拡張サービス「Tasks API」を足していないプロジェクトでも、日報は出さなければならない。
+    タスク欄が埋まることより、日報が毎日出ることのほうが大事。
+    ここが落ちると、タスクを足したせいで日報そのものが止まる。
+  */
+  if (isTasksServiceAvailable_()) {
+    // サービスがある環境では、読めることだけを確かめる（中身は人のタスク次第）
+    var titles = getTaskTitlesForDate_(parseDate_('2026-09-15'));
+    assertTrue_(Object.prototype.toString.call(titles) === '[object Array]', 'タスク名は配列で返る');
+    return;
+  }
+
+  assertEquals_(
+    0,
+    getTaskTitlesForDate_(parseDate_('2026-09-15')).length,
+    'サービスが無ければタスクは 0 件'
+  );
+
+  var lines = describeTasksForDate_(parseDate_('2026-09-15'));
+  assertTrue_(lines.length > 0, 'サービスが無いことを説明する行を返す');
+  assertTrue_(lines.join('\n').indexOf('Tasks API') >= 0, '足し方を案内すること');
 }
 
 /** テスト用に AM / PM の境目を差し替える */

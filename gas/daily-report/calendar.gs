@@ -130,7 +130,8 @@ function describeCalendarDay_(date) {
   if (events.length === 0) {
     lines.push(
       'このカレンダーには 1 件もありません。' +
-        'Google ToDo（タスク）はカレンダーの画面には出ますが、予定ではないのでここには入りません。'
+        'Google ToDo（タスク）はカレンダーの画面には出ますが、予定ではないのでここには入りません' +
+        '（タスクは tasks.gs が別に読みます。showTasks() で確認できます）。'
     );
     return lines;
   }
@@ -191,7 +192,7 @@ function getCalendarColor_() {
 }
 
 /**
- * AM（00:00 〜 AM_PM_BOUNDARY_HOUR の直前に開始）の予定。
+ * AM（00:00 〜 境目の直前に開始）の予定。境目は config.gs で決める。
  */
 function getMorningEvents_(date) {
   assertDate_(date);
@@ -199,7 +200,7 @@ function getMorningEvents_(date) {
 }
 
 /**
- * PM（AM_PM_BOUNDARY_HOUR 〜 23:59 に開始）の予定。
+ * PM（境目 〜 23:59 に開始）の予定。境目は config.gs で決める。
  */
 function getAfternoonEvents_(date) {
   assertDate_(date);

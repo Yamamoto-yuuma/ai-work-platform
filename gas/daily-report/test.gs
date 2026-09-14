@@ -40,6 +40,9 @@ function runAllTests() {
     ['Test 27: 節の見出しの書き方が違っても切れ目を見つける', test27_SectionMarkerVariants_],
     ['Test 28: AM と PM の境目は 14:00', test28_AmPmBoundary_],
     ['Test 29: 境目は設定で変えられる', test29_AmPmBoundaryIsConfigurable_],
+    ['Test 30: タスクは業務予定側に入る', test30_TasksGoUnderPlans_],
+    ['Test 31: 期限・完了・削除でタスクを絞り込む', test31_TaskFiltering_],
+    ['Test 32: Tasks API が無くても日報は作られる', test32_ReportWorksWithoutTasksService_],
   ];
 
   var failed = 0;
@@ -402,7 +405,7 @@ function test17_OnlyEntryPointsArePublic_() {
     'runDayReport', 'runNightReport',
     'showDayDraft', 'showNightDraft',
     'sendDayDraft', 'sendNightDraft',
-    'testDayReport', 'testNightReport', 'testTodayEvents', 'showNightSources',
+    'testDayReport', 'testNightReport', 'testTodayEvents', 'showNightSources', 'showTasks',
     'runAllTests', 'setupTriggers',
   ];
   for (var i = 0; i < entryPoints.length; i++) {
@@ -417,6 +420,7 @@ function test17_OnlyEntryPointsArePublic_() {
     'generateDayReport', 'generateNightReport',
     'buildDayReportBody', 'buildNightReportBody',
     'getCalendarEvents', 'getMorningEvents', 'getAfternoonEvents',
+    'getTaskTitlesForDate', 'describeTasksForDate', 'isIncompleteTaskDueOn',
     'isBusinessDay', 'getNextBusinessDay',
     'sendToChatwork', 'buildReportKey', 'hasAlreadySent', 'markAsSent',
     'formatJapaneseDate', 'parseDate',
@@ -830,6 +834,124 @@ function test29_AmPmBoundaryIsConfigurable_() {
   withAmPmBoundary_('', function () {
     assertEquals_(DEFAULT_AM_PM_BOUNDARY, formatAmPmBoundary_(), '空欄なら既定値を使う');
   });
+}
+
+function test30_TasksGoUnderPlans_() {
+  /*
+    Google ToDo の未完了タスクは「これからやること」なので、業務予定側に入れる。
+    業務報告に混ぜると、やっていないことを報告したことになる。
+
+    Tasks API は期限の「日付」しか持たず、時刻は読めない。そのため予定のように
+    開始時刻で AM / PM へ振り分けることはできず、置き場所を固定している。
+      昼 … 業務予定（当日 PM）の末尾
+      夜 … 業務予定（翌営業日 AM）の末尾
+  */
+  var day = buildDayReportBody_(['朝礼'], ['計上作業'], ['請求書の送付', '見積の作成']);
+  assertEquals_(
+    [
+      '---業務報告---',
+      'AM',
+      '■朝礼',
+      ' ',
+      '---業務予定---',
+      'PM',
+      '■計上作業',
+      '■請求書の送付',
+      '■見積の作成',
+    ].join('\n'),
+    day,
+    '昼の日報はタスクを業務予定（PM）の末尾に置く'
+  );
+
+  var night = buildNightReportBody_(['お疲れ様です。'], ['昼礼'], ['朝礼'], ['架電'], ['請求書の送付']);
+  assertEquals_(
+    [
+      'お疲れ様です。',
+      '',
+      '---業務報告---',
+      'PM',
+      '■昼礼',
+      '',
+      '---業務予定---',
+      'AM',
+      '■朝礼',
+      '■請求書の送付',
+      '',
+      'PM',
+      '■架電',
+      '',
+      '---所感---',
+    ].join('\n'),
+    night,
+    '夜の日報はタスクを業務予定（AM）の末尾に置く'
+  );
+
+  // 業務報告の側へ漏れていないこと（ここが崩れると、やっていない報告になる）
+  var reportPart = night.substring(night.indexOf('---業務報告---'), night.indexOf('---業務予定---'));
+  assertTrue_(reportPart.indexOf('請求書の送付') === -1, 'タスクが業務報告に混ざらないこと');
+
+  // タスクが無い日は、今までどおりの本文のまま（余分な行を足さない）
+  assertEquals_(
+    buildDayReportBody_(['朝礼'], ['計上作業']),
+    buildDayReportBody_(['朝礼'], ['計上作業'], []),
+    'タスクが無ければ日報の形は変わらない'
+  );
+}
+
+function test31_TaskFiltering_() {
+  /*
+    日報に出すのは「その日が期限の、まだ終わっていないタスク」だけ。
+    完了・削除・非表示のものが混ざると、済んだ仕事を予定として報告することになる。
+    期限を付けていないタスクも出さない（いつやるか決まっていないため）。
+  */
+  var due = '2026-09-15';
+  var accepted = [
+    { title: '請求書の送付', status: 'needsAction', due: '2026-09-15T00:00:00.000Z' },
+    { title: '見積の作成', due: '2026-09-15T00:00:00.000Z' },
+  ];
+  for (var i = 0; i < accepted.length; i++) {
+    assertTrue_(isIncompleteTaskDueOn_(accepted[i], due), '採用: ' + accepted[i].title);
+  }
+
+  var rejected = [
+    ['完了済み', { title: '済んだ仕事', status: 'completed', due: '2026-09-15T00:00:00.000Z' }],
+    ['削除済み', { title: '消した仕事', deleted: true, due: '2026-09-15T00:00:00.000Z' }],
+    ['非表示', { title: '隠れた仕事', hidden: true, due: '2026-09-15T00:00:00.000Z' }],
+    ['期限が前日', { title: '昨日まで', due: '2026-09-14T00:00:00.000Z' }],
+    ['期限が翌日', { title: '明日まで', due: '2026-09-16T00:00:00.000Z' }],
+    ['期限が無い', { title: 'いつか', status: 'needsAction' }],
+    ['中身が無い', null],
+  ];
+  for (var j = 0; j < rejected.length; j++) {
+    assertTrue_(
+      !isIncompleteTaskDueOn_(rejected[j][1], due),
+      '除外（' + rejected[j][0] + '）: ' + (rejected[j][1] === null ? 'null' : rejected[j][1].title)
+    );
+  }
+}
+
+function test32_ReportWorksWithoutTasksService_() {
+  /*
+    拡張サービス「Tasks API」を足していないプロジェクトでも、日報は出さなければならない。
+    タスク欄が埋まることより、日報が毎日出ることのほうが大事。
+    ここが落ちると、タスクを足したせいで日報そのものが止まる。
+  */
+  if (isTasksServiceAvailable_()) {
+    // サービスがある環境では、読めることだけを確かめる（中身は人のタスク次第）
+    var titles = getTaskTitlesForDate_(parseDate_('2026-09-15'));
+    assertTrue_(Object.prototype.toString.call(titles) === '[object Array]', 'タスク名は配列で返る');
+    return;
+  }
+
+  assertEquals_(
+    0,
+    getTaskTitlesForDate_(parseDate_('2026-09-15')).length,
+    'サービスが無ければタスクは 0 件'
+  );
+
+  var lines = describeTasksForDate_(parseDate_('2026-09-15'));
+  assertTrue_(lines.length > 0, 'サービスが無いことを説明する行を返す');
+  assertTrue_(lines.join('\n').indexOf('Tasks API') >= 0, '足し方を案内すること');
 }
 
 /** テスト用に AM / PM の境目を差し替える */

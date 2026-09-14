@@ -21,7 +21,7 @@ const OUT_FILE = join(OUT_DIR, "日報自動生成.gs");
  * 読む人が上から追えるようにするための順番。
  */
 const ORDER = [
-  "config", "date", "businessDay", "calendar", "nightBody", "report", "chatwork",
+  "config", "date", "businessDay", "calendar", "tasks", "nightBody", "report", "chatwork",
   "lock", "sheet", "draft", "main", "menu", "api", "test",
 ];
 
@@ -42,8 +42,9 @@ const HEADER = `/**
  * ■ 使う前に
  *   1. ［プロジェクトの設定］でタイムゾーンを Asia/Tokyo にする
  *   2. ［スクリプト プロパティ］に CHATWORK_API_TOKEN と CHATWORK_ROOM_ID を設定する
- *   3. runAllTests を実行して全件成功することを確認する
- *   4. setupTriggers を実行してトリガー（12:55 / 18:25）を作る
+ *   3. ［サービス］→［+］→ Tasks API を足す（Google ToDo を日報に出す場合のみ）
+ *   4. runAllTests を実行して全件成功することを確認する
+ *   5. setupTriggers を実行してトリガー（12:55 / 18:25）を作る
  *
  * ■ 毎日の流れ
  *   12:55 / 18:25 にトリガーが動き、「日報」シートに下書きが 1 行増える
@@ -53,6 +54,9 @@ const HEADER = `/**
  * ■ 日報に入るもの
  *   そのまま Chatwork へ貼れる本文だけです。
  *   どちらの型かを示す見出し（昼用・夜用の別）は入りません。
+ *   業務予定には、カレンダーの予定に続けて Google ToDo の未完了タスクが並びます
+ *   （期限を付けたタスクだけ。Tasks API は期限の時刻を持たないため、AM / PM への
+ *   振り分けはできず、昼は PM 側・夜は AM 側に固定で入ります）。
  *
  * ■ AI Work（業務プラットフォーム）から使う場合
  *   ［スクリプト プロパティ］に API_SHARED_SECRET（推測されにくい文字列）を足し、
@@ -75,6 +79,8 @@ const HEADER = `/**
  *   runDayReport / runNightReport                下書きを作る（トリガーが実行するもの）
  *   testDayReport / testNightReport              本文だけ確認
  *   testTodayEvents                              今日の予定を確認（HOME の Schedule 欄用）
+ *   showNightSources                             夜の日報が何をどこから取ったかを確認
+ *   showTasks                                    Google ToDo が日報に出るかを確認
  *
  *   これ以外の関数は名前の末尾が _ になっており、実行メニューには出ません。
  *   （doGet / doPost はウェブアプリの入口です。手で実行するものではありません）

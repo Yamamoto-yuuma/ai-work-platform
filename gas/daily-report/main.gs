@@ -179,8 +179,47 @@ function showNightSources() {
   for (var m = 0; m < nextLines.length; m++) report.push(nextLines[m]);
 
   report.push('');
+  report.push('----- 次の営業日（' + formatJapaneseDate_(next) + '）の Google ToDo -----');
+  report.push('※ 業務予定の AM 側に、ここで「採用」になったものが並びます');
+  var taskLines = describeTasksForDate_(next);
+  for (var t = 0; t < taskLines.length; t++) report.push(taskLines[t]);
+
+  report.push('');
   report.push('----- 組み上がる本文 -----');
   report.push(generateNightReport_(today));
+
+  var text = report.join('\n');
+  Logger.log(text);
+  return text;
+}
+
+/**
+ * Google ToDo（タスク）を、日報に出るかどうかまで含めてログへ出す。
+ *
+ * 「タスクが日報に出ない」原因は、たいてい次のどれか。
+ *   1. 拡張サービス「Tasks API」を足していない
+ *   2. タスクに期限を付けていない（期限の無いタスクは日報に出ない）
+ *   3. 期限が別の日になっている
+ *
+ * どれなのかはログを見ないと分からないので、リストごとに 1 件ずつ出す。
+ * 投稿もシートへの書き出しもしない。
+ */
+function showTasks() {
+  assertTimeZone_();
+  var today = businessToday_();
+  var next = nextBusinessDay_(today);
+
+  var report = [];
+  report.push('----- 当日（' + formatJapaneseDate_(today) + '）の Google ToDo -----');
+  report.push('※ 昼の日報の業務予定（PM）の末尾に、ここで「採用」になったものが並びます');
+  var todayLines = describeTasksForDate_(today);
+  for (var i = 0; i < todayLines.length; i++) report.push(todayLines[i]);
+
+  report.push('');
+  report.push('----- 次の営業日（' + formatJapaneseDate_(next) + '）の Google ToDo -----');
+  report.push('※ 夜の日報の業務予定（AM）の末尾に、ここで「採用」になったものが並びます');
+  var nextLines = describeTasksForDate_(next);
+  for (var j = 0; j < nextLines.length; j++) report.push(nextLines[j]);
 
   var text = report.join('\n');
   Logger.log(text);
