@@ -88,8 +88,9 @@ npm run check:bundle   # 最新かどうかを確かめる（npm run verify に�
 |---|---|
 | カレンダーから予定を取得 | `getCalendarEvents_(date)` |
 | AM / PM の分類（開始時刻基準・境目は `AM_PM_BOUNDARY` = 14:00） | `getMorningEvents_(date)` / `getAfternoonEvents_(date)` |
-| 昼の日報の生成 | `generateDayReport_(date)` / `buildDayReportBody_(am, pm)` |
-| 夜の日報の生成 | `generateNightReport_(date)` / `buildNightReportBody_(progress, todayPm, nextAm, nextPm)` |
+| 昼の日報の生成 | `generateDayReport_(date)` / `buildDayReportBody_(am, pm, tasks)` |
+| 夜の日報の生成 | `generateNightReport_(date)` / `buildNightReportBody_(progress, todayPm, nextAm, nextPm, nextTasks)` |
+| Google ToDo の読み取り（→ §5-2） | `getTaskTitlesForDate_(date)` / `describeTasksForDate_(date)` |
 | 土日祝の判定 | `isBusinessDay_(date)` |
 | 夜の進捗状況の読み取り | `readNightProgressLines_()`（nightBody.gs） |
 | 次の営業日 | `nextBusinessDay_(date)` |
@@ -351,9 +352,24 @@ Tasks API の `due` は**期限の日付しか持ちません**。画面で時�
 
 ### 出ないときの調べ方
 
-`showTasks()` を実行すると、リストごとに 1 件ずつ、採否と理由がログに出ます。
-サービスを足していないのか、期限を付けていないのか、期限が別の日なのかが分かります。
-投稿もシートへの書き出しもしません。
+`showTasks()` を実行すると、リストごとに未完了のタスクが 1 件ずつ、**Google が返した
+`due` の生の値つき**で並びます。サービスを足していないのか、期限を付けていないのか、
+期限が別の日なのかが、その場で見分けられます。投稿もシートへの書き出しもしません。
+
+```
+探している期限: 2026-09-14　／　タスクリスト: 1 個
+［リスト］マイタスク（未完了のタスク: 3 件）
+　・3か月目標　[due: 2026-09-14T00:00:00.000Z]　→ ★採用
+　・納品確認　[due: 2026-09-30T00:00:00.000Z]　→ 除外（期限が 2026-09-30）
+　・届き次第　[due: なし]　→ 除外（期限が入っていない）
+```
+
+### 期限での絞り込みは Google に任せていません
+
+Tasks API には `dueMin` / `dueMax` という絞り込みがありますが、**期待どおりに効かない
+ことがあります**（期限がその日のタスクが入っているのに 0 件で返ってきた実例があります）。
+そのため未完了のタスクをすべて取得し、日付の突き合わせはこちら側で行っています。
+読む量は増えますが、静かに 0 件になるよりは確実です。
 
 ## 6. Chatwork API トークンの設定方法
 
@@ -411,7 +427,7 @@ Apps Script がメニューに表示しません）。
 
 | 関数 | すること | Chatwork |
 |---|---|---|
-| `runAllTests` | 32 件のテストをまとめて実行 | 送信しない |
+| `runAllTests` | 33 件のテストをまとめて実行 | 送信しない |
 | `showDayDraft` / `showNightDraft` | 下書きをログに表示（無ければその場で作る） | 送信しない |
 | `sendDayDraft` / `sendNightDraft` | 確認した下書きを本番ルームへ投稿 | **送信する** |
 | `runDayReport` / `runNightReport` | 下書きを作り直す（トリガーが実行するもの） | 送信しない |
@@ -425,7 +441,7 @@ Apps Script がメニューに表示しません）。
 | 関数 | 内容 |
 |---|---|
 | `testTodayEvents()` | 今日の予定をログへ出力（HOME の Schedule 欄に渡している中身の確認） |
-| `runAllTests()` | 32 件のテストケース（昼・夜の本文、土日祝、二重投稿防止、シートの読み取り、ToDo の絞り込みなど）をまとめて実行 |
+| `runAllTests()` | 33 件のテストケース（昼・夜の本文、土日祝、二重投稿防止、シートの読み取り、ToDo の絞り込みなど）をまとめて実行 |
 | `showTasks()` | Google ToDo が日報に出るかをログへ出力（→ §5-2） |
 | `testDayReport()` | 当日の昼の日報本文をログに出力（投稿しない） |
 | `testNightReport()` | 当日の夜の日報本文をログに出力（投稿しない） |

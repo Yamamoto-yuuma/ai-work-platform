@@ -43,6 +43,7 @@ function runAllTests() {
     ['Test 30: タスクは業務予定側に入る', test30_TasksGoUnderPlans_],
     ['Test 31: 期限・完了・削除でタスクを絞り込む', test31_TaskFiltering_],
     ['Test 32: Tasks API が無くても日報は作られる', test32_ReportWorksWithoutTasksService_],
+    ['Test 33: 期限の絞り込みは Google に任せない', test33_TasksAreFilteredLocally_],
   ];
 
   var failed = 0;
@@ -952,6 +953,68 @@ function test32_ReportWorksWithoutTasksService_() {
   var lines = describeTasksForDate_(parseDate_('2026-09-15'));
   assertTrue_(lines.length > 0, 'サービスが無いことを説明する行を返す');
   assertTrue_(lines.join('\n').indexOf('Tasks API') >= 0, '足し方を案内すること');
+}
+
+function test33_TasksAreFilteredLocally_() {
+  /*
+    Tasks API の dueMin / dueMax は期待どおりに効かないことがある。実際、期限が
+    その日のタスクが入っているのに 0 件で返ってきて、日報にタスクが出なかった。
+    未完了のタスクをすべて取ってきて、日付の突き合わせはこちらで行う。
+
+    ページ送りもたどる。期限を付けていないタスクが多いと、1 ページ目に
+    期限付きのタスクが入りきらないことがある。
+  */
+  var saved = typeof Tasks === 'undefined' ? undefined : Tasks;
+  var requested = [];
+
+  try {
+    globalThis.Tasks = {
+      Tasklists: {
+        list: function () { return { items: [{ id: 'l1', title: 'マイタスク' }] }; },
+      },
+      Tasks: {
+        list: function (listId, options) {
+          requested.push(options);
+          if (requested.length === 1) {
+            return {
+              items: [
+                { title: '期限なし', status: 'needsAction' },
+                { title: '先の予定', status: 'needsAction', due: '2026-09-30T00:00:00.000Z' },
+              ],
+              nextPageToken: 'p2',
+            };
+          }
+          return {
+            items: [{ title: '今日のタスク', status: 'needsAction', due: '2026-09-14T00:00:00.000Z' }],
+          };
+        },
+      },
+    };
+
+    assertEquals_(
+      '今日のタスク',
+      getTaskTitlesForDate_(parseDate_('2026-09-14')).join(','),
+      'その日が期限のタスクだけを返す（2 ページ目にあっても拾う）'
+    );
+
+    assertEquals_(2, requested.length, 'ページ送りをたどること');
+    assertTrue_(
+      requested[0].dueMin === undefined && requested[0].dueMax === undefined,
+      '期限で Google 側に絞らせないこと（効かないことがあるため）'
+    );
+    assertEquals_('p2', requested[1].pageToken, '2 ページ目は続きから読むこと');
+    assertEquals_(false, requested[0].showCompleted, '完了済みは取りに行かない');
+
+    // 該当が無い日は、空のまま（日報にはタスクの行が出ない）
+    assertEquals_(
+      0,
+      getTaskTitlesForDate_(parseDate_('2026-09-15')).length,
+      '期限が合う日が無ければ 0 件'
+    );
+  } finally {
+    if (saved === undefined) delete globalThis.Tasks;
+    else globalThis.Tasks = saved;
+  }
 }
 
 /** テスト用に AM / PM の境目を差し替える */

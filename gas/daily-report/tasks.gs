@@ -10,6 +10,12 @@
  * タスクだけが空になり、日報は今までどおり出る。日報が毎日出ることのほうが、
  * タスク欄が埋まることより大事なため。
  *
+ * ■ 期限での絞り込みは Google に任せない
+ *   Tasks API の dueMin / dueMax は、期限の保存形式との噛み合わせで期待どおりに
+ *   効かないことがある。実際、期限がその日のタスクがあるのに 0 件で返ってきた。
+ *   未完了のタスクをすべて取ってきて、日付の突き合わせはこちらで行う。
+ *   読む量は増えるが、静かに落ちるよりよい。
+ *
  * ■ 期限に時刻は入らない
  *   Tasks API の due は日付だけを持つ。画面で時刻を付けても API からは読めない
  *   （Google 側の仕様で、時刻部分は捨てられる）。したがって、タスクを開始時刻で
@@ -17,10 +23,13 @@
  */
 
 /** 1 回の実行で読むタスクリストの数の上限。 */
-var TASK_LISTS_MAX = 20;
+var TASK_LISTS_MAX = 50;
 
-/** 1 つのリストから読むタスクの数の上限（Tasks API の上限が 100）。 */
-var TASKS_PER_LIST_MAX = 100;
+/** 1 回の問い合わせで読むタスクの数（Tasks API の上限が 100）。 */
+var TASKS_PAGE_SIZE = 100;
+
+/** 1 つのリストで読むページ数の上限。無限に回らないための歯止め。 */
+var TASKS_MAX_PAGES = 10;
 
 /** 日報 1 本に並べるタスクの数の上限。多すぎると日報が読めなくなる。 */
 var TASKS_PER_REPORT_MAX = 20;
@@ -41,10 +50,21 @@ function isTasksServiceAvailable_() {
 }
 
 /**
+ * タスクの期限を yyyy-MM-dd で返す。期限が無ければ空文字。
+ *
+ * due は「2026-09-14T00:00:00.000Z」の形で来る。意味を持つのは日付の部分だけで、
+ * 時刻は Google 側が捨てている。
+ */
+function taskDueDate_(task) {
+  if (task === null || task === undefined) return '';
+  if (typeof task.due !== 'string' || task.due.length < 10) return '';
+  return task.due.substring(0, 10);
+}
+
+/**
  * その日が期限の、まだ終わっていないタスクかどうか。
  *
  * 完了・削除・非表示のものは日報に出さない。
- * due は「2026-09-14T00:00:00.000Z」の形で、日付の部分だけが意味を持つ。
  *
  * @param {Object} task Tasks API が返したタスク
  * @param {string} dueKey 期限の日付（yyyy-MM-dd）
@@ -53,8 +73,7 @@ function isIncompleteTaskDueOn_(task, dueKey) {
   if (task === null || task === undefined) return false;
   if (task.deleted === true || task.hidden === true) return false;
   if (task.status === 'completed') return false;
-  if (typeof task.due !== 'string' || task.due.length < 10) return false;
-  return task.due.substring(0, 10) === dueKey;
+  return taskDueDate_(task) === dueKey;
 }
 
 /**
@@ -80,7 +99,7 @@ function getTaskTitlesForDate_(date) {
   var titles = [];
 
   for (var i = 0; i < lists.length; i++) {
-    var items = listTasksDueOn_(lists[i], dueKey);
+    var items = listOpenTasks_(lists[i]);
     for (var j = 0; j < items.length; j++) {
       if (!isIncompleteTaskDueOn_(items[j], dueKey)) continue;
       if (formatTitleLine_(items[j].title) === null) continue;
@@ -108,36 +127,48 @@ function listTaskLists_() {
 }
 
 /**
- * 1 つのリストから、その日が期限のタスクを読む。読めなければ空。
+ * 1 つのリストの、未完了タスクをすべて読む。読めなければ空。
  *
- * dueMin / dueMax で Google 側に絞らせる。手元だけで絞ると、期限を付けていない
- * タスクが多い人は上限に当たって、期限付きのタスクが最後まで届かない。
- * 返ってきたものは呼び出し側でもう一度確かめる（絞り込みを二重にしておく）。
+ * 期限では絞らない（ファイル冒頭の理由による）。ページ送りをたどるのは、
+ * 期限を付けていないタスクが多い人でも、期限付きのタスクを取りこぼさないため。
  */
-function listTasksDueOn_(list, dueKey) {
-  try {
-    var response = Tasks.Tasks.list(list.id, {
-      showCompleted: false,
-      showHidden: false,
-      showDeleted: false,
-      dueMin: dueKey + 'T00:00:00.000Z',
-      dueMax: dueKey + 'T23:59:59.999Z',
-      maxResults: TASKS_PER_LIST_MAX,
-    });
-    return response && response.items ? response.items : [];
-  } catch (e) {
-    Logger.log(
-      'Google ToDo「' + (list && list.title ? list.title : list.id) + '」を読めませんでした: ' + e
-    );
-    return [];
+function listOpenTasks_(list) {
+  var out = [];
+  var pageToken = null;
+
+  for (var page = 0; page < TASKS_MAX_PAGES; page++) {
+    var response;
+    try {
+      var options = {
+        showCompleted: false,
+        showHidden: false,
+        showDeleted: false,
+        maxResults: TASKS_PAGE_SIZE,
+      };
+      if (pageToken !== null) options.pageToken = pageToken;
+      response = Tasks.Tasks.list(list.id, options);
+    } catch (e) {
+      Logger.log(
+        'Google ToDo「' + (list && list.title ? list.title : list.id) + '」を読めませんでした: ' + e
+      );
+      return out;
+    }
+
+    var items = response && response.items ? response.items : [];
+    for (var i = 0; i < items.length; i++) out.push(items[i]);
+
+    pageToken = response && response.nextPageToken ? response.nextPageToken : null;
+    if (pageToken === null) break;
   }
+  return out;
 }
 
 /**
  * その日のタスクを、絞り込む前の状態から順に説明する行を返す。
  *
- * 「タスクが日報に出ない」とき、サービスを足していないのか、リストが違うのか、
- * 期限を付けていないのかで直す場所が違う。1 件ずつ、採否と理由を並べる。
+ * 「タスクが日報に出ない」とき、サービスを足していないのか、期限を付けていないのか、
+ * 期限が別の日なのかで直す場所が違う。Google が返した due をそのまま並べる。
+ * 生の値を見ないと、この 3 つは区別できない。
  *
  * ここでは日報を作らない。目で確かめるためだけの読み取り。
  *
@@ -163,26 +194,34 @@ function describeTasksForDate_(date) {
     return lines;
   }
 
+  lines.push('探している期限: ' + dueKey + '　／　タスクリスト: ' + lists.length + ' 個');
+
   for (var i = 0; i < lists.length; i++) {
-    var items = listTasksDueOn_(lists[i], dueKey);
-    lines.push('［リスト］' + lists[i].title + '（期限が ' + dueKey + ' のもの: ' + items.length + ' 件）');
+    var items = listOpenTasks_(lists[i]);
+    lines.push('［リスト］' + lists[i].title + '（未完了のタスク: ' + items.length + ' 件）');
+
+    if (items.length === 0) {
+      lines.push('　（このリストには未完了のタスクがありません）');
+      continue;
+    }
+
     for (var j = 0; j < items.length; j++) {
       var task = items[j];
+      var due = taskDueDate_(task);
       var verdict;
-      if (!isIncompleteTaskDueOn_(task, dueKey)) {
-        verdict = '除外（完了済み・削除済み、または期限が別の日）';
+      if (due === '') {
+        verdict = '除外（期限が入っていない）';
+      } else if (due !== dueKey) {
+        verdict = '除外（期限が ' + due + '）';
       } else if (formatTitleLine_(task.title) === null) {
         verdict = '除外（タスク名が空）';
       } else {
-        verdict = '採用';
+        verdict = '★採用';
       }
-      lines.push('・' + task.title + ' → ' + verdict);
+      lines.push(
+        '　・' + task.title + '　[due: ' + (task.due === undefined ? 'なし' : task.due) + ']　→ ' + verdict
+      );
     }
   }
-
-  lines.push(
-    '※ 期限を付けていないタスクはここに出ません。Tasks API は期限の「日付」しか持たず、' +
-      '時刻は読めないため、時刻での絞り込みもできません。'
-  );
   return lines;
 }
