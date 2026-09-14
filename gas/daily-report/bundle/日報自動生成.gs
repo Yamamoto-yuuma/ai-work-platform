@@ -414,6 +414,28 @@ function isBusinessDay_(date) {
 }
 
 /**
+ * 次の営業日を返す。
+ *
+ * 夜の日報の「業務予定」で使う。金曜の夜に土曜の予定を出しても誰も動かないので、
+ * 土日と祝日は飛ばして、次に人が働く日を指す。
+ *
+ * 上限を置くのは、祝日カレンダーが読めない状態で無限に進まないため。
+ * 年末年始でも 10 日連続で休みになることはないので、それを超えたら
+ * 判定のほうが壊れていると見て、そこで打ち切る。
+ */
+var NEXT_BUSINESS_DAY_MAX_STEPS = 10;
+
+function nextBusinessDay_(date) {
+  assertDate_(date);
+  var candidate = date;
+  for (var i = 0; i < NEXT_BUSINESS_DAY_MAX_STEPS; i++) {
+    candidate = addDays_(candidate, 1);
+    if (isBusinessDay_(candidate)) return candidate;
+  }
+  return addDays_(date, 1);
+}
+
+/**
  * 休日と判定した理由をログ用に返す（営業日なら null）。
  */
 function describeNonBusinessDay_(date) {
@@ -640,19 +662,23 @@ function getDayEventsForApi_(date) {
  * nightBody.gs
  * ================================================================== */
 /**
- * 夜の日報の本文の取得。
+ * 夜の日報のうち、スプレッドシートから取る部分。
  *
- * 夜の日報は、スプレッドシートの「日報」タブに書かれているものがそのまま本文になる。
- * 挨拶も日付も進捗状況も業務報告も、すべてシート側で組み立てられている。
+ * 夜の日報は 2 つの出どころが混ざる。
  *
- * ここでは文面を作らない。読むだけにする。
- * 同じ文面を GAS 側でも組み立てると、シートと二か所に同じ形が存在することになり、
- * 片方だけ直した日に食い違う。実際に、進捗状況を足したときに見出しが二重になった。
+ *   上半分（日付・挨拶・進捗状況） … 「日報」タブをそのまま
+ *   下半分（業務報告・業務予定・所感） … カレンダーの予定から（report.gs）
  *
- * 数字も同じ理由で計算しない。売上も進捗率もオンスケもシートの数式が出した値で、
- * こちらで計算し直すと、シートの式を直した日に日報だけ古い数字が残る。
+ * 上半分をシートに任せるのは、数字がシートの数式の結果だから。
+ * 売上も進捗率もこちらで計算し直すと、シートの式を直した日に日報だけ古い数字が残る。
+ * 書式（「69.4万円」など）もシート側の設定で付いている。
  *
- * 昼の日報はこの仕組みを使わない。今までどおりカレンダーの予定から組み立てる。
+ * 下半分をカレンダーから作るのは、予定をシートへ書き写す手作業を毎日残さないため。
+ *
+ * 切れ目は「---業務報告---」のような節の見出しで判断する。行番号で決めると、
+ * シートに 1 行足した日にずれる。見出しが無いシートなら、全部が上半分になる。
+ *
+ * 昼の日報はこの仕組みを使わない。今までどおり全部をカレンダーの予定から組み立てる。
  */
 
 /** Script Properties のキー名。 */
@@ -667,14 +693,48 @@ var PROP_NIGHT_REPORT_RANGE = 'NIGHT_REPORT_RANGE';
 var NIGHT_REPORT_MAX_LINES = 60;
 
 /**
- * 夜の日報の本文を、スプレッドシートから読む。
+ * 節の見出しの行かどうか（---業務報告--- など）。
+ * ここから下はカレンダーで作り直すので、シートからは読まない。
+ */
+function isSectionMarker_(line) {
+  return /^-{2,}[^-].*-{2,}$/.test(String(line === null || line === undefined ? '' : line).trim());
+}
+
+/**
+ * シートから読んだ行のうち、最初の節の見出しより前だけを返す。
+ *
+ * つまり、日付・挨拶・進捗状況まで。見出しが無ければ全部を返す
+ * （まだ節を分けていないシートでも、今までどおり全文が本文になる）。
+ */
+function takeProgressLines_(lines) {
+  var out = [];
+  for (var i = 0; i < lines.length; i++) {
+    if (isSectionMarker_(lines[i])) break;
+    out.push(lines[i]);
+  }
+  // 見出しの直前に空行が残ると、下でもう 1 行空けたときに間が開きすぎる
+  while (out.length > 0 && out[out.length - 1] === '') out.pop();
+  return out;
+}
+
+/**
+ * 夜の日報の上半分を、スプレッドシートから読む。
  *
  * 読めなければエラーにする。空の日報や、途中までの日報を下書きとして残すと、
  * それに気づかないまま送ってしまう。作らないほうが安全。
  *
- * @return {string} 日報本文
+ * @return {Array.<string>} 日付・挨拶・進捗状況までの行
  */
-function readNightReportBody_() {
+function readNightProgressLines_() {
+  return takeProgressLines_(readNightReportLines_());
+}
+
+/**
+ * 指定した範囲を、行の配列として読む。
+ *
+ * @return {Array.<string>}
+ */
+function readNightReportLines_() {
   var spreadsheetId = getRequiredProperty_(PROP_NIGHT_REPORT_SPREADSHEET_ID);
   var sheetName = getRequiredProperty_(PROP_NIGHT_REPORT_SHEET_NAME);
   var rangeText = getRequiredProperty_(PROP_NIGHT_REPORT_RANGE);
@@ -712,7 +772,7 @@ function readNightReportBody_() {
         'Script Properties の「' + PROP_NIGHT_REPORT_RANGE + '」で読む範囲を確認してください。'
     );
   }
-  return lines.join('\n');
+  return lines;
 }
 
 /**
@@ -842,13 +902,57 @@ function generateDayReport_(date) {
 }
 
 /**
- * 指定日の夜の日報本文を取得する。
+ * 夜の日報本文を組み立てる（カレンダーへもシートへもアクセスしない純粋な処理）。
  *
- * 夜はスプレッドシートの「日報」タブがそのまま本文になる。ここでは文面を作らない。
- * 日付も挨拶もシート側に入っているため、date は受け取らない。
+ * 上半分は受け取ったものをそのまま置く（シートの進捗状況）。
+ * 下半分はここで組む。
+ *
+ *   業務報告 … その日の PM。昼の日報で AM を出しているので、夜は残りを出す
+ *   業務予定 … 次の営業日の AM と PM。夜に出す予定は、翌日そのまま使えるもの
+ *   所感     … 見出しだけ。中身は人が下書きに書き足す
+ *
+ * @param {Array.<string>} progressLines シートから読んだ上半分
+ * @param {Array.<string>} afternoonTitles 当日 PM の予定タイトル
+ * @param {Array.<string>} nextMorningTitles 次の営業日 AM の予定タイトル
+ * @param {Array.<string>} nextAfternoonTitles 次の営業日 PM の予定タイトル
  */
-function generateNightReport_() {
-  return readNightReportBody_();
+function buildNightReportBody_(progressLines, afternoonTitles, nextMorningTitles, nextAfternoonTitles) {
+  var lines = [];
+  if (progressLines) {
+    for (var i = 0; i < progressLines.length; i++) lines.push(progressLines[i]);
+  }
+  if (lines.length > 0) lines.push('');
+
+  lines.push('---業務報告---');
+  lines.push('PM');
+  appendTitleLines_(lines, afternoonTitles);
+  lines.push('');
+
+  lines.push('---業務予定---');
+  lines.push('AM');
+  appendTitleLines_(lines, nextMorningTitles);
+  lines.push('');
+  lines.push('PM');
+  appendTitleLines_(lines, nextAfternoonTitles);
+  lines.push('');
+
+  lines.push('---所感---');
+  return lines.join('\n');
+}
+
+/**
+ * 指定日の夜の日報本文を生成する（シートとカレンダーの両方を参照する）。
+ */
+function generateNightReport_(date) {
+  assertDate_(date);
+  var today = getEventTitlesByHalf_(date);
+  var next = getEventTitlesByHalf_(nextBusinessDay_(date));
+  return buildNightReportBody_(
+    readNightProgressLines_(),
+    today.afternoon,
+    next.morning,
+    next.afternoon
+  );
 }
 
 /* ==================================================================
@@ -1452,7 +1556,7 @@ function prepareDraft_(reportType) {
   var existing = loadDraft_(today, reportType);
   if (existing !== null) return { date: today, record: existing, created: false };
 
-  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
+  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
   return { date: today, record: saveDraft_(today, reportType, body), created: true };
 }
 
@@ -1605,7 +1709,7 @@ function runReport_(reportType) {
       }
 
       var body =
-        reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
+        reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
       var record = saveDraft_(today, reportType, body);
 
       Logger.log(
@@ -1690,10 +1794,9 @@ function testDayReportForDate_(dateText) {
  */
 function testNightReportForDate_(dateText) {
   assertTimeZone_();
-  // 夜の日報はスプレッドシートの内容そのものなので、日付を変えても中身は変わらない
   var date = parseDate_(dateText);
-  var body = generateNightReport_();
-  Logger.log('----- 夜の日報（スプレッドシートの内容 / 指定日: ' + formatJapaneseDate_(date) + '） -----\n' + body);
+  var body = generateNightReport_(date);
+  Logger.log('----- 夜の日報 ' + formatJapaneseDate_(date) + ' -----\n' + body);
   return body;
 }
 
@@ -1833,7 +1936,7 @@ function rebuildDraft_(reportType) {
     }
 
     var body =
-      reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
+      reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
     saveDraft_(today, reportType, body);
     notify_(label, '最新のカレンダーで下書きを作り直しました。シートの本文をご確認ください。');
   } catch (e) {
@@ -2018,7 +2121,7 @@ function rebuildForApi_(date, reportType) {
   if (hasAlreadySent_(buildReportKey_(date, reportType))) {
     throw new Error('この日報はすでに送信済みです。作り直せません。');
   }
-  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(date) : generateNightReport_();
+  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(date) : generateNightReport_(date);
   saveDraft_(date, reportType, body);
 }
 
@@ -2071,8 +2174,8 @@ function runAllTests() {
   var results = [];
   var tests = [
     ['Test 1: 平日・昼の日報', test1_DayReport_],
-    ['Test 2: 夜の日報はスプレッドシートの内容をそのまま使う', test2_NightReportFromSheet_],
-    ['Test 3: 夜の日報を GAS 側で組み立てていないこと', test3_NightFormatNotDuplicated_],
+    ['Test 2: 進捗状況までをシートから読む', test2_NightReportFromSheet_],
+    ['Test 3: 夜の日報の下半分をカレンダーから組み立てる', test3_NightBodyIsAssembled_],
     ['Test 4: 読めない・空のときは下書きを作らない', test4_NightReportFailsLoudly_],
     ['Test 5: 土曜日は投稿しない', test5_Saturday_],
     ['Test 6: 日曜日は投稿しない', test6_Sunday_],
@@ -2142,18 +2245,18 @@ function withNightSheet_(rows, task) {
   var saved = [];
   for (var i = 0; i < keys.length; i++) saved.push(props.getProperty(keys[i]));
 
-  var originalRead = readNightReportBody_;
+  var originalRead = readNightReportLines_;
   try {
     // 実際のスプレッドシートには触らず、読み取った結果だけを差し替える
-    readNightReportBody_ = function () {
+    readNightReportLines_ = function () {
       if (rows === null) throw new Error('テスト用: 読めませんでした');
       var lines = toReportLines_(rows);
       if (lines.length === 0) throw new Error('テスト用: 範囲が空です');
-      return lines.join('\n');
+      return lines;
     };
     return task();
   } finally {
-    readNightReportBody_ = originalRead;
+    readNightReportLines_ = originalRead;
     for (var j = 0; j < keys.length; j++) {
       if (saved[j] === null) props.deleteProperty(keys[j]);
       else props.setProperty(keys[j], saved[j]);
@@ -2162,21 +2265,25 @@ function withNightSheet_(rows, task) {
 }
 
 function test2_NightReportFromSheet_() {
-  // 夜の日報は、シートに書かれているものがそのまま本文になる。
-  // 挨拶も日付も進捗状況も業務報告も、すべてシート側にある。
+  /*
+    夜の日報は 2 つの出どころが混ざる。
+    シートから取るのは、節の見出し（---業務報告--- など）より前だけ。
+    そこから下は予定で作り直すので、シート側の書きかけを持ち込まない。
+  */
   var rows = [
     ['お疲れ様です。' + SENDER_NAME + 'です。', ''],
     ['2026年9月12日(土)', 'の日報をお送りいたします。'],
     ['', ''],
     ['＜進捗状況＞　　実績/目標', ''],
     ['★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）', ''],
+    ['', ''],
     ['---業務報告---', ''],
     ['PM', ''],
-    ['■運営MTG', ''],
+    ['■シートに書きかけの予定', ''],
     ['---所感---', ''],
   ];
   var actual = withNightSheet_(rows, function () {
-    return generateNightReport_();
+    return readNightProgressLines_();
   });
   var expected = [
     'お疲れ様です。' + SENDER_NAME + 'です。',
@@ -2184,38 +2291,61 @@ function test2_NightReportFromSheet_() {
     '',
     '＜進捗状況＞　　実績/目標',
     '★リード売上    69.4万円　/ 　60万円　進捗率115.%（オンスケは28万円）',
+  ];
+  assertEquals_(expected.join('\n'), actual.join('\n'), '進捗状況までをシートから読む');
+
+  // 見出しが無いシートなら、今までどおり全部が上半分
+  var whole = withNightSheet_([['見出しの無いシート', '']], function () {
+    return readNightProgressLines_();
+  });
+  assertEquals_('見出しの無いシート', whole.join('\n'), '節の見出しが無ければ全部を使う');
+}
+
+function test3_NightBodyIsAssembled_() {
+  /*
+    業務報告は当日の PM（昼の日報で AM を出しているため）。
+    業務予定は次の営業日の AM と PM。所感は見出しだけ置いて、中身は人が書く。
+    カレンダーには触れず、タイトル配列を直接与えて確かめる。
+  */
+  var actual = buildNightReportBody_(
+    ['お疲れ様です。', '＜進捗状況＞　★リード売上 69.4万円'],
+    ['昼礼', '計上作業'],
+    ['朝礼', '運営MTG'],
+    ['架電']
+  );
+  var expected = [
+    'お疲れ様です。',
+    '＜進捗状況＞　★リード売上 69.4万円',
+    '',
     '---業務報告---',
     'PM',
+    '■昼礼',
+    '■計上作業',
+    '',
+    '---業務予定---',
+    'AM',
+    '■朝礼',
     '■運営MTG',
+    '',
+    'PM',
+    '■架電',
+    '',
     '---所感---',
   ].join('\n');
   assertEquals_(expected, actual, '夜の日報本文');
-}
 
-function test3_NightFormatNotDuplicated_() {
-  // 同じ文面を GAS 側でも組み立てると、片方だけ直した日に食い違う。
-  // 夜の見出しを作る処理が戻っていないことを、名前で押さえる。
-  assertTrue_(
-    typeof globalThis.buildNightReportBody_ === 'undefined',
-    '夜の日報を GAS 側で組み立てる処理が残っていないこと'
-  );
-  assertTrue_(
-    typeof globalThis.appendProgressLines_ === 'undefined',
-    '進捗状況を差し込む処理が残っていないこと（シートに含まれるため不要）'
-  );
-
-  // 夜の本文にシート以外の行が混ざらないこと。
-  var body = withNightSheet_([['1行だけのシート', '']], function () {
-    return generateNightReport_();
-  });
-  assertEquals_('1行だけのシート', body, 'シートの内容以外は足さない');
+  // 予定が無い側でも見出しは残す（無いことが分かるように）
+  var empty = buildNightReportBody_([], [], [], []);
+  assertTrue_(empty.indexOf('---業務報告---') >= 0, '予定が無くても業務報告の見出しは残す');
+  assertTrue_(empty.indexOf('---業務予定---') >= 0, '予定が無くても業務予定の見出しは残す');
+  assertTrue_(empty.indexOf('---所感---') >= 0, '所感の見出しは残す');
 }
 
 function test4_NightReportFailsLoudly_() {
   // 空の日報や途中までの日報を下書きとして残すと、気づかずに送ってしまう。
   var failed = false;
   try {
-    withNightSheet_(null, function () { return generateNightReport_(); });
+    withNightSheet_(null, function () { return readNightProgressLines_(); });
   } catch (e) {
     failed = true;
   }
@@ -2223,7 +2353,7 @@ function test4_NightReportFailsLoudly_() {
 
   var emptyFailed = false;
   try {
-    withNightSheet_([['', ''], ['', '']], function () { return generateNightReport_(); });
+    withNightSheet_([['', ''], ['', '']], function () { return readNightProgressLines_(); });
   } catch (e) {
     emptyFailed = true;
   }

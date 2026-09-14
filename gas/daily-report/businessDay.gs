@@ -110,6 +110,28 @@ function isBusinessDay_(date) {
 }
 
 /**
+ * 次の営業日を返す。
+ *
+ * 夜の日報の「業務予定」で使う。金曜の夜に土曜の予定を出しても誰も動かないので、
+ * 土日と祝日は飛ばして、次に人が働く日を指す。
+ *
+ * 上限を置くのは、祝日カレンダーが読めない状態で無限に進まないため。
+ * 年末年始でも 10 日連続で休みになることはないので、それを超えたら
+ * 判定のほうが壊れていると見て、そこで打ち切る。
+ */
+var NEXT_BUSINESS_DAY_MAX_STEPS = 10;
+
+function nextBusinessDay_(date) {
+  assertDate_(date);
+  var candidate = date;
+  for (var i = 0; i < NEXT_BUSINESS_DAY_MAX_STEPS; i++) {
+    candidate = addDays_(candidate, 1);
+    if (isBusinessDay_(candidate)) return candidate;
+  }
+  return addDays_(date, 1);
+}
+
+/**
  * 休日と判定した理由をログ用に返す（営業日なら null）。
  */
 function describeNonBusinessDay_(date) {

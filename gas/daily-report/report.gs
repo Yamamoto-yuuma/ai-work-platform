@@ -69,11 +69,55 @@ function generateDayReport_(date) {
 }
 
 /**
- * 指定日の夜の日報本文を取得する。
+ * 夜の日報本文を組み立てる（カレンダーへもシートへもアクセスしない純粋な処理）。
  *
- * 夜はスプレッドシートの「日報」タブがそのまま本文になる。ここでは文面を作らない。
- * 日付も挨拶もシート側に入っているため、date は受け取らない。
+ * 上半分は受け取ったものをそのまま置く（シートの進捗状況）。
+ * 下半分はここで組む。
+ *
+ *   業務報告 … その日の PM。昼の日報で AM を出しているので、夜は残りを出す
+ *   業務予定 … 次の営業日の AM と PM。夜に出す予定は、翌日そのまま使えるもの
+ *   所感     … 見出しだけ。中身は人が下書きに書き足す
+ *
+ * @param {Array.<string>} progressLines シートから読んだ上半分
+ * @param {Array.<string>} afternoonTitles 当日 PM の予定タイトル
+ * @param {Array.<string>} nextMorningTitles 次の営業日 AM の予定タイトル
+ * @param {Array.<string>} nextAfternoonTitles 次の営業日 PM の予定タイトル
  */
-function generateNightReport_() {
-  return readNightReportBody_();
+function buildNightReportBody_(progressLines, afternoonTitles, nextMorningTitles, nextAfternoonTitles) {
+  var lines = [];
+  if (progressLines) {
+    for (var i = 0; i < progressLines.length; i++) lines.push(progressLines[i]);
+  }
+  if (lines.length > 0) lines.push('');
+
+  lines.push('---業務報告---');
+  lines.push('PM');
+  appendTitleLines_(lines, afternoonTitles);
+  lines.push('');
+
+  lines.push('---業務予定---');
+  lines.push('AM');
+  appendTitleLines_(lines, nextMorningTitles);
+  lines.push('');
+  lines.push('PM');
+  appendTitleLines_(lines, nextAfternoonTitles);
+  lines.push('');
+
+  lines.push('---所感---');
+  return lines.join('\n');
+}
+
+/**
+ * 指定日の夜の日報本文を生成する（シートとカレンダーの両方を参照する）。
+ */
+function generateNightReport_(date) {
+  assertDate_(date);
+  var today = getEventTitlesByHalf_(date);
+  var next = getEventTitlesByHalf_(nextBusinessDay_(date));
+  return buildNightReportBody_(
+    readNightProgressLines_(),
+    today.afternoon,
+    next.morning,
+    next.afternoon
+  );
 }

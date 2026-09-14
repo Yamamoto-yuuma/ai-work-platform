@@ -81,7 +81,7 @@ function runReport_(reportType) {
       }
 
       var body =
-        reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_();
+        reportType === REPORT_TYPE_DAY ? generateDayReport_(today) : generateNightReport_(today);
       var record = saveDraft_(today, reportType, body);
 
       Logger.log(
@@ -166,10 +166,9 @@ function testDayReportForDate_(dateText) {
  */
 function testNightReportForDate_(dateText) {
   assertTimeZone_();
-  // 夜の日報はスプレッドシートの内容そのものなので、日付を変えても中身は変わらない
   var date = parseDate_(dateText);
-  var body = generateNightReport_();
-  Logger.log('----- 夜の日報（スプレッドシートの内容 / 指定日: ' + formatJapaneseDate_(date) + '） -----\n' + body);
+  var body = generateNightReport_(date);
+  Logger.log('----- 夜の日報 ' + formatJapaneseDate_(date) + ' -----\n' + body);
   return body;
 }
 

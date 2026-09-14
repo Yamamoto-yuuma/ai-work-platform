@@ -120,7 +120,7 @@ function rebuildForApi_(date, reportType) {
   if (hasAlreadySent_(buildReportKey_(date, reportType))) {
     throw new Error('この日報はすでに送信済みです。作り直せません。');
   }
-  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(date) : generateNightReport_();
+  var body = reportType === REPORT_TYPE_DAY ? generateDayReport_(date) : generateNightReport_(date);
   saveDraft_(date, reportType, body);
 }
 

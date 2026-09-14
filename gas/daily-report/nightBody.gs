@@ -1,17 +1,21 @@
 /**
- * 夜の日報の本文の取得。
+ * 夜の日報のうち、スプレッドシートから取る部分。
  *
- * 夜の日報は、スプレッドシートの「日報」タブに書かれているものがそのまま本文になる。
- * 挨拶も日付も進捗状況も業務報告も、すべてシート側で組み立てられている。
+ * 夜の日報は 2 つの出どころが混ざる。
  *
- * ここでは文面を作らない。読むだけにする。
- * 同じ文面を GAS 側でも組み立てると、シートと二か所に同じ形が存在することになり、
- * 片方だけ直した日に食い違う。実際に、進捗状況を足したときに見出しが二重になった。
+ *   上半分（日付・挨拶・進捗状況） … 「日報」タブをそのまま
+ *   下半分（業務報告・業務予定・所感） … カレンダーの予定から（report.gs）
  *
- * 数字も同じ理由で計算しない。売上も進捗率もオンスケもシートの数式が出した値で、
- * こちらで計算し直すと、シートの式を直した日に日報だけ古い数字が残る。
+ * 上半分をシートに任せるのは、数字がシートの数式の結果だから。
+ * 売上も進捗率もこちらで計算し直すと、シートの式を直した日に日報だけ古い数字が残る。
+ * 書式（「69.4万円」など）もシート側の設定で付いている。
  *
- * 昼の日報はこの仕組みを使わない。今までどおりカレンダーの予定から組み立てる。
+ * 下半分をカレンダーから作るのは、予定をシートへ書き写す手作業を毎日残さないため。
+ *
+ * 切れ目は「---業務報告---」のような節の見出しで判断する。行番号で決めると、
+ * シートに 1 行足した日にずれる。見出しが無いシートなら、全部が上半分になる。
+ *
+ * 昼の日報はこの仕組みを使わない。今までどおり全部をカレンダーの予定から組み立てる。
  */
 
 /** Script Properties のキー名。 */
@@ -26,14 +30,48 @@ var PROP_NIGHT_REPORT_RANGE = 'NIGHT_REPORT_RANGE';
 var NIGHT_REPORT_MAX_LINES = 60;
 
 /**
- * 夜の日報の本文を、スプレッドシートから読む。
+ * 節の見出しの行かどうか（---業務報告--- など）。
+ * ここから下はカレンダーで作り直すので、シートからは読まない。
+ */
+function isSectionMarker_(line) {
+  return /^-{2,}[^-].*-{2,}$/.test(String(line === null || line === undefined ? '' : line).trim());
+}
+
+/**
+ * シートから読んだ行のうち、最初の節の見出しより前だけを返す。
+ *
+ * つまり、日付・挨拶・進捗状況まで。見出しが無ければ全部を返す
+ * （まだ節を分けていないシートでも、今までどおり全文が本文になる）。
+ */
+function takeProgressLines_(lines) {
+  var out = [];
+  for (var i = 0; i < lines.length; i++) {
+    if (isSectionMarker_(lines[i])) break;
+    out.push(lines[i]);
+  }
+  // 見出しの直前に空行が残ると、下でもう 1 行空けたときに間が開きすぎる
+  while (out.length > 0 && out[out.length - 1] === '') out.pop();
+  return out;
+}
+
+/**
+ * 夜の日報の上半分を、スプレッドシートから読む。
  *
  * 読めなければエラーにする。空の日報や、途中までの日報を下書きとして残すと、
  * それに気づかないまま送ってしまう。作らないほうが安全。
  *
- * @return {string} 日報本文
+ * @return {Array.<string>} 日付・挨拶・進捗状況までの行
  */
-function readNightReportBody_() {
+function readNightProgressLines_() {
+  return takeProgressLines_(readNightReportLines_());
+}
+
+/**
+ * 指定した範囲を、行の配列として読む。
+ *
+ * @return {Array.<string>}
+ */
+function readNightReportLines_() {
   var spreadsheetId = getRequiredProperty_(PROP_NIGHT_REPORT_SPREADSHEET_ID);
   var sheetName = getRequiredProperty_(PROP_NIGHT_REPORT_SHEET_NAME);
   var rangeText = getRequiredProperty_(PROP_NIGHT_REPORT_RANGE);
@@ -71,7 +109,7 @@ function readNightReportBody_() {
         'Script Properties の「' + PROP_NIGHT_REPORT_RANGE + '」で読む範囲を確認してください。'
     );
   }
-  return lines.join('\n');
+  return lines;
 }
 
 /**
