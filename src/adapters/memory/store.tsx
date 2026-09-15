@@ -124,6 +124,39 @@ function initialState(): AppState {
   };
 }
 
+/**
+ * 保存されていた状態を読み直す。
+ *
+ * 保存した中身は、あとからいくらでも古くなる。作りを変えたときの古い保存、
+ * 途中まで書かれたもの、手で触られたもの。そのまま流し込むと、画面を描く
+ * ところで落ちて真っ白になり、利用者には直しようがない。
+ *
+ * 形が初期値と食い違う項目は捨てて、初期値のまま進む。1項目が壊れていても、
+ * 残りは読めるようにする。
+ */
+function restoreState(saved: unknown): AppState {
+  const base = initialState();
+  if (typeof saved !== "object" || saved === null || Array.isArray(saved)) return base;
+
+  const defaults = base as unknown as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...defaults };
+  for (const [key, value] of Object.entries(saved as Record<string, unknown>)) {
+    if (!(key in defaults)) continue; // 知らない項目は持ち込まない
+    if (sameShape(defaults[key], value)) out[key] = value;
+  }
+  return out as unknown as AppState;
+}
+
+/** 初期値と同じ形か。中身までは見ない（見るなら項目ごとの検証が要る） */
+function sameShape(expected: unknown, value: unknown): boolean {
+  if (Array.isArray(expected)) return Array.isArray(value);
+  if (expected === null) return value === null || typeof value === "string";
+  if (typeof expected === "object") {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  return typeof value === typeof expected;
+}
+
 /** 動きを見るためのサンプル一式。自分で作ったものには触らない */
 function withSample(state: AppState): AppState {
   const taken = new Set(state.tasks.map((t) => t.id));
@@ -549,8 +582,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const saved = JSON.parse(raw) as AppState;
-        dispatch({ type: "hydrate", state: { ...initialState(), ...saved } });
+        dispatch({ type: "hydrate", state: restoreState(JSON.parse(raw)) });
       }
     } catch {
       // 復元できない場合はシードのまま続行する

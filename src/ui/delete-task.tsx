@@ -60,7 +60,7 @@ export function DeleteTaskButton({
   return (
     <span ref={box} className="inline-flex flex-wrap items-center gap-1.5">
       {/* 何が消えるのかを名前で示してから確定させる */}
-      <span className="text-[11.5px] text-ink-2">「{task.title}」を消しますか？</span>
+      <span className="text-[12px] text-ink-2">「{task.title}」を消しますか？</span>
       <Button variant="danger" size={size} onClick={remove}>削除する</Button>
       <Button variant="ghost" size={size} onClick={() => setAsking(false)}>やめる</Button>
     </span>

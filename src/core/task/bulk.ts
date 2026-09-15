@@ -24,7 +24,7 @@ export interface ParsedTaskLine {
 }
 
 /* 行頭の箇条書き記号。書き写したときに付いてくるので落とす */
-const BULLET = /^\s*(?:[-–—*・･>＞]|[□☐■●○◯]|\[[ xX]?\]|\(?\d{1,2}[.)、]|\d{1,2}\s*[.)]\s)\s*/;
+const BULLET = /^\s*(?:[-–—*・･>＞]|[□☐■●○◯]|[①-⑳]|[❶-❿]|\[[ xX]?\]|\(?\d{1,2}[.)、]|\d{1,2}\s*[.)]\s)\s*/;
 
 const WEEKDAY: Record<string, number> = {
   日: 0, 月: 1, 火: 2, 水: 3, 木: 4, 金: 5, 土: 6,
@@ -225,4 +225,90 @@ export function parseBulk(text: string, now: Date): ParsedTaskLine[] {
     .filter((l) => l.length > 0)
     .map((l) => parseLine(l, now))
     .filter((p) => p.title.length > 0);
+}
+
+/* ------------------------------------------------------------------------- *
+ * 箇条書きのメモを読む
+ * ------------------------------------------------------------------------- */
+
+/**
+ * 1 件ぶんの塊。見出しの行と、その下に続けて書かれたもの。
+ */
+export interface MemoBlock extends ParsedTaskLine {
+  /** 見出しに続けて書かれたもの。タスクの説明にする。無ければ undefined */
+  note?: string;
+}
+
+/** 箇条書きの印で始まる行か */
+function isBulleted(line: string): boolean {
+  return BULLET.test(line);
+}
+
+/**
+ * 箇条書きのメモを、1 件ずつの塊に分ける。
+ *
+ * 「①」「②」のような印が付いた行から次の印までを 1 件とする。
+ * 印の無い行は、その前の件の続きとして扱う。頭の中にあることを続けて書いても、
+ * 途中の一文が勝手に別のタスクにならないようにするため。
+ *
+ *   ①○○社の資料を確認する
+ *   　明日のMTGで使うので今日中           ← ①の続き
+ *   ②田中さんに見てもらう                 ← ここから 2 件目
+ *
+ * 印がどこにも無いときは、今までどおり 1 行を 1 件として読む。
+ * 印を使わない書き方をしている人の結果を変えないため。
+ *
+ * 期限・見積・優先度は見出しの行から読む。見出しに無いときだけ、続きの行から
+ * 最初に見つかったものを使う（続きの行を先に見ると、本文中の日付を拾ってしまう）。
+ */
+export function parseMemo(text: string, now: Date): MemoBlock[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  if (!lines.some(isBulleted)) {
+    return parseBulk(text, now);
+  }
+
+  const blocks: { head: string; notes: string[] }[] = [];
+  for (const line of lines) {
+    // 印が無く、前の件があるなら、その続き
+    if (!isBulleted(line) && blocks.length > 0) {
+      blocks[blocks.length - 1].notes.push(line);
+      continue;
+    }
+    blocks.push({ head: line, notes: [] });
+  }
+
+  return blocks
+    .map(({ head, notes }) => {
+      const parsed = parseLine(head, now);
+      const matched = [...parsed.matched];
+
+      // 見出しに書いていなければ、続きの行から探す
+      let dueAt = parsed.dueAt;
+      let estimatedMinutes = parsed.estimatedMinutes;
+      let priority = parsed.priority;
+      for (const note of notes) {
+        if (dueAt === undefined) {
+          const due = readDue(note, now);
+          if (due) { dueAt = due.value; matched.push(due.text.trim()); }
+        }
+        if (estimatedMinutes === undefined) {
+          const est = readEstimate(note);
+          if (est) { estimatedMinutes = est.minutes; matched.push(est.text.trim()); }
+        }
+        if (priority === undefined) {
+          const pr = readPriority(note);
+          if (pr) { priority = pr.priority; matched.push(pr.text.trim().replace(/[:：、,]$/, "")); }
+        }
+      }
+
+      return {
+        ...parsed,
+        dueAt,
+        estimatedMinutes,
+        priority,
+        matched: matched.filter((m) => m.length > 0),
+        note: notes.length > 0 ? notes.join("\n") : undefined,
+      };
+    })
+    .filter((b) => b.title.length > 0);
 }

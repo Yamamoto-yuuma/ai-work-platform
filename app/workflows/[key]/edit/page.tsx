@@ -29,7 +29,7 @@ export default function EditWorkflowPage({ params }: { params: Promise<{ key: st
   );
 
   if (!def || !initial) {
-    return <div className="p-8 text-[13px]">業務が見つかりません。</div>;
+    return <div className="p-8 text-[13.5px]">業務が見つかりません。</div>;
   }
 
   const runCount = state.runs.filter((r) => r.workflowKey === def.key).length;
@@ -53,7 +53,7 @@ export default function EditWorkflowPage({ params }: { params: Promise<{ key: st
 
   return (
     <div className="mx-auto max-w-[900px] px-6 py-6">
-      <div className="mb-2 text-[12px] text-ink-3">
+      <div className="mb-2 text-[13.5px] text-ink-3">
         <Link href="/workflows" className="hover:text-brand">業務</Link> /{" "}
         <Link href={`/workflows/${def.key}`} className="hover:text-brand">{def.name}</Link> / 編集
       </div>

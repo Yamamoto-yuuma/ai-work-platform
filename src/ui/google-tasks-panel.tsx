@@ -89,12 +89,12 @@ export function GoogleTasksPanel() {
     return (
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[13px] font-medium">Google ToDo リスト</p>
+          <p className="text-[13.5px] font-medium">Google ToDo リスト</p>
           <Badge tone="neutral">未設定</Badge>
         </div>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-ink-2">
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
           使うには、Google Cloud で OAuth クライアントID を作り、
-          <code className="mx-1 rounded bg-surface-2 px-1.5 py-0.5 text-[11.5px]">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
+          <code className="mx-1 rounded bg-surface-2 px-1.5 py-0.5 text-[12px]">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
           として設定する必要があります。設定するとここに接続ボタンが出ます。
         </p>
       </Card>
@@ -104,11 +104,11 @@ export function GoogleTasksPanel() {
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-[13px] font-medium">Google ToDo リスト</p>
+        <p className="text-[13.5px] font-medium">Google ToDo リスト</p>
         <Badge tone={connected ? "ok" : "neutral"}>{connected ? "接続中" : "未接続"}</Badge>
         {imported > 0 && <Badge tone="brand">取り込み済み {imported}件</Badge>}
       </div>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-ink-2">
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
         Google の ToDo リストをこちらのタスク一覧に取り込みます。読み取りだけで、
         こちらの変更が Google に書き戻ることはありません。
       </p>
@@ -123,9 +123,9 @@ export function GoogleTasksPanel() {
           onChange={(e) => { setAuto(e.target.checked); setAutoSync(e.target.checked); }}
           className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[var(--color-brand)]"
         />
-        <span className="text-[12.5px] leading-relaxed">
+        <span className="text-[13.5px] leading-relaxed">
           自動で取り込む
-          <span className="ml-1.5 text-[11.5px] text-ink-3">
+          <span className="ml-1.5 text-[12px] text-ink-3">
             この画面を開いたときと、開いているあいだ10分ごと。閉じているあいだは動きません
           </span>
         </span>
@@ -150,22 +150,22 @@ export function GoogleTasksPanel() {
           </>
         )}
         {last && !result && !error && (
-          <span className="text-[11.5px] text-ink-3">最終取り込み {whenLabel(last.at)}</span>
+          <span className="text-[12px] text-ink-3">最終取り込み {whenLabel(last.at)}</span>
         )}
       </div>
 
       {result && (
-        <p className="mt-2.5 rounded-lg bg-ok-soft px-3 py-2 text-[12px] text-ok">{result}</p>
+        <p className="mt-2.5 rounded-lg bg-ok-soft px-3 py-2 text-[13.5px] text-ok">{result}</p>
       )}
       {error && (
-        <p className="mt-2.5 rounded-lg bg-danger-soft px-3 py-2 text-[12px] text-danger">{error}</p>
+        <p className="mt-2.5 rounded-lg bg-danger-soft px-3 py-2 text-[13.5px] text-danger">{error}</p>
       )}
       {/* 自動で取り込んだ結果も、あとから確かめられるようにしておく */}
       {last && !result && !error && (
-        <p className="mt-2.5 text-[11.5px] text-ink-3">{last.message}</p>
+        <p className="mt-2.5 text-[12px] text-ink-3">{last.message}</p>
       )}
 
-      <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-3">
+      <p className="mt-2.5 text-[12px] leading-relaxed text-ink-3">
         取り込んだタスクは「連携」の印が付きます。Google 側で消したものは、
         こちらでは自動で消えません（手を加えているかもしれないため、件数だけお知らせします）。
       </p>

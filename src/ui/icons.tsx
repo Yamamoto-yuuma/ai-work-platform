@@ -43,16 +43,6 @@ export const TaskIcon = () => (
   </svg>
 );
 
-/** マップ＝分かれて繋がる関係。点を線で結ぶ */
-export const MapIcon = () => (
-  <svg {...BOX} className="h-[17px] w-[17px]">
-    <circle cx="4.6" cy="10" r="1.9" />
-    <circle cx="15.4" cy="5.4" r="1.9" />
-    <circle cx="15.4" cy="14.6" r="1.9" />
-    <path d="M6.3 9.1 13.7 6.2M6.3 10.9l7.4 2.9" />
-  </svg>
-);
-
 export const KnowledgeIcon = () => (
   <svg {...BOX} className="h-[17px] w-[17px]">
     <path d="M3.6 4.6A1.4 1.4 0 0 1 5 3.2h4.2a1.6 1.6 0 0 1 1.6 1.6v11a1.4 1.4 0 0 0-1.4-1.4H5a1.4 1.4 0 0 1-1.4-1.4Z" />
@@ -73,11 +63,20 @@ export const SettingsIcon = () => (
   </svg>
 );
 
+/** 日報＝書いて出すもの。紙面と、書かれた行で表す */
+export const ReportIcon = () => (
+  <svg {...BOX} className="h-[17px] w-[17px]">
+    <path d="M5 3.2h7.2L16 6.9V16a.8.8 0 0 1-.8.8H5a.8.8 0 0 1-.8-.8V4a.8.8 0 0 1 .8-.8Z" />
+    <path d="M11.8 3.4v3.6h3.6" />
+    <path d="M6.9 10.4h5.4M6.9 13.2h3.6" />
+  </svg>
+);
+
 export const NAV_ICON: Record<string, ComponentType> = {
   "/": HomeIcon,
   "/workflows": FlowIcon,
   "/tasks": TaskIcon,
-  "/map": MapIcon,
+  "/daily-report": ReportIcon,
   "/knowledge": KnowledgeIcon,
   "/settings": SettingsIcon,
 };

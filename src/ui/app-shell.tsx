@@ -14,12 +14,17 @@ import { GoogleAutoSync } from "./google-auto-sync";
 import { GlobalSearch } from "./global-search";
 import { NAV_ICON, SettingsIcon } from "./icons";
 
+/*
+  並びは、通る回数の多い順にする。
+  上にあるものほど押しやすく、目にも入る。毎日通る「タスク」「日報」を
+  上に置き、いま使っていない「業務」はナレッジの下へ下げる。
+*/
 const NAV = [
   { href: "/", label: "ホーム" },
-  { href: "/workflows", label: "業務" },
   { href: "/tasks", label: "タスク" },
-  { href: "/map", label: "マップ" },
+  { href: "/daily-report", label: "日報" },
   { href: "/knowledge", label: "ナレッジ" },
+  { href: "/workflows", label: "業務" },
   { href: "/settings", label: "管理" },
 ];
 
@@ -105,11 +110,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           */}
           <Link href="/" title="AI WORK HUB" className={collapsed ? "" : "min-w-0 px-2 md:px-2.5"}>
             {collapsed ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-[11px] font-bold tracking-tight text-brand-ink">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-[12px] font-semibold tracking-tight text-brand-ink">
                 AI
               </span>
             ) : (
-              <span className="block whitespace-nowrap text-[11px] font-bold leading-tight tracking-tight text-brand">
+              <span className="block whitespace-nowrap text-[12px] font-semibold leading-tight tracking-tight text-brand">
                 AI WORK HUB
               </span>
             )}
@@ -121,7 +126,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
             aria-expanded={!collapsed}
             title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
-            className={`hidden shrink-0 rounded-[9px] py-1 text-[13px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-2 md:block ${
+            className={`hidden shrink-0 rounded-[5px] py-1 text-[13.5px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-2 md:block ${
               collapsed ? "px-2" : "ml-auto px-2"
             }`}
           >
@@ -142,7 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 title={item.label}
-                className={`flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[13px] transition-[background-color,color,box-shadow] duration-150 ${
+                className={`flex items-center gap-2.5 rounded-[5px] px-2.5 py-2 text-[13.5px] transition-[background-color,color,box-shadow] duration-150 ${
                   active
                     ? "bg-brand-soft font-semibold text-brand-ink"
                     : "font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
@@ -153,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
                 <span className={labelCls}>{item.label}</span>
                 {item.href === "/tasks" && proposedCount > 0 && (
-                  <span className={`ml-auto rounded-full bg-signal px-1.5 py-0.5 text-[10px] font-bold text-white ${labelCls}`}>
+                  <span className={`ml-auto rounded-full bg-signal px-1.5 py-0.5 text-[12px] font-semibold text-white ${labelCls}`}>
                     {proposedCount}
                   </span>
                 )}
@@ -164,17 +169,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="relative hidden w-full shrink-0 border-t border-rail-line pt-3 md:block" ref={menuRef}>
           {overdueCount > 0 && !collapsed && (
-            <div className="mb-2 rounded-lg bg-danger-soft px-2.5 py-1.5 text-[11px] font-medium text-danger">
+            <div className="mb-2 rounded-lg bg-danger-soft px-2.5 py-1.5 text-[12px] font-medium text-danger">
               期限超過 {overdueCount}件
             </div>
           )}
 
           {/* 開いたメニュー。設定への入口をここに集める */}
           {menuOpen && (
-            <div className="mb-1.5 overflow-hidden rounded-[9px] border border-line-soft bg-surface shadow-pop">
+            <div className="mb-1.5 overflow-hidden rounded-[5px] border border-line-soft bg-surface shadow-pop">
               <Link
                 href="/settings"
-                className="block px-3.5 py-2.5 text-[12.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+                className="block px-3.5 py-2.5 text-[13.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
               >
                 管理・設定
               </Link>
@@ -182,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {users.length > 1 && (
                 <Link
                   href="/settings#users"
-                  className="block border-t border-line-soft px-3.5 py-2.5 text-[12.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+                  className="block border-t border-line-soft px-3.5 py-2.5 text-[13.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
                 >
                   使う人を切り替える
                 </Link>
@@ -196,7 +201,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             title="設定を開く"
-            className={`flex w-full items-center gap-2 rounded-[9px] py-2 text-left text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink ${
+            className={`flex w-full items-center gap-2 rounded-[5px] py-2 text-left text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink ${
               collapsed ? "justify-center px-1" : "px-2.5"
             }`}
           >
@@ -206,14 +211,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               使う人を切り替えたときだけ、メニューの中で確認できればよい。
             */}
             <span className="flex w-4 shrink-0 items-center justify-center"><SettingsIcon /></span>
-            {!collapsed && <span className="text-[12.5px]">設定</span>}
+            {!collapsed && <span className="text-[13.5px]">設定</span>}
           </button>
         </div>
       </nav>
 
-      <div className="min-w-0 flex-1">
+      {/*
+        作業する側。左レーンとの間に、常にわずかな隙間を置く。
+        レーンを畳むと画面が詰まり、見出しの帯がレーンに接して
+        「レーンに食い込んでいる」ように見えるため。
+      */}
+      <div className="min-w-0 flex-1 md:pl-3">
         {state.simulatedDate && (
-          <div className="flex flex-wrap items-center justify-center gap-2 bg-signal px-4 py-1.5 text-center text-[12px] text-white">
+          <div className="flex flex-wrap items-center justify-center gap-2 bg-signal px-4 py-1.5 text-center text-[13.5px] text-white">
             <span className="font-medium">
               業務日を {new Date(state.simulatedDate).toLocaleDateString("ja-JP")} として表示しています（デモ用）
             </span>

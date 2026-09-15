@@ -73,14 +73,14 @@ export function CatSays({
       <span aria-hidden="true" className="mt-0.5 w-px shrink-0 self-stretch bg-line" />
       <div className="min-w-0 flex-1">
         {lines.map((l, i) => (
-          <p key={i} className="text-[12.5px] leading-relaxed text-ink-2">{l}</p>
+          <p key={i} className="text-[13.5px] leading-relaxed text-ink-2">{l}</p>
         ))}
       </div>
       <button
         type="button"
         aria-label="この案内を閉じる"
         onClick={() => { remember(message!.id); setDismissed((d) => [...d, message!.id]); }}
-        className="shrink-0 rounded px-1.5 text-[13px] leading-none text-ink-3 hover:bg-surface-2 hover:text-ink-2"
+        className="shrink-0 rounded px-1.5 text-[13.5px] leading-none text-ink-3 hover:bg-surface-2 hover:text-ink-2"
       >
         ×
       </button>

@@ -41,7 +41,7 @@ export function DeleteKnowledgeButton({
 
   return (
     <span ref={box} className="inline-flex flex-wrap items-center gap-1.5">
-      <span className="text-[11.5px] text-ink-2">「{item.title}」を消しますか？</span>
+      <span className="text-[12px] text-ink-2">「{item.title}」を消しますか？</span>
       <Button
         variant="danger" size="sm"
         onClick={() => { dispatch({ type: "deleteKnowledge", id: item.id }); setAsking(false); onDeleted?.(); }}
