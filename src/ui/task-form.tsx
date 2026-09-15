@@ -127,7 +127,7 @@ export function TaskForm({
           <textarea
             value={draft.description}
             onChange={(e) => set("description", e.target.value)}
-            rows={3}
+            rows={7}
             className={`${INPUT} ${border("description")} leading-relaxed`}
             placeholder="補足があれば記入してください（任意）"
             aria-label="説明"

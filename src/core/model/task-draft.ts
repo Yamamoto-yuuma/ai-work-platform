@@ -30,7 +30,18 @@ export const TASK_REPEAT_CHOICES: { value: TaskRepeatKind; label: string }[] = [
 export type TaskRepeatKind = "none" | StartScheduleRepeat["kind"];
 
 export const TITLE_MAX = 100;
-export const DESCRIPTION_MAX = 500;
+/*
+  説明の上限。
+
+  localStorage は文字数で数えられていて、上限は約517万字（実測。
+  日本語も半角も1文字は1文字）。タスク1件は説明なしで約300字なので、
+  2000字まで書けるようにしても、全件に目一杯書かないかぎり足りる。
+
+  これ以上に広げない。2000字を超えるものは、もうタスクの説明ではなく
+  手順書で、案件ごとに同じ文章が複製されることになる。
+  それはナレッジ（4000字）か、外の資料に置くもの。
+*/
+export const DESCRIPTION_MAX = 2000;
 
 /** フォームが扱う値。すべて文字列で保持し、保存時に Task へ変換する */
 export interface TaskDraft {
