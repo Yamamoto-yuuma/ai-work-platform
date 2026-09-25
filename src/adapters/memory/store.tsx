@@ -17,6 +17,7 @@ import type { IntegrationStatus } from "@/ports";
 import { mergeWorkflows } from "@/core/workflow/registry";
 import { workflows as seedWorkflows } from "../../../seed/workflows";
 import { businessRules, derivationRules } from "../../../seed/rules";
+import { WAITING_STATUS } from "../../core/task/waiting";
 import { users, customers, companies, emailTemplates, knowledge as sampleKnowledge } from "../../../seed/master";
 import {
   runs as sampleRuns, stepRunsByRun as sampleStepRuns,
@@ -386,7 +387,19 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         tasks: state.tasks.map((t) => {
           if (t.id !== action.taskId) return t;
-          const next = { ...t, ...action.patch };
+          let next = { ...t, ...action.patch };
+          /*
+            相手待ちに入った時刻も同じ理由でここで押す。
+            何日待っているかはこの時刻から導くので、
+            入れ直すたびに待ち日数が0に戻るのが正しい（前の待ちとは別の待ち）。
+          */
+          if (next.status === WAITING_STATUS && t.status !== WAITING_STATUS) {
+            next = { ...next, waitingSince: next.waitingSince ?? stamp };
+          }
+          // 返ってきたら待ちの記録は畳む。残すと次に待ったとき日数が繋がってしまう
+          if (next.status !== WAITING_STATUS && t.status === WAITING_STATUS) {
+            next = { ...next, waitingSince: undefined, waitingFor: undefined };
+          }
           if (next.status === "done" && t.status !== "done") {
             // 呼ぶ側が時刻を指定していればそちらを優先する（取り込みなど）
             return { ...next, completedAt: next.completedAt ?? stamp };

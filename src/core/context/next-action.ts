@@ -10,6 +10,7 @@ import type {
 } from "../model/types";
 import { getStep, runProgress } from "../flow/engine";
 import { isBlocked } from "../task/dependency";
+import { isWaiting } from "../task/waiting";
 import { escalatedPriority, remainingDays } from "../priority/escalate";
 import { runLabel, subjectPrefix } from "../model/run-label";
 import { urgencyOf, remainingLabel } from "./resolver";
@@ -189,6 +190,12 @@ export function rankActions(input: NextActionInput): RankedAction[] {
     if (task.status === "done" || task.status === "canceled") continue;
     // ブロック判定は core/task/dependency に一元化している（画面間で判定を揃えるため）
     if (isBlocked(task, tasks)) continue;
+    /*
+      相手ボールは「次にやること」に出さない。自分では動かせないものを
+      着手候補に混ぜると、上から順に手を付けられなくなる。
+      放置されているものは HOME の相手待ち欄が別に拾う。
+    */
+    if (isWaiting(task)) continue;
 
     const urgency = urgencyOf(task.dueAt, now);
     // 優先度は登録時のまま固定しない。期限が近づけば上がる（仕様 §28-4）

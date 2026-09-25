@@ -15,6 +15,8 @@ import { TASK_PRIORITIES, patchFromDraft, describeTaskRepeat, formatMinutes } fr
 import { completeTaskEffects } from "@/core/task/repeat";
 import { newTaskId } from "@/lib/id";
 import { TASK_STATUS_LABEL, TASK_STATUS_DOT } from "@/core/model/task-labels";
+import { WaitingSwitch } from "@/ui/waiting-panel";
+import { isWaiting, isStaleWait, waitingDayLabel } from "@/core/task/waiting";
 import { blockingPredecessors, effectiveStatus, releasedOnComplete, directDependents } from "@/core/task/dependency";
 import { proposeDependentDeadlines, shiftDirection, type DeadlineProposal } from "@/core/schedule/cascade";
 import { DeadlineCascadePanel } from "@/ui/deadline-cascade";
@@ -86,9 +88,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         <Badge tone={task.priority === "urgent" ? "danger" : task.priority === "high" ? "signal" : "neutral"}>
           優先度：{TASK_PRIORITIES.find((x) => x.value === task.priority)?.label ?? task.priority}
         </Badge>
-        <Badge tone={shownStatus === "blocked" ? "danger" : "neutral"}>
+        <Badge tone={shownStatus === "blocked" || isStaleWait(task, now) ? "danger" : "neutral"}>
           <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
           {TASK_STATUS_LABEL[shownStatus]}
+          {/* 相手ボールは待ち日数まで出す。状態だけでは催促どきが分からない */}
+          {isWaiting(task) && ` ${waitingDayLabel(task, now)}`}
         </Badge>
         <Badge tone={task.assigneeId === state.currentUserId ? "brand" : "neutral"}>
           担当：{users.find((u) => u.id === task.assigneeId)?.name ?? "未割当"}
@@ -176,6 +180,18 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
           onCancel={() => setEditing(false)}
         />
       )}
+
+      {/*
+        相手ボールの切り替え。一覧の右パネルと同じ部品を使う。
+        画面ごとに操作が違うと、同じタスクが画面によって別の状態に見える。
+      */}
+      <div className="mb-5">
+        <WaitingSwitch
+          task={task}
+          now={now}
+          onChange={(patch) => dispatch({ type: "updateTask", taskId: task.id, patch })}
+        />
+      </div>
 
       {task.confirmationState === "proposed" && (
         <Card className="mb-5 bg-signal-soft p-4">

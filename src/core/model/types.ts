@@ -454,6 +454,22 @@ export interface Task {
     上書きしてしまう、という事故を防げる。
   */
   external?: ExternalOrigin;
+  /*
+    相手ボール。status が "waiting-approval" のあいだだけ意味を持つ。
+
+    自分の手は空いていて、相手の返事や作業を待っている状態を指す。
+    先行タスク待ちの "blocked" とは別もので、あちらは自分の中の順番、
+    こちらは自分の外に出ている。混ぜると「自分では動かせないもの」が
+    一緒くたになり、催促すべきものが埋もれる。
+
+    waitingFor は誰を待っているかの自由記述。人を登録して管理するのでは
+    ないので、参照ではなく文字列で持つ。
+    waitingSince は待ち始めた時刻。押すのは store の updateTask 1か所だけ
+    （completedAt と同じ理由：状態を変える経路が複数あるため）。
+    何日待っているかは、この2つから毎回導く（保存しない）。
+  */
+  waitingFor?: string;
+  waitingSince?: string;
 }
 
 /** 取り込み元。いまは Google ToDo リストだけ */

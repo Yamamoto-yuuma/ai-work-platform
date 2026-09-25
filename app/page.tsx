@@ -22,6 +22,7 @@ import { runLabel, subjectOf } from "@/core/model/run-label";
 import { catForHome } from "@/core/cat/message";
 import { CatSays } from "@/ui/cat";
 import { checkStatusOf } from "@/ui/wait-run";
+import { waitingTasks, isStaleWait, waitingDayLabel } from "@/core/task/waiting";
 import type { WorkflowDefinition } from "@/core/model/types";
 
 function fmt(d?: string) {
@@ -69,6 +70,14 @@ export default function HomePage() {
     .filter((w) => !shownKeys.has(`${w.run.id}:check`));
 
   // --- ここから下は「状態確認」。行動候補ではない ---
+  /*
+    相手ボール。細目は親の中で扱うので、ここにも出さない（HOME を細目で埋めない）。
+  */
+  const ballWithThem = waitingTasks(
+    state.tasks.filter((t) => !t.parentTaskId && t.assigneeId === currentUser.id),
+    now,
+  );
+
   const activeRuns = state.runs.filter((r) => r.status === "active" && r.assigneeId === currentUser.id);
   // 派生タスクの確認は①②に出ていればそちらに任せる
   const proposed = shownKeys.has("review-proposals")
@@ -283,6 +292,41 @@ export default function HomePage() {
               </p>
               <LinkButton href="/tasks?view=proposed" size="sm" variant="secondary">内容を確認する</LinkButton>
             </Card>
+          )}
+
+          {/*
+            相手ボール。自分では動かせないので着手候補（左カラム）には出さない。
+            そのぶん、ここに出さないと丸ごと見えなくなる。
+            並びは待ちが長い順。催促はふつう古いものからする。
+            何日待っているかを添えるのは、状態だけでは
+            さっき投げたものと放置されているものが同じ見た目になるため。
+          */}
+          {ballWithThem.length > 0 && (
+            <Panel
+              title="Awaiting others" count={ballWithThem.length}
+              note="相手の返事待ち"
+            >
+              <ul className="flex flex-col gap-1.5 p-3">
+                {ballWithThem.map((t) => {
+                  const stale = isStaleWait(t, now);
+                  return (
+                    <li key={t.id}>
+                      <Link
+                        href={`/tasks?open=${t.id}`}
+                        className="block rounded-lg bg-surface-2 px-3 py-2 hover:bg-brand-soft"
+                      >
+                        <span className="block text-[13.5px] font-medium">{t.title}</span>
+                        <span className={`mt-0.5 block text-[12px] ${stale ? "font-semibold text-danger" : "text-ink-3"}`}>
+                          {waitingDayLabel(t, now)}待ち
+                          {t.waitingFor && `・${t.waitingFor}`}
+                          {stale && "・催促どき"}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
           )}
 
           {waiting.length > 0 && (

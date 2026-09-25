@@ -26,6 +26,8 @@ import { sortDoneTasks, sortOpenTasks } from "@/core/task/order";
 import { blockedBySubtasks, subtaskProgress, subtasksOf, topLevel } from "@/core/task/subtask";
 import { remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { escalatedPriority } from "@/core/priority/escalate";
+import { WaitingSwitch } from "@/ui/waiting-panel";
+import { isWaiting, isStaleWait, waitingDayLabel, waitingTitle } from "@/core/task/waiting";
 import type { Task } from "@/core/model/types";
 
 const VIEWS = [
@@ -34,6 +36,12 @@ const VIEWS = [
   { key: "overdue", label: "期限超過" },
   { key: "byRun", label: "業務別" },
   { key: "derived", label: "派生別" },
+  /*
+    相手ボールの置き場。自分では動かせないものを、動かせるものと
+    同じ一覧に混ぜておくと、上から手を付けられなくなる。
+    ここに寄せておけば「投げてあるもの」だけをまとめて催促できる。
+  */
+  { key: "waiting", label: "相手待ち" },
   { key: "proposed", label: "提案中" },
   { key: "all", label: "すべて" },
   /*
@@ -111,6 +119,7 @@ function TasksInner() {
       case "week": return t.dueAt ? new Date(t.dueAt).getTime() - now.getTime() < 7 * 864e5 : false;
       case "overdue": return u === "overdue";
       case "derived": return t.source === "derived";
+      case "waiting": return isWaiting(t);
       case "byRun": return Boolean(t.runId);
       case "all": return true;
     }
@@ -129,6 +138,12 @@ function TasksInner() {
     新しく終えたものを上にする。
   */
   const visible = view === "done" ? sortDoneTasks(picked) : sortOpenTasks(picked, now);
+
+  /*
+    相手待ちの件数はタブに出す。何件投げてあるかは、一覧を開かずに
+    知りたいことのひとつ（増えていれば、自分の手より先に催促が要る）。
+  */
+  const waitingCount = open.filter((t) => isWaiting(t)).length;
 
   const mineCount = open.filter(
     (t) => t.assigneeId === state.currentUserId && t.status !== "done" && t.status !== "canceled",
@@ -154,9 +169,18 @@ function TasksInner() {
     ここを1か所にしておかないと、行ごとに縦がずれて表に見えなくなる。
     最後の列は、触れたときだけ出る削除の置き場所。ふだんは空けておく。
   */
+  /*
+    相手ボールの行は、状態のあとに待ち日数まで出す（「相手待ち 5日」）。
+    既定の幅では日数が切れて「今E」のように読めなくなるので、
+    待っている行が1つでもあるときだけ状態の列を広げる。
+    無いときは広げない。使わない幅をいつも空けておくと、
+    タスク名に使える幅がそのぶん減る。
+  */
+  const hasWaiting = visible.some((t) => isWaiting(t));
+  const STATUS_W = hasWaiting ? "132px" : "92px";
   const TEMPLATE = showAssignee
-    ? "20px minmax(0,1fr) 92px 72px 92px 104px 58px"
-    : "20px minmax(0,1fr) 92px 72px 92px 58px";
+    ? `20px minmax(0,1fr) 92px 72px ${STATUS_W} 104px 58px`
+    : `20px minmax(0,1fr) 92px 72px ${STATUS_W} 58px`;
 
   /**
    * 完了に戻す。
@@ -204,6 +228,10 @@ function TasksInner() {
     const priorityLabel = TASK_PRIORITIES.find((x) => x.value === nowPriority)?.label ?? nowPriority;
     const raised = nowPriority !== t.priority;
     const done = t.status === "done";
+    // 相手ボール。長引いているものは催促どきとして色を差す
+    const waiting = isWaiting(t);
+    const waitDays = waiting ? waitingDayLabel(t, now) : undefined;
+    const staleWait = waiting && isStaleWait(t, now);
 
     return (
       <Row tone={t.id === createdId ? "ok" : t.confirmationState === "proposed" ? "signal" : "plain"}>
@@ -331,12 +359,24 @@ function TasksInner() {
           */}
           <span
             className={`cell-clip flex items-center gap-1.5 text-[13.5px] ${
-              shownStatus === "blocked" ? "font-medium text-danger" : "text-ink-2"
+              shownStatus === "blocked" || staleWait ? "font-medium text-danger" : "text-ink-2"
             }`}
-            title={blockedBy.length > 0 ? `待機中：${blockedBy.map((x) => x.title).join(" / ")}` : undefined}
+            title={
+              waiting ? waitingTitle(t, now)
+              : blockedBy.length > 0 ? `待機中：${blockedBy.map((x) => x.title).join(" / ")}`
+              : undefined
+            }
           >
             <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
             {TASK_STATUS_LABEL[shownStatus]}
+            {/*
+              相手ボールは「何日待っているか」まで出す。状態だけだと、
+              さっき投げたものと2週間放置されているものが同じ見た目になり、
+              催促どきが分からない。長引いたものは色も変える。
+            */}
+            {waiting && waitDays && (
+              <span className="shrink-0 cell-num text-[12px]">{waitDays}</span>
+            )}
           </span>
 
           {showAssignee && (
@@ -386,7 +426,9 @@ function TasksInner() {
           <Tabs
             items={VIEWS.map((v) => ({
               ...v,
-              count: v.key === "proposed" ? proposed.length : undefined,
+              count: v.key === "proposed" ? proposed.length
+                : v.key === "waiting" ? waitingCount
+                : undefined,
             }))}
             value={view}
             onChange={(v) => { setView(v); setJustDone(null); }}
@@ -675,6 +717,19 @@ function TasksInner() {
           </div>
         )}
 
+        {/*
+          相手ボールの切り替え。ここに置くのは、状態を変えるのに
+          編集フォームを開かせないため。投げた／返ってきたは、
+          中身を直すのとは別の頻度で起きる。
+        */}
+        <div className="mb-4">
+          <WaitingSwitch
+            task={task}
+            now={now}
+            onChange={(patch) => dispatch({ type: "updateTask", taskId: task.id, patch })}
+          />
+        </div>
+
         {task.confirmationState === "proposed" && (
           <div className="mb-4 rounded-lg bg-signal-soft p-3.5">
             <p className="text-[13.5px] font-semibold text-signal">このタスクは提案中です</p>
@@ -697,6 +752,13 @@ function TasksInner() {
             <span className="flex items-center gap-1.5">
               <span className={`inline-block h-1.5 w-1.5 rounded-full ${TASK_STATUS_DOT[shownStatus]}`} aria-hidden />
               {TASK_STATUS_LABEL[shownStatus]}
+              {/* 相手ボールは、待ち日数と相手までここで言い切る */}
+              {isWaiting(task) && (
+                <span className={`text-[12px] ${isStaleWait(task, now) ? "font-medium text-danger" : "text-ink-3"}`}>
+                  {waitingDayLabel(task, now)}
+                  {task.waitingFor && ` / ${task.waitingFor}`}
+                </span>
+              )}
             </span>
           </Line>
           <Line k="期限">

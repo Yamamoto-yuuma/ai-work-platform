@@ -8,8 +8,12 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   "todo": "未着手",
   "doing": "進行中",
   "blocked": "ブロック中",
-  // 他者がこのシステム上で承認するのではなく、自分から見た「返事待ち」
-  "waiting-approval": "返答待ち",
+  /*
+    相手ボール。自分から見て「投げてある」状態。
+    承認だけでなく、返事・資料待ち・先方の作業待ちも含むので、
+    値の名前（waiting-approval）より広い言葉を当てる。
+  */
+  "waiting-approval": "相手待ち",
   "done": "完了",
   "canceled": "中止",
 };
