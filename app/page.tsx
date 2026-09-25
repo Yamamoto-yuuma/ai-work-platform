@@ -13,6 +13,7 @@ import { useNextAction, useNow, useStartableToday, useWorkflows } from "@/ui/use
 import { Badge, Button, Card, Eyebrow, LinkButton, Panel, Row, RowList, TopBar } from "@/ui/primitives";
 import { TaskMemoPanel } from "@/ui/task-memo-panel";
 import { TodayTimeline } from "@/ui/today-timeline";
+import { MailPanel } from "@/ui/mail-panel";
 import { remainingLabel } from "@/core/context/resolver";
 import { runProgress } from "@/core/flow/engine";
 import { buildRun } from "@/services/start-run";
@@ -152,6 +153,16 @@ export default function HomePage() {
       */}
       <div className="mb-5">
         <TodayTimeline now={now} />
+      </div>
+
+      {/*
+        メール。Schedule の次に置く。「今日はこういう1日」の後に
+        「手を打つ必要があるものが来ている」を出す。
+        一覧は作らない。件名と差出人と、Gmail へ飛ぶ口だけ。
+        未連携のときは何も出さない（毎日出る警告にしない）。
+      */}
+      <div className="mb-5">
+        <MailPanel />
       </div>
 
       {/*

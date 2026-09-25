@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 const TIMEOUT_MS = 20_000;
 
 /** GAS に通す操作。ここに無いものは受け付けない */
-const ACTIONS = ["drafts", "rebuild", "save", "send", "events"] as const;
+const ACTIONS = ["drafts", "rebuild", "save", "send", "events", "mail"] as const;
 type Action = (typeof ACTIONS)[number];
 
 const REPORT_TYPES = ["day", "night"] as const;
@@ -126,10 +126,11 @@ function readGasResponse(value: unknown): Record<string, unknown> | string {
   }
 
   /*
-    今日の予定は日報とは別の形で返る。日報の項目を探しに行くと、
-    正しい応答を「形が違う」として弾いてしまう。
+    今日の予定と Gmail の見張りは、日報とは別の形で返る。
+    日報の項目を探しに行くと、正しい応答を「形が違う」として弾いてしまう。
   */
   if (Array.isArray(source.events)) return source;
+  if (Array.isArray(source.inbox) && Array.isArray(source.awaiting)) return source;
 
   const reports = source.reports;
   if (typeof reports !== "object" || reports === null) {

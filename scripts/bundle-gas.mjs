@@ -21,7 +21,7 @@ const OUT_FILE = join(OUT_DIR, "日報自動生成.gs");
  * 読む人が上から追えるようにするための順番。
  */
 const ORDER = [
-  "config", "date", "businessDay", "calendar", "tasks", "nightBody", "report", "chatwork",
+  "config", "date", "businessDay", "calendar", "tasks", "mail", "nightBody", "report", "chatwork",
   "lock", "sheet", "draft", "main", "menu", "api", "test",
 ];
 

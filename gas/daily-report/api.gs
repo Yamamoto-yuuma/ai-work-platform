@@ -9,6 +9,7 @@
  *
  *   { "secret": "…", "action": "drafts" }                       今日の下書きを返す
  *   { "secret": "…", "action": "events" }                       今日の予定を返す（HOME 用）
+ *   { "secret": "…", "action": "mail" }                         自分宛の未読と返信待ちを返す（HOME 用）
  *   { "secret": "…", "action": "rebuild", "reportType": "day" }  最新のカレンダーで作り直す
  *   { "secret": "…", "action": "save", "reportType": "day",
  *     "body": "---業務報告---…" }                                      本文を書き換える
@@ -87,6 +88,16 @@ function handleApiAction_(request) {
         // 色を変えていない予定は、カレンダーそのものの色で表示される
         calendarColor: getCalendarColor_(),
       };
+
+    /*
+      Gmail の見張り。自分宛の未読と、返事が来ていないやり取り。
+      下書きには触らないので、営業日でなくても返す。
+    */
+    case 'mail': {
+      var mail = getMailForApi_();
+      mail.ok = true;
+      return mail;
+    }
 
     case 'rebuild':
       rebuildForApi_(today, toReportType_(request.reportType));
