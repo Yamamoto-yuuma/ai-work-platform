@@ -12,7 +12,7 @@ import { useStore } from "@/adapters/memory/store";
 import { Badge, Button, Card } from "./primitives";
 import { importGoogleTasks } from "@/services/google-import";
 import {
-  connect, disconnect, googleClientId, isConnected,
+  connect, disconnect, forgetAccount, googleClientId, isConnected, rememberedAccount,
 } from "@/adapters/google/tasks";
 import {
   isAutoSyncOn, readLastImport, rememberLastImport, setAutoSync, type LastImport,
@@ -38,26 +38,50 @@ export function GoogleTasksPanel() {
   const [result, setResult] = useState<string | null>(null);
   const [auto, setAuto] = useState(true);
   const [last, setLast] = useState<LastImport | null>(null);
+  /*
+    繋いだアカウント。覚えていれば、次からは選択画面を出さずに通る。
+    何を覚えているかは目に見えるようにしておく（覚えたことに気づけないと、
+    別のアカウントで繋ぎたくなったときに外し方が分からない）。
+  */
+  const [account, setAccount] = useState<string | undefined>(undefined);
 
   // localStorage は描画後に読む（サーバとクライアントで表示を揃えるため）
   useEffect(() => {
     setAuto(isAutoSyncOn());
     setLast(readLastImport());
     setConnected(isConnected());
+    setAccount(rememberedAccount());
   }, []);
 
   const imported = state.tasks.filter((t) => t.external?.service === "google-tasks").length;
 
-  async function onConnect() {
+  async function onConnect(chooseAccount = false) {
     setError(null); setResult(null); setPhase("connecting");
     try {
-      await connect();
+      await connect({ chooseAccount });
       setConnected(isConnected());
+      setAccount(rememberedAccount());
     } catch (e) {
       setError(e instanceof Error ? e.message : "接続できませんでした");
+      setAccount(rememberedAccount());
     } finally {
       setPhase("idle");
     }
+  }
+
+  /**
+   * 別のアカウントに変える。
+   *
+   * 覚えているものを外すだけだと、Google に1つしかログインしていない場合は
+   * そのまま同じアカウントで黙って通ってしまい、変えたつもりが変わらない。
+   * 選択画面を必ず出す（select_account）。
+   */
+  async function onSwitchAccount() {
+    forgetAccount();
+    disconnect();
+    setAccount(undefined);
+    setConnected(false);
+    await onConnect(true);
   }
 
   async function onImport() {
@@ -131,10 +155,30 @@ export function GoogleTasksPanel() {
         </span>
       </label>
 
+      {/*
+        覚えているアカウント。
+        これがあるあいだは、開き直しても1時間経っても、選択画面を出さずに通る。
+        覚えているのはアドレスだけで、トークンでも合言葉でもない。
+      */}
+      {account && (
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-surface-2 px-3 py-2 text-[12px] text-ink-2">
+          <span>このアカウントで繋ぎます</span>
+          <span className="font-medium text-ink-1">{account}</span>
+          <button
+            type="button"
+            onClick={() => void onSwitchAccount()}
+            className="text-ink-3 underline underline-offset-2 hover:text-ink-2"
+          >
+            別のアカウントにする
+          </button>
+        </p>
+      )}
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!connected ? (
-          <Button size="sm" onClick={onConnect} disabled={phase !== "idle"}>
-            {phase === "connecting" ? "接続しています…" : "Google に接続する"}
+          <Button size="sm" onClick={() => onConnect()} disabled={phase !== "idle"}>
+            {phase === "connecting" ? "接続しています…"
+              : account ? "接続する" : "Google に接続する"}
           </Button>
         ) : (
           <>
