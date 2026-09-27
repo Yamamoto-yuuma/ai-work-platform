@@ -49,6 +49,12 @@ export interface TaskDraft {
   description: string;
   /** input[type=date] の値（YYYY-MM-DD）。空文字は「期限なし」 */
   dueAt: string;
+  /*
+    input[type=time] の値（HH:MM）。空文字は「時刻は決めない」。
+    決めなければ、今までどおりその日の18時として保存する。
+    日付が空のときは意味を持たない（期限そのものが無い）。
+  */
+  dueTime: string;
   assigneeId: string;
   priority: TaskPriority;
   /* 繰り返し。フォームは選択肢を平らに持ち、保存時に1つの値へ畳む */
@@ -88,18 +94,36 @@ export function toDateInputValue(iso?: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** 保存されている期限から、時刻入力の値（HH:MM）を取り出す */
+export function toTimeInputValue(iso?: string, hasTime?: boolean): string {
+  if (!iso || !hasTime) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /**
- * input[type=date] の値を ISO 文字列に戻す。
- * 元の期限が持っていた時刻は維持する（日付だけ変えたつもりが時刻まで動かないように）。
+ * input[type=date]（と、あれば time）の値を ISO 文字列に戻す。
+ *
+ * 時刻を入れていれば、その時刻。
+ * 入れていなければ、元の期限が持っていた時刻を維持する
+ * （日付だけ変えたつもりが時刻まで動かないように）。
+ * 元も無ければ18時。終業の目安で、この既定値は前から変わっていない。
  */
-export function fromDateInputValue(value: string, previousIso?: string): string | undefined {
+export function fromDateInputValue(value: string, previousIso?: string, time?: string): string | undefined {
   if (!value) return undefined;
   const [y, m, d] = value.split("-").map(Number);
   if (!y || !m || !d) return undefined;
 
   let hours = 18;
   let minutes = 0;
-  if (previousIso) {
+  const hm = time ? /^(\d{1,2}):(\d{2})$/.exec(time.trim()) : null;
+  if (hm) {
+    hours = Number(hm[1]);
+    minutes = Number(hm[2]);
+    if (hours > 23 || minutes > 59) { hours = 18; minutes = 0; }
+  } else if (previousIso) {
     const prev = new Date(previousIso);
     if (!Number.isNaN(prev.getTime())) {
       hours = prev.getHours();
@@ -108,6 +132,11 @@ export function fromDateInputValue(value: string, previousIso?: string): string 
   }
   const next = new Date(y, m - 1, d, hours, minutes, 0, 0);
   return Number.isNaN(next.getTime()) ? undefined : next.toISOString();
+}
+
+/** 時刻まで決めたか。日付が無ければ期限そのものが無いので false */
+export function hasDueTime(draft: TaskDraft): boolean {
+  return draft.dueAt.length > 0 && /^\d{1,2}:\d{2}$/.test(draft.dueTime.trim());
 }
 
 /** 保存されている繰り返しを、フォームが扱える平らな値にほどく */
@@ -146,6 +175,7 @@ export function draftFromTask(task: Task): TaskDraft {
     title: task.title,
     description: task.description ?? "",
     dueAt: toDateInputValue(task.dueAt),
+    dueTime: toTimeInputValue(task.dueAt, task.dueHasTime),
     assigneeId: task.assigneeId,
     priority: task.priority,
     estimatedMinutes: task.estimatedMinutes === undefined ? "" : String(task.estimatedMinutes),
@@ -234,7 +264,8 @@ export function patchFromDraft(draft: TaskDraft, task: Task): Partial<Task> {
   return {
     title: draft.title.trim(),
     description: description.length > 0 ? description : undefined,
-    dueAt: fromDateInputValue(draft.dueAt, task.dueAt),
+    dueAt: fromDateInputValue(draft.dueAt, task.dueAt, draft.dueTime),
+    dueHasTime: hasDueTime(draft) ? true : undefined,
     assigneeId: draft.assigneeId,
     priority: draft.priority,
     estimatedMinutes: estimateFromDraft(draft),
@@ -259,6 +290,7 @@ export function isDirty(draft: TaskDraft, task: Task): boolean {
     base.title !== draft.title ||
     base.description !== draft.description ||
     base.dueAt !== draft.dueAt ||
+    base.dueTime !== draft.dueTime ||
     base.assigneeId !== draft.assigneeId ||
     base.priority !== draft.priority ||
     base.estimatedMinutes !== draft.estimatedMinutes ||
@@ -272,7 +304,7 @@ export function isDirty(draft: TaskDraft, task: Task): boolean {
 /** 新規作成フォームの初期値 */
 export function emptyTaskDraft(assigneeId: string): TaskDraft {
   return {
-    title: "", description: "", dueAt: "", assigneeId, priority: "normal",
+    title: "", description: "", dueAt: "", dueTime: "", assigneeId, priority: "normal",
     repeatKind: "none", repeatWeekdays: [], repeatMonthDay: "1",
     estimatedMinutes: "", dependsOn: [],
   };
@@ -293,7 +325,8 @@ export function newTaskFromDraft(draft: TaskDraft, id: string): Task {
     status: "todo",
     priority: draft.priority,
     assigneeId: draft.assigneeId,
-    dueAt: fromDateInputValue(draft.dueAt),
+    dueAt: fromDateInputValue(draft.dueAt, undefined, draft.dueTime),
+    dueHasTime: hasDueTime(draft) ? true : undefined,
     estimatedMinutes: estimateFromDraft(draft),
     repeat: repeatFromDraft(draft),
     source: "manual",

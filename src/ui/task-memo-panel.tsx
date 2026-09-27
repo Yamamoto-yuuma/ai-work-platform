@@ -59,6 +59,8 @@ interface Candidate {
   title: string;
   /** 期限。input[type=date] に合わせて yyyy-MM-dd で持つ。空なら未設定 */
   due: string;
+  /** 期限の時刻。input[type=time] に合わせて HH:MM。空なら「その日のうち」 */
+  dueTime: string;
   assigneeId: string;
   estimatedMinutes?: number;
   priority: Task["priority"];
@@ -77,11 +79,26 @@ function toDateInput(iso: string | undefined): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-/** input[type=date] の値を、その日の 18 時（既存の一括入力と同じ）に戻す */
-function fromDateInput(value: string): string | undefined {
+/**
+ * input[type=date]（と、あれば time）の値を戻す。
+ * 時刻を決めていなければ、その日の 18 時（既存の一括入力と同じ）。
+ */
+function fromDateInput(value: string, time?: string): string | undefined {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!m) return undefined;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 18, 0, 0, 0).toISOString();
+  const hm = time ? /^(\d{1,2}):(\d{2})$/.exec(time) : null;
+  const h = hm ? Number(hm[1]) : 18;
+  const min = hm ? Number(hm[2]) : 0;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), h, min, 0, 0).toISOString();
+}
+
+/** 読み取った期限から、時刻入力の値を取り出す。時刻まで書いてあったときだけ */
+function toTimeInput(iso?: string, hasTime?: boolean): string {
+  if (!iso || !hasTime) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function toCandidate(block: MemoBlock, index: number, defaultAssigneeId: string): Candidate {
@@ -89,6 +106,7 @@ function toCandidate(block: MemoBlock, index: number, defaultAssigneeId: string)
     key: `${index}-${block.raw}`,
     title: block.title,
     due: toDateInput(block.dueAt),
+    dueTime: toTimeInput(block.dueAt, block.dueHasTime),
     assigneeId: defaultAssigneeId,
     estimatedMinutes: block.estimatedMinutes,
     priority: block.priority ?? "normal",
@@ -233,7 +251,8 @@ export function TaskMemoPanel({
       description: c.note,
       priority: c.priority,
       assigneeId: c.assigneeId,
-      dueAt: fromDateInput(c.due),
+      dueAt: fromDateInput(c.due, c.dueTime),
+      dueHasTime: c.due && c.dueTime ? true : undefined,
       estimatedMinutes: c.estimatedMinutes,
       /*
         人が 1 件ずつ目で見て直したうえで押しているので、確認済みとして入れる。
@@ -339,7 +358,7 @@ export function TaskMemoPanel({
                     <span className="text-ink-2">・</span> を付けた行から、次の印までが1件になります。
                     印の無い行は、その前の件の続きとして扱います。印を使わなければ1行が1件です。
                     <br />
-                    「明日」「9/14」「金曜」「30分」「至急」を混ぜて書けば、期限・見積時間・優先度も読み取ります。
+                    「明日」「9/14」「金曜」「15時」「30分」「至急」を混ぜて書けば、期限・時刻・見積時間・優先度も読み取ります。
                   </p>
                 </div>
 
@@ -384,8 +403,21 @@ export function TaskMemoPanel({
                               <input
                                 type="date"
                                 value={c.due}
-                                onChange={(e) => patch(c.key, { due: e.target.value })}
+                                onChange={(e) => patch(c.key, {
+                                  due: e.target.value,
+                                  // 期限を消したら時刻も消す。日付の無い時刻は行き場がない
+                                  ...(e.target.value ? {} : { dueTime: "" }),
+                                })}
                                 className="field field-sm w-auto"
+                              />
+                              {/* 時刻。書いてあれば読み取り済みで入る。空のままでよい */}
+                              <input
+                                type="time"
+                                value={c.dueTime}
+                                disabled={!c.due}
+                                onChange={(e) => patch(c.key, { dueTime: e.target.value })}
+                                className="field field-sm w-auto disabled:cursor-not-allowed disabled:opacity-45"
+                                aria-label="期限の時刻"
                               />
                             </label>
                             <label className="flex items-center gap-1.5 text-[12px] text-ink-3">

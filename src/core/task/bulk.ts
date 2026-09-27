@@ -17,6 +17,8 @@ export interface ParsedTaskLine {
   raw: string;
   title: string;
   dueAt?: string;
+  /** 時刻まで書いてあったか。「明日 15時」のように書いたときだけ立つ */
+  dueHasTime?: boolean;
   estimatedMinutes?: number;
   priority?: TaskPriority;
   /** 何を読み取ったか。画面で「なぜこの期限になったか」を出すために持つ */
@@ -122,6 +124,41 @@ export function readDue(line: string, now: Date): Hit | undefined {
   return undefined;
 }
 
+/**
+ * 時刻を読む。15時・15:00・15時半・午後3時。
+ *
+ * 「1時間」「30分」は長さであって時刻ではないので、時（じ）の後ろに
+ * 「間」が続くものは外す。見積より先に読むのは、「15時30分」を
+ * 「30分の見積」と取り違えないため（先に消しておく）。
+ *
+ * 午前／午後が付いていればそれに従う。付いていなければ書かれた数字のまま
+ * 読む（9時と書いてあれば9時。21時のつもりなら21時と書いてもらう。
+ * こちらで昼夜を推測すると、外したときに気づけない）。
+ */
+export function readTime(line: string): { text: string; hours: number; minutes: number } | undefined {
+  // 15:00 / 15：00
+  const colon = /(?:^|[^\d])(\d{1,2})\s*[:：]\s*([0-5]\d)(?!\d)/.exec(line);
+  if (colon) {
+    const h = Number(colon[1]);
+    const m = Number(colon[2]);
+    if (h <= 23) return { text: `${colon[1]}:${colon[2]}`, hours: h, minutes: m };
+  }
+
+  // 午後3時／15時／15時半／15時30分
+  const jp = /(午前|午後)?\s*(\d{1,2})\s*時\s*(半|[0-5]?\d\s*分)?(?!間)/.exec(line);
+  if (jp) {
+    let h = Number(jp[2]);
+    if (h > 23) return undefined;
+    if (jp[1] === "午後" && h < 12) h += 12;
+    if (jp[1] === "午前" && h === 12) h = 0;
+    const tail = jp[3]?.trim();
+    const m = tail === "半" ? 30 : tail ? Number(tail.replace(/分$/, "")) : 0;
+    if (!Number.isFinite(m) || m > 59) return undefined;
+    return { text: jp[0].trim(), hours: h, minutes: m };
+  }
+  return undefined;
+}
+
 /** 見積時間を読む。30分・1時間・1.5h・90m */
 export function readEstimate(line: string): { text: string; minutes: number } | undefined {
   const hm = /(\d+)\s*時間\s*(\d{1,2})\s*分/.exec(line);
@@ -197,16 +234,37 @@ export function parseLine(raw: string, now: Date): ParsedTaskLine {
     matched.push(pr.text.trim().replace(/[:：、,]$/, ""));
   }
 
+  /*
+    時刻は見積より先に読む。「15時30分」の「30分」を見積として
+    先に持っていかれると、時刻が壊れる。
+  */
+  const tm = readTime(title);
+  if (tm) { title = trimTail(title, tm.text); matched.push(tm.text.trim()); }
+
   const est = readEstimate(title);
   if (est) { title = trimTail(title, est.text); matched.push(est.text.trim()); }
 
   const due = readDue(title, now);
   if (due) { title = trimTail(title, due.text); matched.push(due.text.trim()); }
 
+  /*
+    日付と時刻を合わせる。
+    時刻だけ書いてあるときは今日として読む。すでに過ぎていても翌日には送らない。
+    「15時」と書いた人が明日の15時を指しているとは限らず、
+    こちらで日をずらすと、ずれたこと自体が画面から見えない。
+  */
+  let dueAt = due?.value;
+  if (tm) {
+    const base = dueAt ? new Date(dueAt) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    base.setHours(tm.hours, tm.minutes, 0, 0);
+    dueAt = base.toISOString();
+  }
+
   return {
     raw,
     title: title.trim(),
-    dueAt: due?.value,
+    dueAt,
+    dueHasTime: tm ? true : undefined,
     estimatedMinutes: est?.minutes,
     priority: pr?.priority,
     matched: matched.filter((m) => m.length > 0),

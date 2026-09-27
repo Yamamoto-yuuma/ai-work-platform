@@ -100,6 +100,8 @@ export interface RankedAction extends NextAction {
   priority?: TaskPriority;
   basePriority?: TaskPriority;
   estimatedMinutes?: number;
+  /** 期限に時刻まで決めてあるか。残り時間の言い方が変わる（日 か 時間 か） */
+  dueHasTime?: boolean;
 }
 
 /** 全業務・全タスクを横断して、着手すべきものを優先順位付きで返す */
@@ -216,6 +218,7 @@ export function rankActions(input: NextActionInput): RankedAction[] {
       priority,
       basePriority: task.priority,
       estimatedMinutes: task.estimatedMinutes,
+      dueHasTime: task.dueHasTime,
       score: URGENCY_SCORE[urgency] + PRIORITY_SCORE[priority],
     });
   }

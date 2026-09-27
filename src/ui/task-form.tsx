@@ -136,15 +136,47 @@ export function TaskForm({
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="期限" error={errorOf("dueAt")}>
-            <input
-              type="date"
-              value={draft.dueAt}
-              onChange={(e) => set("dueAt", e.target.value)}
-              className={`${INPUT} ${border("dueAt")}`}
-              aria-label="期限"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                value={draft.dueAt}
+                onChange={(e) => {
+                  set("dueAt", e.target.value);
+                  // 期限を消したら時刻も一緒に消す。日付の無い時刻は行き場がない
+                  if (!e.target.value) set("dueTime", "");
+                }}
+                className={`${INPUT} ${border("dueAt")} w-auto`}
+                aria-label="期限"
+              />
+              {/*
+                時刻。決めなくてよい（空なら今までどおり、その日のうち）。
+                日付を入れる前は押せるようにしない。時刻だけ決めても行き場がない。
+              */}
+              <input
+                type="time"
+                value={draft.dueTime}
+                disabled={!draft.dueAt}
+                onChange={(e) => set("dueTime", e.target.value)}
+                className={`${INPUT} w-auto disabled:cursor-not-allowed disabled:opacity-45`}
+                aria-label="期限の時刻"
+              />
+              {draft.dueTime && (
+                <button
+                  type="button"
+                  onClick={() => set("dueTime", "")}
+                  className="text-[12px] text-ink-3 underline underline-offset-2 hover:text-ink-2"
+                >
+                  時刻を消す
+                </button>
+              )}
+            </div>
             {draft.dueAt
-              ? <p className="mt-1 text-[12px] text-ink-3">{formatJaDate(draft.dueAt)}</p>
+              ? (
+                <p className="mt-1 text-[12px] text-ink-3">
+                  {formatJaDate(draft.dueAt)}
+                  {draft.dueTime ? ` ${draft.dueTime}` : "（時刻は決めない）"}
+                </p>
+              )
               : <p className="mt-1 text-[12px] text-ink-3">未設定（期限なし）</p>}
           </Field>
 

@@ -270,7 +270,7 @@ export default function HomePage() {
                       </span>
                       {a.dueAt && (
                         <Badge tone={a.urgency === "overdue" ? "danger" : a.urgency === "today" ? "signal" : "neutral"}>
-                          {remainingLabel(new Date(a.dueAt), now)}
+                          {remainingLabel(new Date(a.dueAt), now, a.dueHasTime)}
                         </Badge>
                       )}
                     </Link>

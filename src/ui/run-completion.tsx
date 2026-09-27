@@ -93,7 +93,7 @@ export function RunCompletion({
                     {t.dueAt && (
                       <Badge tone={u === "overdue" ? "danger" : u === "today" ? "signal" : "neutral"}>
                         {new Date(t.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
-                        （{remainingLabel(new Date(t.dueAt), now)}）
+                        （{remainingLabel(new Date(t.dueAt), now, t.dueHasTime)}）
                       </Badge>
                     )}
                   </Link>

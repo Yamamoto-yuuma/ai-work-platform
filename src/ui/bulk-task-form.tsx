@@ -13,9 +13,10 @@
 import { useMemo, useState } from "react";
 import { parseBulk, type ParsedTaskLine } from "@/core/task/bulk";
 import { formatMinutes, TASK_PRIORITIES } from "@/core/model/task-draft";
+import { dueLabel } from "@/core/context/resolver";
 import { Button, Card } from "./primitives";
 
-const SAMPLE = `アオイ製作所に見積を送る 明日 30分
+const SAMPLE = `アオイ製作所に見積を送る 明日 15時 30分
 15日締めの請求書を確認する
 ・記事の校正 1時間
 至急 ハシモト会計へ折り返し`;
@@ -62,8 +63,8 @@ export function BulkTaskForm({
       />
 
       <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-        期限（明日・来週・9/15・15日・月曜）、見積（30分・1時間）、
-        急ぎの印（! や 至急）を書いておくと、そのまま読み取ります。
+        期限（明日・来週・9/15・15日・月曜）、時刻（15時・15:30・午後3時）、
+        見積（30分・1時間）、急ぎの印（! や 至急）を書いておくと、そのまま読み取ります。
         書かなくても構いません。
       </p>
 
@@ -103,7 +104,7 @@ export function BulkTaskForm({
                   {/* 読み取ったものだけ出す。読めなかった欄は空けておく */}
                   {p.dueAt && (
                     <span className="shrink-0 cell-num text-[12px] text-ink-2">
-                      {new Date(p.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
+                      {dueLabel(p.dueAt, p.dueHasTime)}
                     </span>
                   )}
                   {p.estimatedMinutes !== undefined && (

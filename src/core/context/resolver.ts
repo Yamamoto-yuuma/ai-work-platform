@@ -99,9 +99,25 @@ function toDeadlineView(iso: string, now: Date) {
   return { dueAt: iso, remainingLabel: remainingLabel(due, now), isOverdue: due < now };
 }
 
-export function remainingLabel(due: Date, now: Date): string {
+export function remainingLabel(due: Date, now: Date, hasTime = false): string {
   const DAY_MS = 24 * 60 * 60 * 1000;
+  const HOUR_MS = 60 * 60 * 1000;
   const diffMs = due.getTime() - now.getTime();
+
+  /*
+    時刻まで決めてあるものは、1日を切ったら時間で言う。
+    15時が期限のときに朝から晩まで「今日まで」としか出ないなら、
+    時刻を決めた意味がない（決めたのは、その日のいつかを区別したいから）。
+    1日以上あるものは今までどおり日で言う。「あと32時間」は読みにくい。
+  */
+  if (hasTime && Math.abs(diffMs) < DAY_MS) {
+    const abs = Math.abs(diffMs);
+    const hours = Math.floor(abs / HOUR_MS);
+    // 1分未満でも「0分」とは言わない。まだ残っているのか過ぎたのかだけは合わせる
+    const mins = Math.max(1, Math.round((abs % HOUR_MS) / 60000));
+    const span = hours > 0 ? `${hours}時間` : `${mins}分`;
+    return diffMs < 0 ? `${span}超過` : `あと${span}`;
+  }
 
   // 過ぎているものは必ず「超過」と言う。
   // 丸めた結果 0 日になっても「今日まで」と表示すると、
@@ -115,6 +131,21 @@ export function remainingLabel(due: Date, now: Date): string {
   if (days === 0) return "今日まで";
   if (days === 1) return "明日まで";
   return `あと${days}日`;
+}
+
+/**
+ * 期限の日時を読める形にする。
+ *
+ * 時刻を決めていないものに 18:00 と出すと、決めていない時刻を
+ * 決めたように見せてしまう。日付だけにする。
+ */
+export function dueLabel(iso: string, hasTime = false): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const date = d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
+  if (!hasTime) return date;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function urgencyOf(dueAt: string | undefined, now: Date): "overdue" | "today" | "soon" | "normal" {

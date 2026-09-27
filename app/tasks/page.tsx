@@ -24,7 +24,7 @@ import { TASK_PRIORITIES } from "@/core/model/task-draft";
 import { blockingPredecessors, effectiveStatus } from "@/core/task/dependency";
 import { sortDoneTasks, sortOpenTasks } from "@/core/task/order";
 import { blockedBySubtasks, subtaskProgress, subtasksOf, topLevel } from "@/core/task/subtask";
-import { remainingLabel, urgencyOf } from "@/core/context/resolver";
+import { dueLabel, remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { escalatedPriority } from "@/core/priority/escalate";
 import { WaitingSwitch } from "@/ui/waiting-panel";
 import { isWaiting, isStaleWait, waitingDayLabel, waitingTitle } from "@/core/task/waiting";
@@ -328,16 +328,20 @@ function TasksInner() {
             期限は日付そのものより「あとどれだけか」を出す。急ぎだけ色を差す。
             終わったものは、いつ終えたかを出す。「あと何日」は意味を失う。
           */}
-          <span className={`cell-clip cell-num text-[13.5px] ${
-            done ? "text-ink-3"
-            : u === "overdue" ? "font-medium text-danger"
-            : u === "today" ? "text-signal" : "text-ink-3"
-          }`}>
+          <span
+            className={`cell-clip cell-num text-[13.5px] ${
+              done ? "text-ink-3"
+              : u === "overdue" ? "font-medium text-danger"
+              : u === "today" ? "text-signal" : "text-ink-3"
+            }`}
+            /* 列は狭いので「あと何分」だけを出す。何時が期限かは指を置けば読める */
+            title={!done && t.dueAt ? `期限 ${dueLabel(t.dueAt, t.dueHasTime)}` : undefined}
+          >
             {done
               ? (t.completedAt
                   ? new Date(t.completedAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })
                   : "—")
-              : t.dueAt ? remainingLabel(new Date(t.dueAt), now) : "—"}
+              : t.dueAt ? remainingLabel(new Date(t.dueAt), now, t.dueHasTime) : "—"}
           </span>
 
           {/*
@@ -476,6 +480,7 @@ function TasksInner() {
               priority: l.priority ?? ("normal" as const),
               assigneeId: state.currentUserId,
               dueAt: l.dueAt,
+              dueHasTime: l.dueHasTime,
               estimatedMinutes: l.estimatedMinutes,
               source: "manual" as const,
               confirmationState: "confirmed" as const,
@@ -764,7 +769,7 @@ function TasksInner() {
           <Line k="期限">
             <span className={u === "overdue" ? "font-medium text-danger" : u === "today" ? "text-signal" : ""}>
               {task.dueAt
-                ? `${new Date(task.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}（${remainingLabel(new Date(task.dueAt), now)}）`
+                ? `${dueLabel(task.dueAt, task.dueHasTime)}（${remainingLabel(new Date(task.dueAt), now, task.dueHasTime)}）`
                 : "未設定"}
             </span>
           </Line>

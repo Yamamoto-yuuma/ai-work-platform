@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/adapters/memory/store";
 import { Badge, Button, Card, LinkButton, PageHeader } from "@/ui/primitives";
 import { DeleteTaskButton } from "@/ui/delete-task";
-import { remainingLabel, urgencyOf } from "@/core/context/resolver";
+import { dueLabel, remainingLabel, urgencyOf } from "@/core/context/resolver";
 import { buildRun } from "@/services/start-run";
 import { useNow } from "@/ui/use-navigator";
 import { TaskForm } from "@/ui/task-form";
@@ -104,7 +104,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
         {task.source === "flow" && <Badge tone="brand">業務フロー由来</Badge>}
         {task.dueAt ? (
           <Badge tone={urgencyOf(task.dueAt, now) === "overdue" ? "danger" : "brand"}>
-            期限 {new Date(task.dueAt).toLocaleDateString("ja-JP")}（{remainingLabel(new Date(task.dueAt), now)}）
+            期限 {dueLabel(task.dueAt, task.dueHasTime)}（{remainingLabel(new Date(task.dueAt), now, task.dueHasTime)}）
           </Badge>
         ) : (
           <Badge>期限なし</Badge>
